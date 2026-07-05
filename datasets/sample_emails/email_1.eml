@@ -1,0 +1,23 @@
+Message-ID: <001@brdagent.com>
+Date: Mon, 07 Jul 2026 09:15:00 +0530
+From: Sarah Johnson <sarah.johnson@acme.com>
+To: Rahul Mehta <rahul.mehta@acme.com>, Anita Sharma <anita.sharma@acme.com>
+Subject: Project Kickoff - Customer Support Portal
+
+Hi Team,
+
+We are officially starting the Customer Support Portal project.
+
+The primary objective is to reduce customer response time by allowing customers to create support tickets online instead of relying on phone calls.
+
+Key business requirements discussed:
+
+- Customers should be able to register and log in.
+- Customers should be able to create support tickets.
+- Customers should receive email notifications whenever a ticket status changes.
+- Support agents should be able to assign and update tickets.
+
+Let's finalize the requirements document before July 20.
+
+Regards,
+Sarah

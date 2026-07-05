@@ -1,0 +1,24 @@
+Message-ID: <002@brdagent.com>
+Date: Tue, 08 Jul 2026 14:40:00 +0530
+From: Rahul Mehta <rahul.mehta@acme.com>
+To: Sarah Johnson <sarah.johnson@acme.com>, Anita Sharma <anita.sharma@acme.com>
+Cc: Dev Team <dev@acme.com>
+Subject: Additional Requirements from Client
+
+Hi Everyone,
+
+I met with the client this afternoon.
+
+They requested a few additional features.
+
+Requirements:
+
+- Customers should be able to upload screenshots while creating support tickets.
+- The system should support file uploads up to 10 MB.
+- Agents should receive notifications for high-priority tickets.
+- Managers should have access to ticket analytics and weekly reports.
+
+The client emphasized that security is important, so all uploaded files must be scanned before storage.
+
+Thanks,
+Rahul
