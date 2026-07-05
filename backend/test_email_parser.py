@@ -6,7 +6,7 @@ def main():
 
     documents = parser.parse("../datasets/sample_emails/email_1.eml")
 
-    print(f"Parsed {len(documents)} document(s)\n")
+    # print(f"Parsed {len(documents)} document(s)\n") = 1
 
     document = documents[0]
 
