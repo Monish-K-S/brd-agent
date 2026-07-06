@@ -44,12 +44,8 @@ class SourceAwareChunker:
         """
 
         return [
-            DocumentChunk(
-                document_id=document.id,
-                chunk_index=0,
-                source_type=document.source_type,
-                content=document.content,
-                metadata=document.metadata.copy(),
+            self._create_chunk(
+                document=document, chunk_index=0, content=document.content
             )
         ]
 
@@ -60,10 +56,6 @@ class SourceAwareChunker:
         """
         Split a TXT document into paragraph-based chunks.
         """
-        print("----- CONTENT -----")
-        print(repr(document.content))
-        print("-------------------")
-        print(document.content.split("\n\n"))
 
         paragraphs = [
             paragraph.strip()
@@ -75,12 +67,10 @@ class SourceAwareChunker:
 
         for index, paragraph in enumerate(paragraphs):
             chunks.append(
-                DocumentChunk(
-                    document_id=document.id,
+                self._create_chunk(
+                    document=document,
                     chunk_index=index,
-                    source_type=document.source_type,
                     content=paragraph,
-                    metadata=document.metadata.copy(),
                 )
             )
 
@@ -107,13 +97,29 @@ class SourceAwareChunker:
 
         for index, section in enumerate(sections):
             chunks.append(
-                DocumentChunk(
-                    document_id=document.id,
+                self._create_chunk(
+                    document=document,
                     chunk_index=index,
-                    source_type=document.source_type,
                     content=section,
-                    metadata=document.metadata.copy(),
                 )
             )
 
         return chunks
+
+    def _create_chunk(
+        self,
+        document: StandardDocument,
+        chunk_index: int,
+        content: str,
+    ) -> DocumentChunk:
+        """
+        Create a DocumentChunk from a StandardDocument
+        """
+
+        return DocumentChunk(
+            document_id=document.id,
+            chunk_index=chunk_index,
+            source_type=document.source_type,
+            content=content,
+            metadata=document.metadata.copy(),
+        )
