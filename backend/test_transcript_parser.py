@@ -6,3 +6,4 @@ documents = parser.parse("../datasets/train.csv")
 
 print(len(documents))
 # print(documents)
+print(documents[0])

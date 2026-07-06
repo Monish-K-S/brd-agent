@@ -53,4 +53,5 @@ class DocumentNormalizer:
                 for char in document.content
                 if char.isprintable() or char in ("\n", "\t")
             )
+
         return documents
