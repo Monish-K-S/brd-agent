@@ -1,6 +1,7 @@
+from sentence_transformers import SentenceTransformer
+
 from models.document_chunk import DocumentChunk
 from models.embedded_chunk import EmbeddedChunk
-from sentence_transformers import SentenceTransformer
 
 
 class EmbeddingGenerator:
@@ -39,3 +40,15 @@ class EmbeddingGenerator:
             )
 
         return embedded_chunks
+
+    def generate_embedding(
+        self,
+        text: str,
+    ) -> list[float]:
+        """
+        Generate an embedding for a single piece of text.
+        """
+
+        embedding = self.model.encode(text)
+
+        return embedding.tolist()
