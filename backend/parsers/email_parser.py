@@ -13,6 +13,7 @@ class EmailParser(BaseParser):
     """
 
     def parse(self, source: str) -> list[StandardDocument]:
+
         file_path = Path(source)
 
         if not file_path.exists():
@@ -30,6 +31,7 @@ class EmailParser(BaseParser):
         date = email.get("Date")
 
         created_at = None
+
         if date:
             try:
                 created_at = parsedate_to_datetime(date)
