@@ -21,4 +21,21 @@ class EmbeddingGenerator:
         Convert DocumentChunk to EmbeddedChunk
         """
 
-        return []
+        # Extract the text from each chunk
+        texts = [chunk.content for chunk in chunks]
+
+        # Generate embeddings in a single batch
+        embeddings = self.model.encode(texts)
+
+        embedded_chunks: list[EmbeddedChunk] = []
+
+        for chunk, embedding in zip(chunks, embeddings):
+            embedded_chunks.append(
+                EmbeddedChunk(
+                    chunk=chunk,
+                    embedding=embedding.tolist(),
+                    embedding_model=self.DEFAULT_MODEL,
+                )
+            )
+
+        return embedded_chunks
