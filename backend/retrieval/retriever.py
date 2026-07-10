@@ -24,6 +24,7 @@ class Retriever:
         )
 
     def build_context(
+        self,
         chunks: list[DocumentChunk],
     ) -> str:
         """
@@ -39,6 +40,6 @@ class Retriever:
                 f"{chunk.content}"
             )
 
-            sections.add(section)
+            sections.append(section)
 
         return "\n\n" + ("=" * 50 + "\n\n").join(sections)
