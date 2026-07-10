@@ -1,1 +1,3 @@
 datasets/emails.csv
+.DS_Store
+backend/chroma_db/
