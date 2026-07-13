@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+from google import genai
+
 class GeminiClient:
     """
     Client for interacting with the Gemini API
