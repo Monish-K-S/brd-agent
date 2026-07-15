@@ -74,10 +74,6 @@ class EmailParser(BaseParser):
                 participants=participants,
                 content=body,
                 metadata={
-                    "message_id": email.get("Message-ID"),
-                    "to": to,
-                    "cc": cc,
-                    "bcc": bcc,
                     "file_name": file_path.name,
                 },
             )

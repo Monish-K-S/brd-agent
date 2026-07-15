@@ -1,14 +1,23 @@
 from pprint import pprint
-from retrieval.retriever import Retriever
+from services.requirement_extraction_service import RequirementExtractionService
 from services.indexing_service import IndexingService
+from retrieval.retriever import Retriever
 
 service = IndexingService()
 
-service.index("../datasets/sample.txt")
+#service.index("../datasets/sample.txt")
 
-retriever = Retriever()
-chunks = retriever.retrieve(
-    "upload project documents"
+#service.index("../datasets/sample_emails/email_2.eml")
+
+# service.index("../datasets/train.csv")
+
+service.index_directory(
+    "../datasets/sample_project"
 )
 
-pprint(chunks)
+service = RequirementExtractionService()
+result = service.extract(
+    query="Generate business requirements for this project."
+)
+
+pprint(result)
