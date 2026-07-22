@@ -13,7 +13,7 @@ class BRD:
 
     executive_summary: str
 
-    business_objective: list[str]
+    business_objectives: list[str]
 
     functional_requirements: list[Requirement]
 
