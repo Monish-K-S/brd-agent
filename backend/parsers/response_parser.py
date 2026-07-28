@@ -1,6 +1,7 @@
 import json
 from typing import Any
 
+from models.document_analysis import DocumentAnalysis, ProjectInformation
 from models.standard_document import StandardDocument
 
 
@@ -28,7 +29,8 @@ class ResponseParser:
     def parse_document_analysis(
         self,
         response: str,
-    ) -> dict[str, Any]:
+        document: StandardDocument,
+    ) -> DocumentAnalysis:
         """
         Parse and validate an LLM response.
 
@@ -39,7 +41,7 @@ class ResponseParser:
 
         self._validate_schema(data)
 
-        return data
+        return self._map_document_analysis(data,document)
 
     def _load_json(
         self,
@@ -82,3 +84,40 @@ class ResponseParser:
                 "Missing required keys: "
                 + ", ".join(missing_keys)
             )
+
+    def _map_document_analysis(
+        self,
+        data: dict[str, Any],
+        document: StandardDocument,
+    ) -> DocumentAnalysis:
+
+        return DocumentAnalysis(
+            project_information=self._map_project_information(
+                data["project_information"],
+                document
+            ),
+            stakeholders=[],
+            business_objectives=[],
+            functional_requirements=[],
+            non_functional_requirements=[],
+            constraints=[],
+            assumptions=[],
+            decisions=[],
+            risks=[],
+            open_questions=[],
+        )
+
+
+    def _map_project_information(
+        self,
+        data: dict[str, Any],
+        document: StandardDocument,
+    ) -> ProjectInformation:
+
+        return ProjectInformation(
+            name=data["name"],
+            evidence=Evidence(
+            document_id=document.id,
+            excerpt =data["evidence"]
+        ),
+        )
