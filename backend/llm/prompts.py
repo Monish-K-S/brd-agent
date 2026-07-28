@@ -1,4 +1,4 @@
-REQUIREMENT_EXTRACTION_PROMPT = """
+'''REQUIREMENT_EXTRACTION_PROMPT = """
 You are an AI information extraction system.
 
 Your task is to extract business requirements from the provided project context.
@@ -97,3 +97,76 @@ Requirements:
 
 {requirements}
 """
+'''
+from models.standard_document import StandardDocument
+
+from llm.schemas import DOCUMENT_ANALYSIS_EXTRACTION_SCHEMA
+
+
+def format_document(document: StandardDocument) -> str:
+    """Formats a StandardDocument into a text representation for LLM prompts."""
+
+    participants = (
+        ", ".join(document.participants)
+        if document.participants
+        else "N/A"
+    )
+
+    metadata = (
+        "\n".join(
+            f"- {key}: {value}"
+            for key, value in document.metadata.items()
+        )
+        if document.metadata
+        else "N/A"
+    )
+
+    return f"""
+## Document
+
+### Title
+{document.title}
+
+### Author
+{document.author or "N/A"}
+
+### Created At
+{document.created_at or "N/A"}
+
+### Participants
+{participants}
+
+### Metadata
+{metadata}
+
+### Content
+{document.content}
+""".strip()
+
+
+def build_document_analysis_prompt(document: StandardDocument) -> str:
+    """Builds the prompt for extracting structured information from a document."""
+
+    return f"""
+You are an experienced Business Analyst.
+
+Your task is to analyze a SINGLE project document and extract structured business information.
+
+## Instructions
+
+- Analyze ONLY the provided document.
+- Extract ONLY information explicitly stated in the document.
+- Do NOT infer, assume, or invent information.
+- If information is not present, return an empty list or empty value.
+- For every extracted item, include the smallest relevant excerpt from the document as evidence.
+- Do NOT summarize the document.
+- Do NOT explain your reasoning.
+- Return ONLY valid JSON.
+- The JSON MUST exactly match the schema below.
+
+## Output Schema
+
+{DOCUMENT_ANALYSIS_EXTRACTION_SCHEMA}
+
+{format_document(document)}
+""".strip()

@@ -1,33 +1,14 @@
-from uuid import uuid4
+from parsers.response_parser import ResponseParser
 
-from llm.response_parser import ResponseParser
+parser = ResponseParser()
 
+response = """
+[
+    {}
+]
+"""
 
-def main():
-    response = {
-        "functional_requirements": [
-            {
-                "description": "The system should allow users to upload project documents."
-            },
-            {
-                "description": "The generated BRD should include all business requirements."
-            },
-        ],
-        "non_functional_requirements": [],
-    }
+parser.parse_document_analysis(response)
+data = parser.parse_document_analysis(response)
 
-    parser = ResponseParser()
-
-    result = parser.parse(
-        response=response,
-        source_chunk_ids=[
-            uuid4(),
-            uuid4(),
-        ],
-    )
-
-    print(result)
-
-
-if __name__ == "__main__":
-    main()
+print(data)
