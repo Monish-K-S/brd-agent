@@ -4,7 +4,6 @@ from typing import Any
 from models.document_analysis import DocumentAnalysis, ProjectInformation
 from models.standard_document import StandardDocument
 
-
 REQUIRED_KEYS = (
     "project_information",
     "stakeholders",
@@ -41,7 +40,7 @@ class ResponseParser:
 
         self._validate_schema(data)
 
-        return self._map_document_analysis(data,document)
+        return self._map_document_analysis(data, document)
 
     def _load_json(
         self,
@@ -54,14 +53,10 @@ class ResponseParser:
         try:
             data = json.loads(response)
         except json.JSONDecodeError as e:
-            raise ResponseParserError(
-                "Invalid JSON returned by the LLM."
-            ) from e
+            raise ResponseParserError("Invalid JSON returned by the LLM.") from e
 
         if not isinstance(data, dict):
-            raise ResponseParserError(
-                "LLM response must be a JSON object."
-            )
+            raise ResponseParserError("LLM response must be a JSON object.")
 
         return data
 
@@ -73,16 +68,11 @@ class ResponseParser:
         Validate the top-level extraction schema.
         """
 
-        missing_keys = [
-            key
-            for key in REQUIRED_KEYS
-            if key not in data
-        ]
+        missing_keys = [key for key in REQUIRED_KEYS if key not in data]
 
         if missing_keys:
             raise ResponseParserError(
-                "Missing required keys: "
-                + ", ".join(missing_keys)
+                "Missing required keys: " + ", ".join(missing_keys)
             )
 
     def _map_document_analysis(
@@ -93,8 +83,7 @@ class ResponseParser:
 
         return DocumentAnalysis(
             project_information=self._map_project_information(
-                data["project_information"],
-                document
+                data["project_information"], document
             ),
             stakeholders=[],
             business_objectives=[],
@@ -107,7 +96,6 @@ class ResponseParser:
             open_questions=[],
         )
 
-
     def _map_project_information(
         self,
         data: dict[str, Any],
@@ -116,8 +104,5 @@ class ResponseParser:
 
         return ProjectInformation(
             name=data["name"],
-            evidence=Evidence(
-            document_id=document.id,
-            excerpt =data["evidence"]
-        ),
+            evidence=Evidence(document_id=document.id, excerpt=data["evidence"]),
         )
