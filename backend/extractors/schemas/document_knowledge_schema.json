@@ -1,0 +1,124 @@
+{
+  "type": "object",
+  "description": "Structured project knowledge extracted from the document.",
+  "properties": {
+    "project_metadata": {
+      "type": "object",
+      "description": "Project-level information explicitly stated or clearly described in the document.",
+      "properties": {
+        "project_name": {
+          "type": "string",
+          "description": "The name of the project."
+        },
+        "description": {
+          "type": "string",
+          "description": "A concise description of the project, its purpose, or what is being built."
+        }
+      }
+    },
+    "stakeholders": {
+      "type": "array",
+      "description": "People, teams, organizations, or roles identified as stakeholders in the project.",
+      "items": {
+        "type": "object",
+        "description": "A stakeholder identified in the document.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the stakeholder, if explicitly available."
+          },
+          "role": {
+            "type": "string",
+            "description": "The stakeholder's role or relationship to the project."
+          },
+          "organization": {
+            "type": "string",
+            "description": "The organization or company associated with the stakeholder, if available."
+          }
+        }
+      }
+    },
+    "business_objectives": {
+      "type": "array",
+      "description": "Business goals or outcomes the project is intended to achieve.",
+      "items": {
+        "type": "string",
+        "description": "A specific business objective stated or clearly described in the document."
+      }
+    },
+    "functional_requirements": {
+      "type": "array",
+      "description": "Specific capabilities or behaviors the system or product must provide.",
+      "items": {
+        "type": "string",
+        "description": "A specific functional requirement stated or clearly described in the document."
+      }
+    },
+    "non_functional_requirements": {
+      "type": "array",
+      "description": "Requirements describing quality attributes, performance, security, availability, scalability, compliance, or other non-functional characteristics.",
+      "items": {
+        "type": "object",
+        "description": "A non-functional requirement identified in the document.",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "The category of the non-functional requirement, such as security, performance, availability, scalability, or compliance."
+          },
+          "description": {
+            "type": "string",
+            "description": "The non-functional requirement."
+          }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "description": "Statements treated as assumptions about the project, users, environment, technology, or business.",
+      "items": {
+        "type": "string",
+        "description": "A specific project assumption stated or clearly implied by the document."
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "description": "Known limitations or restrictions affecting the project.",
+      "items": {
+        "type": "string",
+        "description": "A specific project constraint stated or clearly described in the document."
+      }
+    },
+    "risks": {
+      "type": "array",
+      "description": "Potential events, conditions, or issues that could negatively affect the project.",
+      "items": {
+        "type": "string",
+        "description": "A specific project risk stated or clearly described in the document."
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "description": "Explicit decisions that have been made about the project.",
+      "items": {
+        "type": "string",
+        "description": "A specific project decision stated in the document."
+      }
+    },
+    "out_of_scope": {
+      "type": "array",
+      "description": "Features, capabilities, activities, or areas explicitly excluded from the project scope.",
+      "items": {
+        "type": "string",
+        "description": "A specific item explicitly identified as out of scope."
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "description": "Questions, ambiguities, or unresolved issues that require clarification.",
+      "items": {
+        "type": "string",
+        "description": "A specific open question or unresolved issue identified in the document."
+      }
+    }
+  }
+}
