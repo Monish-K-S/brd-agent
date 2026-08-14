@@ -1,4 +1,4 @@
-datasets/emails.csv
+datasets/
 .DS_Store
 backend/chroma_db/
 backend/llm/.env
