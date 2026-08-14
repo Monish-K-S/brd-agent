@@ -6,18 +6,25 @@ Subject: Project Kickoff - Customer Support Portal
 
 Hi Team,
 
-We are officially starting the Customer Support Portal project.
+We are officially kicking off the Customer Support Portal project.
 
-The primary objective is to reduce customer response time by allowing customers to create support tickets online instead of relying on phone calls.
+Over the past few months we've seen a significant increase in customer support calls, especially for simple status updates and ticket requests. Management would like customers to be able to handle these tasks themselves through an online portal.
 
-Key business requirements discussed:
+For the MVP, let's focus on the core functionality first.
 
-- Customers should be able to register and log in.
-- Customers should be able to create support tickets.
-- Customers should receive email notifications whenever a ticket status changes.
-- Support agents should be able to assign and update tickets.
+The initial business requirements are:
 
-Let's finalize the requirements document before July 20.
+- Customers should be able to register using their email address.
+- Registered customers should be able to securely log in.
+- Customers should be able to reset forgotten passwords via email.
+- Customers should be able to create and track support tickets.
+- Customers should receive email notifications whenever the status of a ticket changes.
+
+We'll discuss the support team's workflow during this week's requirements meeting.
+
+Please review these items before our meeting on Thursday.
 
 Regards,
-Sarah
+
+Sarah Johnson
+Business Product Manager

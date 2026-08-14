@@ -1,4 +1,5 @@
 from uuid import UUID
+from models.brd import BRD
 from models.requirement import Requirement
 from models.requirement_extraction_result import RequirementExtractionResult
 
@@ -38,3 +39,21 @@ class ResponseParser:
                 functional_requirements=functional_requirements,
                 non_functional_requirements=non_functional_requirements,
             )
+
+
+    def parse_brd(
+        self,
+        response: dict,
+        requirements: RequirementExtractionResult,
+    ) -> BRD:
+        """
+        Convert Gemini's BRD JSON into a BRD Domain Model.
+        """
+
+        return BRD(
+            project_name=response["project_name"],
+            executive_summary=response["executive_summary"],
+            business_objectives=response["business_objectives"],
+            functional_requirements=requirements.functional_requirements,
+            non_functional_requirements=requirements.non_functional_requirements,
+        )

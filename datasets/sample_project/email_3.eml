@@ -1,22 +1,28 @@
 Message-ID: <003@brdagent.com>
-Date: Thu, 10 Jul 2026 11:10:00 +0530
+Date: Mon, 14 Jul 2026 11:10:00 +0530
 From: Anita Sharma <anita.sharma@acme.com>
 To: Sarah Johnson <sarah.johnson@acme.com>, Rahul Mehta <rahul.mehta@acme.com>
-Subject: Timeline and Deployment Discussion
+Subject: Security Review - Customer Support Portal
 
-Hello Team,
+Hi Sarah and Rahul,
 
-Following yesterday's planning meeting, here are the agreed timelines.
+I've completed the initial security review for the proposed Customer Support Portal.
 
-- Requirements freeze: July 20
-- UI design completion: July 28
-- Backend implementation: August 15
-- User Acceptance Testing: August 25
-- Production deployment: September 1
+Most of the functional requirements look good, but I'd like the following security requirements to be included before development begins.
 
-The application should maintain at least 99.9% availability and support up to 5,000 concurrent users.
+- Customer passwords must never be stored in plain text and should be securely hashed.
+- All customer information should be encrypted while stored in the database.
+- Support agents and administrators should authenticate using multi-factor authentication.
+- Customer accounts can continue using email and password for the first release.
+- User sessions should automatically expire after 15 minutes of inactivity.
+- Only support agents and administrators should be able to access internal ticket notes.
+- All important user actions should be recorded in audit logs for compliance purposes.
 
-Please review these timelines before tomorrow's meeting.
+I also recommend scheduling automated daily database backups and defining a system availability target before finalizing the BRD.
+
+These requirements should help us satisfy our internal security and compliance standards without significantly impacting the delivery timeline.
 
 Regards,
-Anita
+
+Anita Sharma
+Security Architect
