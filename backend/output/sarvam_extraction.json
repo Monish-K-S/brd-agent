@@ -1,6 +1,6 @@
 {
   "type": "extract",
-  "job_id": "01a00093-d2c2-7d9a-8c0c-26d4a15e7548",
+  "job_id": "01a00588-56a1-772c-a257-1dab976a061b",
   "status": "completed",
   "usage": {
     "pages_total": 6,
@@ -12,7 +12,7 @@
   "result": {
     "project_metadata": {
       "project_name": "Customer Support Portal",
-      "description": "An online portal allowing customers to handle simple status updates and ticket requests themselves to reduce support workload."
+      "description": "An online portal allowing customers to handle simple status updates and ticket requests themselves to reduce the volume of customer support calls."
     },
     "stakeholders": [
       {
@@ -22,7 +22,7 @@
       },
       {
         "name": "Rahul Mehta",
-        "role": "Not explicitly stated",
+        "role": "Technical Lead",
         "organization": "acme.com"
       },
       {
@@ -32,88 +32,84 @@
       }
     ],
     "business_objectives": [
-      "Customers to be able to handle tasks themselves through an online portal",
-      "Reduce support workload while improving customer experience"
+      "Reduce support workload while improving customer experience by allowing customers to track their own requests online instead of calling."
     ],
     "functional_requirements": [
-      "Customers should be able to register using their email address",
-      "Registered customers should be able to securely log in",
-      "Customers should be able to reset forgotten passwords via email",
-      "Customers should be able to create and track support tickets",
-      "Customers should receive email notifications whenever the status of a ticket changes",
-      "Support agents dashboard to view all assigned tickets",
-      "Support agents ability to update ticket status",
-      "Support agents ability to assign or reassign tickets to other agents",
-      "Support agents ability to add internal notes hidden from customers",
-      "Ability to upload screenshots or PDF documents when submitting a ticket",
-      "Search for previously submitted tickets using the ticket number",
-      "Customers can edit tickets only before the ticket moves to In Progress",
-      "Basic reporting: number of open tickets, average resolution time, and tickets by priority"
+      "Customers should be able to register using their email address.",
+      "Registered customers should be able to securely log in.",
+      "Customers should be able to reset forgotten passwords via email.",
+      "Customers should be able to create and track support tickets.",
+      "Customers should receive email notifications whenever the status of a ticket changes.",
+      "Support agents should have a dedicated dashboard to view all assigned tickets, update ticket status, and assign or reassign tickets to other agents.",
+      "Support agents should be able to add internal notes that remain hidden from customers.",
+      "Customers should be able to upload screenshots or PDF documents when submitting a ticket.",
+      "Customers should be able to search for previously submitted tickets using the ticket number.",
+      "Customers should be able to edit tickets only while the ticket is still Open (before it moves to In Progress).",
+      "Support agents should be able to search tickets by ticket number, customer email, and priority.",
+      "The system should provide basic reporting for MVP including number of open tickets, average resolution time, and tickets by priority."
     ],
     "non_functional_requirements": [
       {
         "category": "security",
-        "description": "Customer passwords must never be stored in plain text and should be securely hashed"
+        "description": "Customer passwords must never be stored in plain text and should be securely hashed."
       },
       {
         "category": "security",
-        "description": "All customer information should be encrypted while stored in the database"
+        "description": "All customer information should be encrypted while stored in the database."
       },
       {
         "category": "security",
-        "description": "Support agents and administrators should authenticate using multi-factor authentication"
+        "description": "Support agents and administrators should authenticate using multi-factor authentication."
       },
       {
         "category": "security",
-        "description": "User sessions should automatically expire after 15 minutes of inactivity"
+        "description": "User sessions should automatically expire after 15 minutes of inactivity."
       },
       {
         "category": "security",
-        "description": "Only support agents and administrators should be able to access internal ticket notes"
+        "description": "Only support agents and administrators should be able to access internal ticket notes."
       },
       {
         "category": "compliance",
-        "description": "All important user actions should be recorded in audit logs for compliance purposes"
+        "description": "All important user actions should be recorded in audit logs for compliance purposes."
+      },
+      {
+        "category": "reliability",
+        "description": "Availability target: Ninety-nine point nine percent."
       },
       {
         "category": "performance",
-        "description": "around 5k concurrent users"
+        "description": "Estimated around five thousand concurrent users."
       },
       {
         "category": "performance",
-        "description": "API target under 500ms"
+        "description": "Average response time should stay below five hundred milliseconds."
       },
       {
-        "category": "availability",
-        "description": "Ninety-nine point nine percent"
-      },
-      {
-        "category": "compliance",
-        "description": "Daily database backups"
+        "category": "reliability",
+        "description": "Daily database backups."
       }
     ],
     "assumptions": [],
     "constraints": [],
     "risks": [],
     "decisions": [
-      "Customer accounts will use email and password for the first release",
-      "Social login is a future enhancement and not for MVP",
-      "Editing tickets allowed only while they are still Open/before In Progress"
+      "Customer accounts will use email and password for the first release; MFA for customers can wait.",
+      "Social login is marked as a future enhancement and not for MVP.",
+      "Editing of tickets is restricted to before the ticket moves to 'In Progress' status."
     ],
     "out_of_scope": [
       "chatbot",
       "live chat",
       "social login",
       "SMS notifications",
-      "Mobile app"
+      "Mobile app (Phase two)"
     ],
     "open_questions": [
-      "should customers edit tickets after submission?",
-      "do they actually need reports for MVP?",
-      "reopen closed tickets?",
-      "max attachment size?",
-      "who owns archived tickets?",
-      "should managers export reports?"
+      "Should customers be allowed to reopen closed tickets?",
+      "What is the max attachment size?",
+      "Who owns archived tickets?",
+      "Should managers export reports?"
     ]
   },
   "annotations": {
@@ -123,17 +119,17 @@
         "sources": [
           {
             "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       "description": {
-        "confidence": 0.9503055005919832,
+        "confidence": 0.9428436641755609,
         "sources": [
           {
             "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
@@ -142,11 +138,11 @@
     "stakeholders": [
       {
         "name": {
-          "confidence": 0.9999995628998614,
+          "confidence": 0.9999998410543564,
           "sources": [
             {
               "page_num": 1,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -156,17 +152,17 @@
           "sources": [
             {
               "page_num": 1,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "organization": {
-          "confidence": 0.9992557474073278,
+          "confidence": 0.9998799598438777,
           "sources": [
             {
               "page_num": 1,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -178,39 +174,7 @@
           "sources": [
             {
               "page_num": 1,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-              "filename": "sample_project.pdf"
-            }
-          ]
-        },
-        "role": {
-          "confidence": 0.9673753889862896,
-          "sources": [
-            {
-              "page_num": 1,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-              "filename": "sample_project.pdf"
-            }
-          ]
-        },
-        "organization": {
-          "confidence": 0.9992557474073278,
-          "sources": [
-            {
-              "page_num": 1,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-              "filename": "sample_project.pdf"
-            }
-          ]
-        }
-      },
-      {
-        "name": {
-          "confidence": 1,
-          "sources": [
-            {
-              "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -220,17 +184,49 @@
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "organization": {
-          "confidence": 0.9992557474073278,
+          "confidence": 0.9998799598438777,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
+              "filename": "sample_project.pdf"
+            }
+          ]
+        }
+      },
+      {
+        "name": {
+          "confidence": 1,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
+              "filename": "sample_project.pdf"
+            }
+          ]
+        },
+        "role": {
+          "confidence": 0.9999997019768649,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
+              "filename": "sample_project.pdf"
+            }
+          ]
+        },
+        "organization": {
+          "confidence": 0.9998799598438777,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -239,21 +235,11 @@
     ],
     "business_objectives": [
       {
-        "confidence": 0.8727065194578693,
-        "sources": [
-          {
-            "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-            "filename": "sample_project.pdf"
-          }
-        ]
-      },
-      {
-        "confidence": 0.999476737253968,
+        "confidence": 0.9887371022569438,
         "sources": [
           {
             "page_num": 4,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
@@ -261,131 +247,121 @@
     ],
     "functional_requirements": [
       {
-        "confidence": 0.999987186585448,
+        "confidence": 0.9999968789812581,
         "sources": [
           {
             "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9999990595777043,
+        "confidence": 0.9973953964814741,
         "sources": [
           {
             "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9999997377401229,
+        "confidence": 0.9999999241395883,
         "sources": [
           {
             "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9999998331072412,
+        "confidence": 0.9976714513986373,
         "sources": [
           {
             "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9999986887124247,
+        "confidence": 0.999999917470523,
         "sources": [
           {
             "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9649132691714326,
+        "confidence": 0.9910152134410016,
         "sources": [
           {
-            "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "page_num": 2,
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9102031752516294,
+        "confidence": 0.999826145432055,
         "sources": [
           {
-            "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "page_num": 2,
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9993804682224061,
+        "confidence": 0.9999985933462601,
         "sources": [
           {
-            "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "page_num": 2,
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9820098058473177,
+        "confidence": 0.9999818424062639,
         "sources": [
           {
-            "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "page_num": 2,
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9279442054685173,
-        "sources": [
-          {
-            "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-            "filename": "sample_project.pdf"
-          }
-        ]
-      },
-      {
-        "confidence": 0.9756008041567426,
-        "sources": [
-          {
-            "page_num": 1,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-            "filename": "sample_project.pdf"
-          }
-        ]
-      },
-      {
-        "confidence": 0.9415822670046484,
+        "confidence": 0.9657178100160899,
         "sources": [
           {
             "page_num": 4,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9334445283332493,
+        "confidence": 0.9327229470910964,
         "sources": [
           {
             "page_num": 5,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
+            "filename": "sample_project.pdf"
+          }
+        ]
+      },
+      {
+        "confidence": 0.9292520176662041,
+        "sources": [
+          {
+            "page_num": 5,
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
@@ -394,21 +370,21 @@
     "non_functional_requirements": [
       {
         "category": {
-          "confidence": 0.9971909971238246,
+          "confidence": 0.9999234734893462,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "description": {
-          "confidence": 0.9999966282313467,
+          "confidence": 0.9999998331071789,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -416,21 +392,21 @@
       },
       {
         "category": {
-          "confidence": 0.9971909971238246,
+          "confidence": 0.9999234734893462,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "description": {
-          "confidence": 0.999999880790797,
+          "confidence": 0.9999999403953689,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -438,21 +414,21 @@
       },
       {
         "category": {
-          "confidence": 0.9971909971238246,
+          "confidence": 0.9999234734893462,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "description": {
-          "confidence": 0.9999999133023814,
+          "confidence": 0.9999325125096005,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -460,21 +436,21 @@
       },
       {
         "category": {
-          "confidence": 0.9971909971238246,
+          "confidence": 0.9999234734893462,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "description": {
-          "confidence": 0.9999998609225459,
+          "confidence": 0.9999998899607652,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -482,21 +458,21 @@
       },
       {
         "category": {
-          "confidence": 0.9971909971238246,
+          "confidence": 0.9999234734893462,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "description": {
-          "confidence": 0.9995978923575028,
+          "confidence": 0.999892346029551,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -504,21 +480,21 @@
       },
       {
         "category": {
-          "confidence": 0.9999239502537504,
+          "confidence": 0.9999510073827051,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "description": {
-          "confidence": 0.985966746421242,
+          "confidence": 0.9955906392516166,
           "sources": [
             {
               "page_num": 2,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -526,65 +502,21 @@
       },
       {
         "category": {
-          "confidence": 0.46873412152146615,
-          "sources": [
-            {
-              "page_num": 3,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-              "filename": "sample_project.pdf"
-            }
-          ]
-        },
-        "description": {
-          "confidence": 0.9180773199479298,
-          "sources": [
-            {
-              "page_num": 3,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-              "filename": "sample_project.pdf"
-            }
-          ]
-        }
-      },
-      {
-        "category": {
-          "confidence": 0.46873412152146615,
-          "sources": [
-            {
-              "page_num": 3,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-              "filename": "sample_project.pdf"
-            }
-          ]
-        },
-        "description": {
-          "confidence": 0.9939274581789859,
-          "sources": [
-            {
-              "page_num": 3,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-              "filename": "sample_project.pdf"
-            }
-          ]
-        }
-      },
-      {
-        "category": {
-          "confidence": 0.9999958276922101,
+          "confidence": 0.48087335944595216,
           "sources": [
             {
               "page_num": 6,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "description": {
-          "confidence": 0.9996391194234674,
+          "confidence": 0.9051099378191161,
           "sources": [
             {
               "page_num": 6,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -592,21 +524,65 @@
       },
       {
         "category": {
-          "confidence": 0.9999239502537504,
+          "confidence": 0.8669412826414405,
           "sources": [
             {
               "page_num": 6,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
         },
         "description": {
-          "confidence": 0.9999999205271592,
+          "confidence": 0.9338035328300649,
           "sources": [
             {
               "page_num": 6,
-              "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
+              "filename": "sample_project.pdf"
+            }
+          ]
+        }
+      },
+      {
+        "category": {
+          "confidence": 0.8669412826414405,
+          "sources": [
+            {
+              "page_num": 6,
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
+              "filename": "sample_project.pdf"
+            }
+          ]
+        },
+        "description": {
+          "confidence": 0.9999911315613277,
+          "sources": [
+            {
+              "page_num": 6,
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
+              "filename": "sample_project.pdf"
+            }
+          ]
+        }
+      },
+      {
+        "category": {
+          "confidence": 0.48087335944595216,
+          "sources": [
+            {
+              "page_num": 6,
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
+              "filename": "sample_project.pdf"
+            }
+          ]
+        },
+        "description": {
+          "confidence": 0.9688145164823717,
+          "sources": [
+            {
+              "page_num": 6,
+              "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
               "filename": "sample_project.pdf"
             }
           ]
@@ -618,31 +594,31 @@
     "risks": [],
     "decisions": [
       {
-        "confidence": 0.978317721496554,
+        "confidence": 0.9238257673272032,
         "sources": [
           {
             "page_num": 2,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.8326440549273484,
+        "confidence": 0.9002999850383121,
         "sources": [
           {
             "page_num": 4,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.7080454325957592,
+        "confidence": 0.7240297307012816,
         "sources": [
           {
             "page_num": 4,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
@@ -650,21 +626,21 @@
     ],
     "out_of_scope": [
       {
-        "confidence": 0.9967947552520912,
+        "confidence": 0.8193498681786509,
         "sources": [
           {
             "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9999998211861261,
+        "confidence": 0.9999995231632965,
         "sources": [
           {
             "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
@@ -674,7 +650,7 @@
         "sources": [
           {
             "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
@@ -684,17 +660,17 @@
         "sources": [
           {
             "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9999571479129032,
+        "confidence": 0.9721140750396416,
         "sources": [
           {
             "page_num": 6,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
@@ -702,61 +678,41 @@
     ],
     "open_questions": [
       {
-        "confidence": 0.9029831842342195,
+        "confidence": 0.9999872591942195,
         "sources": [
           {
-            "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "page_num": 6,
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9996596735536303,
+        "confidence": 0.9855571450778583,
         "sources": [
           {
             "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 0.9999988794379704,
+        "confidence": 0.9999940158712484,
         "sources": [
           {
             "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
       },
       {
-        "confidence": 1,
+        "confidence": 0.9989555334215947,
         "sources": [
           {
             "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-            "filename": "sample_project.pdf"
-          }
-        ]
-      },
-      {
-        "confidence": 0.9999998331071325,
-        "sources": [
-          {
-            "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
-            "filename": "sample_project.pdf"
-          }
-        ]
-      },
-      {
-        "confidence": 0.9999998807907801,
-        "sources": [
-          {
-            "page_num": 3,
-            "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+            "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
             "filename": "sample_project.pdf"
           }
         ]
@@ -765,28 +721,28 @@
   },
   "version": 1,
   "source_map": {
-    "01a00093-d2c2-7e75-85c3-7cab12692170:1": {
-      "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+    "01a00588-56a1-77b4-a65d-a69303860a6e:1": {
+      "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
       "filename": "sample_project.pdf"
     },
-    "01a00093-d2c2-7e75-85c3-7cab12692170:2": {
-      "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+    "01a00588-56a1-77b4-a65d-a69303860a6e:2": {
+      "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
       "filename": "sample_project.pdf"
     },
-    "01a00093-d2c2-7e75-85c3-7cab12692170:3": {
-      "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+    "01a00588-56a1-77b4-a65d-a69303860a6e:3": {
+      "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
       "filename": "sample_project.pdf"
     },
-    "01a00093-d2c2-7e75-85c3-7cab12692170:4": {
-      "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+    "01a00588-56a1-77b4-a65d-a69303860a6e:4": {
+      "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
       "filename": "sample_project.pdf"
     },
-    "01a00093-d2c2-7e75-85c3-7cab12692170:5": {
-      "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+    "01a00588-56a1-77b4-a65d-a69303860a6e:5": {
+      "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
       "filename": "sample_project.pdf"
     },
-    "01a00093-d2c2-7e75-85c3-7cab12692170:6": {
-      "document_id": "01a00093-d2c2-7e75-85c3-7cab12692170",
+    "01a00588-56a1-77b4-a65d-a69303860a6e:6": {
+      "document_id": "01a00588-56a1-77b4-a65d-a69303860a6e",
       "filename": "sample_project.pdf"
     }
   }
