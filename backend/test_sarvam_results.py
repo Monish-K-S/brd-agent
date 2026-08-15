@@ -5,7 +5,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sarvamai import SarvamAI
 
-
 load_dotenv()
 
 API_KEY = os.getenv("SARVAM_API_KEY")
