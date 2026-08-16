@@ -1,0 +1,265 @@
+{
+  "type": "object",
+  "description": "Structured Business Requirements Document generated exclusively from the provided ProjectKnowledge.",
+  "properties": {
+    "executive_summary": {
+      "type": "object",
+      "description": "A concise summary of the project, its purpose, key business goals, and overall scope.",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "A concise executive summary based only on the provided ProjectKnowledge."
+        }
+      },
+      "required": [
+        "content"
+      ]
+    },
+
+    "project_overview": {
+      "type": "object",
+      "description": "Basic information describing the project.",
+      "properties": {
+        "project_name": {
+          "type": "string",
+          "description": "The name of the project from ProjectKnowledge."
+        },
+        "description": {
+          "type": "string",
+          "description": "A concise description of the project based on ProjectKnowledge."
+        }
+      },
+      "required": [
+        "project_name",
+        "description"
+      ]
+    },
+
+    "business_objectives": {
+      "type": "object",
+      "description": "The business objectives the project is intended to achieve.",
+      "properties": {
+        "objectives": {
+          "type": "array",
+          "description": "Business objectives supported by ProjectKnowledge.",
+          "items": {
+            "type": "string",
+            "description": "A business objective."
+          }
+        }
+      },
+      "required": [
+        "objectives"
+      ]
+    },
+
+    "scope": {
+      "type": "object",
+      "description": "The boundaries of the project, including what is included and explicitly excluded.",
+      "properties": {
+        "in_scope": {
+          "type": "array",
+          "description": "Capabilities, activities, or areas supported by ProjectKnowledge as part of the project scope.",
+          "items": {
+            "type": "string",
+            "description": "An item included within the project scope."
+          }
+        },
+        "out_of_scope": {
+          "type": "array",
+          "description": "Features, capabilities, activities, or areas explicitly excluded from the project.",
+          "items": {
+            "type": "string",
+            "description": "An item explicitly outside the project scope."
+          }
+        }
+      },
+      "required": [
+        "in_scope",
+        "out_of_scope"
+      ]
+    },
+
+    "stakeholders": {
+      "type": "object",
+      "description": "People, teams, organizations, or roles identified as project stakeholders.",
+      "properties": {
+        "stakeholders": {
+          "type": "array",
+          "description": "Project stakeholders supported by ProjectKnowledge.",
+          "items": {
+            "type": "object",
+            "description": "A project stakeholder.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The stakeholder's name."
+              },
+              "role": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The stakeholder's role, if available."
+              },
+              "organization": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The stakeholder's organization, if available."
+              }
+            },
+            "required": [
+              "name",
+              "role",
+              "organization"
+            ]
+          }
+        }
+      },
+      "required": [
+        "stakeholders"
+      ]
+    },
+
+    "business_requirements": {
+      "type": "object",
+      "description": "High-level business requirements derived from the business objectives and project knowledge.",
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "description": "Business requirements supported by ProjectKnowledge.",
+          "items": {
+            "type": "string",
+            "description": "A high-level business requirement."
+          }
+        }
+      },
+      "required": [
+        "requirements"
+      ]
+    },
+
+    "functional_requirements": {
+      "type": "object",
+      "description": "Functional requirements describing capabilities or behaviors the system must provide.",
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "description": "Functional requirements from ProjectKnowledge, preserving their meaning.",
+          "items": {
+            "type": "string",
+            "description": "A functional requirement."
+          }
+        }
+      },
+      "required": [
+        "requirements"
+      ]
+    },
+
+    "non_functional_requirements": {
+      "type": "object",
+      "description": "Non-functional requirements describing quality attributes and system characteristics.",
+      "properties": {
+        "requirements": {
+          "type": "array",
+          "description": "Non-functional requirements from ProjectKnowledge.",
+          "items": {
+            "type": "string",
+            "description": "A non-functional requirement."
+          }
+        }
+      },
+      "required": [
+        "requirements"
+      ]
+    },
+
+    "assumptions_and_constraints": {
+      "type": "object",
+      "description": "Known assumptions and constraints affecting the project.",
+      "properties": {
+        "assumptions": {
+          "type": "array",
+          "description": "Assumptions supported by ProjectKnowledge.",
+          "items": {
+            "type": "string",
+            "description": "A project assumption."
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "description": "Constraints supported by ProjectKnowledge.",
+          "items": {
+            "type": "string",
+            "description": "A project constraint."
+          }
+        }
+      },
+      "required": [
+        "assumptions",
+        "constraints"
+      ]
+    },
+
+    "risks_and_decisions": {
+      "type": "object",
+      "description": "Known project risks and decisions.",
+      "properties": {
+        "risks": {
+          "type": "array",
+          "description": "Risks supported by ProjectKnowledge.",
+          "items": {
+            "type": "string",
+            "description": "A project risk."
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Decisions supported by ProjectKnowledge.",
+          "items": {
+            "type": "string",
+            "description": "A project decision."
+          }
+        }
+      },
+      "required": [
+        "risks",
+        "decisions"
+      ]
+    },
+
+    "open_questions": {
+      "type": "object",
+      "description": "Questions or unresolved issues that require clarification.",
+      "properties": {
+        "questions": {
+          "type": "array",
+          "description": "Open questions supported by ProjectKnowledge.",
+          "items": {
+            "type": "string",
+            "description": "An unresolved project question."
+          }
+        }
+      },
+      "required": [
+        "questions"
+      ]
+    }
+  },
+  "required": [
+    "executive_summary",
+    "project_overview",
+    "business_objectives",
+    "scope",
+    "stakeholders",
+    "business_requirements",
+    "functional_requirements",
+    "non_functional_requirements",
+    "assumptions_and_constraints",
+    "risks_and_decisions",
+    "open_questions"
+  ]
+}

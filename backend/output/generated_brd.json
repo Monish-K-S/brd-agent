@@ -1,0 +1,112 @@
+{
+  "executive_summary": {
+    "content": "The Customer Support Portal project aims to reduce customer support call volume and enhance customer experience by providing an online platform. This portal will empower customers to self-manage simple support requests, track ticket statuses, and submit new tickets, thereby streamlining support operations and improving customer satisfaction."
+  },
+  "project_overview": {
+    "project_name": "Customer Support Portal",
+    "description": "An online portal allowing customers to handle simple status updates and ticket requests themselves to reduce the volume of customer support calls."
+  },
+  "business_objectives": {
+    "objectives": [
+      "Reduce support workload while improving customer experience by allowing customers to track their own requests online instead of calling."
+    ]
+  },
+  "scope": {
+    "in_scope": [
+      "Customer registration, login, and password reset via email.",
+      "Customers creating and tracking support tickets.",
+      "Email notifications for customers on ticket status changes.",
+      "Customers uploading screenshots or PDF documents with tickets.",
+      "Customers searching for previously submitted tickets by ticket number.",
+      "Customers editing tickets only when the ticket status is 'Open'.",
+      "Support agent dashboard for viewing, updating, assigning, and reassigning tickets.",
+      "Support agents adding internal notes to tickets.",
+      "Support agents searching tickets by number, customer email, and priority.",
+      "Basic reporting for MVP (number of open tickets, average resolution time, tickets by priority)."
+    ],
+    "out_of_scope": [
+      "Chatbot functionality",
+      "Live chat functionality",
+      "Social login for customers",
+      "SMS notifications",
+      "Mobile application development (planned for Phase two)"
+    ]
+  },
+  "stakeholders": {
+    "stakeholders": [
+      {
+        "name": "Sarah J johnson",
+        "role": "Business Product Manager",
+        "organization": "acme.com"
+      },
+      {
+        "name": "Rahul Mehta",
+        "role": "Technical Lead",
+        "organization": "acme.com"
+      },
+      {
+        "name": "Anita Sharma",
+        "role": "Security Architect",
+        "organization": "acme.com"
+      }
+    ]
+  },
+  "business_requirements": {
+    "requirements": [
+      "Customers must be able to independently manage their support requests and track ticket statuses online.",
+      "The system must facilitate a reduction in the volume of direct customer support calls.",
+      "The portal must enhance customer satisfaction through efficient self-service capabilities.",
+      "Support staff require efficient tools to manage and resolve customer issues effectively."
+    ]
+  },
+  "functional_requirements": {
+    "requirements": [
+      "Customers should be able to register using their email address.",
+      "Registered customers should be able to securely log in.",
+      "Customers should be able to reset forgotten passwords via email.",
+      "Customers should be able to create and track support tickets.",
+      "Customers should receive email notifications whenever the status of a ticket changes.",
+      "Support agents should have a dedicated dashboard to view all assigned tickets, update ticket status, and assign or reassign tickets to other agents.",
+      "Support agents should be able to add internal notes that remain hidden from customers.",
+      "Customers should be able to upload screenshots or PDF documents when submitting a ticket.",
+      "Customers should be able to search for previously submitted tickets using the ticket number.",
+      "Customers should be able to edit tickets only while the ticket is still Open (before it moves to In Progress).",
+      "Support agents should be able to search tickets by ticket number, customer email, and priority.",
+      "The system should provide basic reporting for MVP including number of open tickets, average resolution time, and tickets by priority."
+    ]
+  },
+  "non_functional_requirements": {
+    "requirements": [
+      "Customer passwords must never be stored in plain text and should be securely hashed.",
+      "All customer information should be encrypted while stored in the database.",
+      "Support agents and administrators should authenticate using multi-factor authentication.",
+      "User sessions should automatically expire after 15 minutes of inactivity.",
+      "Only support agents and administrators should be able to access internal ticket notes.",
+      "All important user actions should be recorded in audit logs for compliance purposes.",
+      "Availability target: Ninety-nine point nine percent.",
+      "Estimated around five thousand concurrent users.",
+      "Average response time should stay below five hundred milliseconds.",
+      "Daily database backups."
+    ]
+  },
+  "assumptions_and_constraints": {
+    "assumptions": [],
+    "constraints": []
+  },
+  "risks_and_decisions": {
+    "risks": [],
+    "decisions": [
+      "Customer accounts will use email and password for the first release; MFA for customers can wait.",
+      "Social login is marked as a future enhancement and not for MVP.",
+      "Editing of tickets is restricted to before the ticket moves to 'In Progress' status."
+    ]
+  },
+  "open_questions": {
+    "questions": [
+      "Should customers be allowed to reopen closed tickets?",
+      "What is the max attachment size?",
+      "Who owns archived tickets?",
+      "Should managers export reports?"
+    ]
+  }
+}

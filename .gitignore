@@ -3,3 +3,5 @@ datasets/
 backend/chroma_db/
 backend/llm/.env
 backend/extractors/.env
+backend/generators/.env
+backend/output/
