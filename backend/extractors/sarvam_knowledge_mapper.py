@@ -1,7 +1,14 @@
+from models.knowledge.assumption import Assumption
+from models.knowledge.business_objective import BusinessObjective
+from models.knowledge.constraint import Constraint
+from models.knowledge.decision import Decision
 from models.knowledge.document_knowledge import DocumentKnowledge
 from models.knowledge.functional_requirement import FunctionalRequirement
 from models.knowledge.non_functional_requirement import NonFunctionalRequirement
+from models.knowledge.open_question import OpenQuestion
+from models.knowledge.out_of_scope import OutOfScope
 from models.knowledge.project_metadata import ProjectMetadata
+from models.knowledge.risk import Risk
 from models.knowledge.stakeholder import Stakeholder
 
 
@@ -18,44 +25,38 @@ class SarvamKnowledgeMapper:
         result = sarvam_response.get("result", {})
 
         return DocumentKnowledge(
-            project_metadata=self._map_project_metadata(result.get("project_metadata")),
-            stakeholders=self._map_stakeholders(result.get("stakeholders", [])),
-            business_objectives=result.get(
-                "business_objectives",
-                [],
+            project_metadata=self._map_project_metadata(
+                result.get("project_metadata")
+            ),
+            stakeholders=self._map_stakeholders(
+                result.get("stakeholders", [])
+            ),
+            business_objectives=self._map_business_objectives(
+                result.get("business_objectives", [])
             ),
             functional_requirements=self._map_functional_requirements(
                 result.get("functional_requirements", [])
             ),
             non_functional_requirements=self._map_non_functional_requirements(
-                result.get(
-                    "non_functional_requirements",
-                    [],
-                )
+                result.get("non_functional_requirements", [])
             ),
-            assumptions=result.get(
-                "assumptions",
-                [],
+            assumptions=self._map_assumptions(
+                result.get("assumptions", [])
             ),
-            constraints=result.get(
-                "constraints",
-                [],
+            constraints=self._map_constraints(
+                result.get("constraints", [])
             ),
-            risks=result.get(
-                "risks",
-                [],
+            risks=self._map_risks(
+                result.get("risks", [])
             ),
-            decisions=result.get(
-                "decisions",
-                [],
+            decisions=self._map_decisions(
+                result.get("decisions", [])
             ),
-            out_of_scope=result.get(
-                "out_of_scope",
-                [],
+            out_of_scope=self._map_out_of_scope(
+                result.get("out_of_scope", [])
             ),
-            open_questions=result.get(
-                "open_questions",
-                [],
+            open_questions=self._map_open_questions(
+                result.get("open_questions", [])
             ),
         )
 
@@ -85,6 +86,17 @@ class SarvamKnowledgeMapper:
         ]
 
     @staticmethod
+    def _map_business_objectives(
+        objectives: list[str],
+    ) -> list[BusinessObjective]:
+        return [
+            BusinessObjective(
+                description=objective,
+            )
+            for objective in objectives
+        ]
+
+    @staticmethod
     def _map_functional_requirements(
         requirements: list[str],
     ) -> list[FunctionalRequirement]:
@@ -101,14 +113,62 @@ class SarvamKnowledgeMapper:
     ) -> list[NonFunctionalRequirement]:
         return [
             NonFunctionalRequirement(
-                category=requirement.get(
-                    "category",
-                    "",
-                ),
-                description=requirement.get(
-                    "description",
-                    "",
-                ),
+                category=requirement.get("category", ""),
+                description=requirement.get("description", ""),
             )
             for requirement in requirements
+        ]
+
+    @staticmethod
+    def _map_assumptions(
+        assumptions: list[str],
+    ) -> list[Assumption]:
+        return [
+            Assumption(description=assumption)
+            for assumption in assumptions
+        ]
+
+    @staticmethod
+    def _map_constraints(
+        constraints: list[str],
+    ) -> list[Constraint]:
+        return [
+            Constraint(description=constraint)
+            for constraint in constraints
+        ]
+
+    @staticmethod
+    def _map_risks(
+        risks: list[str],
+    ) -> list[Risk]:
+        return [
+            Risk(description=risk)
+            for risk in risks
+        ]
+
+    @staticmethod
+    def _map_decisions(
+        decisions: list[str],
+    ) -> list[Decision]:
+        return [
+            Decision(description=decision)
+            for decision in decisions
+        ]
+
+    @staticmethod
+    def _map_out_of_scope(
+        items: list[str],
+    ) -> list[OutOfScope]:
+        return [
+            OutOfScope(description=item)
+            for item in items
+        ]
+
+    @staticmethod
+    def _map_open_questions(
+        questions: list[str],
+    ) -> list[OpenQuestion]:
+        return [
+            OpenQuestion(question=question)
+            for question in questions
         ]
