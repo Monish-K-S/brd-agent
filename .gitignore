@@ -2,3 +2,4 @@ datasets/
 .DS_Store
 backend/chroma_db/
 backend/llm/.env
+backend/extractors/.env
