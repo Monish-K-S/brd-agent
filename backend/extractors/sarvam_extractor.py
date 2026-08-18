@@ -38,10 +38,14 @@ class SarvamExtractor:
     def extract(
         self,
         pdf_path: str | Path,
+        output_path: str | Path | None = None,
     ) -> dict:
         """
         Submit a PDF to Sarvam Document AI and return
         the completed extraction result.
+
+        If output_path is provided, the raw Sarvam response
+        is also saved as a JSON file.
         """
 
         pdf_path = Path(pdf_path)
@@ -59,9 +63,17 @@ class SarvamExtractor:
             job_id=job.job_id,
         )
 
-        return self._get_results(
+        result = self._get_results(
             job_id=job.job_id,
         )
+
+        if output_path is not None:
+            self._save_result(
+                result=result,
+                output_path=output_path,
+            )
+
+        return result
 
     def _create_job(
         self,
@@ -118,6 +130,27 @@ class SarvamExtractor:
             return result.model_dump(mode="json")
 
         return result
+
+    def _save_result(
+        self,
+        result: dict,
+        output_path: str | Path,
+    ) -> None:
+        output_path = Path(output_path)
+
+        output_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        output_path.write_text(
+            json.dumps(
+                result,
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
 
     def _load_schema(self) -> dict:
         if not self.schema_path.exists():

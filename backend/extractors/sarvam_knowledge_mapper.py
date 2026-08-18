@@ -25,12 +25,8 @@ class SarvamKnowledgeMapper:
         result = sarvam_response.get("result", {})
 
         return DocumentKnowledge(
-            project_metadata=self._map_project_metadata(
-                result.get("project_metadata")
-            ),
-            stakeholders=self._map_stakeholders(
-                result.get("stakeholders", [])
-            ),
+            project_metadata=self._map_project_metadata(result.get("project_metadata")),
+            stakeholders=self._map_stakeholders(result.get("stakeholders", [])),
             business_objectives=self._map_business_objectives(
                 result.get("business_objectives", [])
             ),
@@ -40,24 +36,12 @@ class SarvamKnowledgeMapper:
             non_functional_requirements=self._map_non_functional_requirements(
                 result.get("non_functional_requirements", [])
             ),
-            assumptions=self._map_assumptions(
-                result.get("assumptions", [])
-            ),
-            constraints=self._map_constraints(
-                result.get("constraints", [])
-            ),
-            risks=self._map_risks(
-                result.get("risks", [])
-            ),
-            decisions=self._map_decisions(
-                result.get("decisions", [])
-            ),
-            out_of_scope=self._map_out_of_scope(
-                result.get("out_of_scope", [])
-            ),
-            open_questions=self._map_open_questions(
-                result.get("open_questions", [])
-            ),
+            assumptions=self._map_assumptions(result.get("assumptions", [])),
+            constraints=self._map_constraints(result.get("constraints", [])),
+            risks=self._map_risks(result.get("risks", [])),
+            decisions=self._map_decisions(result.get("decisions", [])),
+            out_of_scope=self._map_out_of_scope(result.get("out_of_scope", [])),
+            open_questions=self._map_open_questions(result.get("open_questions", [])),
         )
 
     @staticmethod
@@ -123,52 +107,34 @@ class SarvamKnowledgeMapper:
     def _map_assumptions(
         assumptions: list[str],
     ) -> list[Assumption]:
-        return [
-            Assumption(description=assumption)
-            for assumption in assumptions
-        ]
+        return [Assumption(description=assumption) for assumption in assumptions]
 
     @staticmethod
     def _map_constraints(
         constraints: list[str],
     ) -> list[Constraint]:
-        return [
-            Constraint(description=constraint)
-            for constraint in constraints
-        ]
+        return [Constraint(description=constraint) for constraint in constraints]
 
     @staticmethod
     def _map_risks(
         risks: list[str],
     ) -> list[Risk]:
-        return [
-            Risk(description=risk)
-            for risk in risks
-        ]
+        return [Risk(description=risk) for risk in risks]
 
     @staticmethod
     def _map_decisions(
         decisions: list[str],
     ) -> list[Decision]:
-        return [
-            Decision(description=decision)
-            for decision in decisions
-        ]
+        return [Decision(description=decision) for decision in decisions]
 
     @staticmethod
     def _map_out_of_scope(
         items: list[str],
     ) -> list[OutOfScope]:
-        return [
-            OutOfScope(description=item)
-            for item in items
-        ]
+        return [OutOfScope(description=item) for item in items]
 
     @staticmethod
     def _map_open_questions(
         questions: list[str],
     ) -> list[OpenQuestion]:
-        return [
-            OpenQuestion(question=question)
-            for question in questions
-        ]
+        return [OpenQuestion(question=question) for question in questions]
