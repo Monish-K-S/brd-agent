@@ -1,40 +1,40 @@
 {
   "type": "object",
-  "description": "Structured project knowledge extracted from the document. Extract only information supported by the document. Preserve the complete meaning and important details of each item. Do not invent, infer, or omit meaningful qualifiers.",
+  "description": "Extract structured project knowledge from the document. Identify all relevant information supported by the document and place it in the appropriate field. Preserve the original meaning, actors, conditions, qualifiers, numbers, units, thresholds, dates, states, permissions, dependencies, and scope qualifiers. Prefer faithful extraction over aggressive summarization. Do not invent, infer unsupported information, resolve ambiguity, or convert questions, proposals, possibilities, recommendations, or discussions into confirmed facts or decisions. Keep independently testable requirements separate. Do not merge distinct requirements into vague summaries. Do not infer that something is out of scope merely because it is not mentioned. Do not answer open questions. If information is not present or not sufficiently supported, return an empty array or omit the optional value.",
   "properties": {
     "project_metadata": {
       "type": "object",
-      "description": "Project-level information explicitly stated or clearly described in the document.",
+      "description": "Project-level information explicitly stated or clearly described in the document. Extract only information supported by the document.",
       "properties": {
         "project_name": {
           "type": "string",
-          "description": "The project name exactly or faithfully as stated in the document."
+          "description": "The project name explicitly stated in the document. Preserve the stated name faithfully. Do not invent a project name from surrounding context."
         },
         "description": {
           "type": "string",
-          "description": "A concise but complete description of the project, its purpose, and what is being built. Preserve important scope and purpose information."
+          "description": "A concise but information-complete description of the project based only on the document. Include the project's purpose, primary users or stakeholders, major capability or product being built, and important scope qualifiers when stated. Do not introduce unsupported information."
         }
       }
     },
 
     "stakeholders": {
       "type": "array",
-      "description": "People, teams, organizations, or roles identified as stakeholders in the project.",
+      "description": "People, teams, organizations, or project roles identified as stakeholders. Extract stakeholders explicitly identified or clearly described as having an interest, responsibility, authority, or relationship to the project.",
       "items": {
         "type": "object",
-        "description": "A stakeholder identified in the document. Do not invent missing stakeholder details.",
+        "description": "A person, team, organization, or project role identified as a stakeholder. Preserve the stakeholder exactly as represented in the document. Do not invent missing stakeholder details. If only a role, team, or organization is identified and no individual name is available, preserve that identifier rather than inventing a person.",
         "properties": {
           "name": {
             "type": "string",
-            "description": "The stakeholder's name as stated in the document."
+            "description": "The stakeholder's stated name, team name, organization name, or role identifier. Preserve it faithfully. Do not invent a person's name when only a role, team, or organization is provided."
           },
           "role": {
             "type": "string",
-            "description": "The stakeholder's stated role or relationship to the project. Preserve the distinction between explicitly stated and unspecified roles."
+            "description": "The stakeholder's explicitly stated role or relationship to the project. Preserve the distinction between a confirmed role and an unspecified role. Do not infer a role solely from context."
           },
           "organization": {
             "type": "string",
-            "description": "The organization or company associated with the stakeholder, if explicitly stated."
+            "description": "The organization or company explicitly associated with the stakeholder, if stated. Do not infer an organization from an email domain or other indirect information unless the document explicitly establishes the association."
           }
         }
       }
@@ -42,36 +42,36 @@
 
     "business_objectives": {
       "type": "array",
-      "description": "Business goals or measurable outcomes the project is intended to achieve.",
+      "description": "Business goals or intended business outcomes the project is explicitly intended to achieve.",
       "items": {
         "type": "string",
-        "description": "A complete business objective. Preserve the intended outcome, target, metric, business reason, affected users, and any other meaningful qualifier stated in the document. Do not reduce an objective to a short phrase."
+        "description": "A complete business objective. Preserve the intended outcome, target, metric, business reason, affected users, and other meaningful qualifiers stated in the document. Do not classify a system feature or functional capability as a business objective unless the document presents it as a business goal. Do not reduce an objective to a short phrase when meaningful context is available."
       }
     },
 
     "functional_requirements": {
       "type": "array",
-      "description": "Specific capabilities, behaviors, or actions the system or product must provide.",
+      "description": "Specific capabilities, behaviors, actions, workflows, or system responses that the system, product, user, or actor must provide or support.",
       "items": {
         "type": "string",
-        "description": "A complete functional requirement. Preserve the actor, action, object, conditions, business rules, permissions, states, timing, limits, quantities, and other meaningful qualifiers stated in the document. Do not summarize away important details."
+        "description": "A complete functional requirement describing what a system, product, user, or actor must be able to do or what behavior the system must provide. Preserve the actor, action, object, trigger, preconditions, postconditions, workflow or state, permissions, business rules, timing, frequency, limits, quantities, exceptions, and dependencies whenever stated. Keep independently testable requirements as separate items. Do not merge multiple distinct requirements into a vague summary. Do not invent implementation details that are not stated or supported by the document."
       }
     },
 
     "non_functional_requirements": {
       "type": "array",
-      "description": "Requirements describing quality attributes or operational characteristics such as security, performance, availability, scalability, reliability, usability, or compliance.",
+      "description": "Requirements describing quality attributes, operational characteristics, or constraints such as security, performance, availability, scalability, reliability, usability, accessibility, compliance, maintainability, or data integrity.",
       "items": {
         "type": "object",
-        "description": "A complete non-functional requirement. Preserve all measurable values, thresholds, units, time limits, conditions, scope, and other meaningful qualifiers.",
+        "description": "A complete non-functional requirement. Preserve every measurable value, threshold, unit, duration, frequency, condition, scope, actor, environment, and other meaningful qualifier stated in the document. Keep independently stated requirements separate.",
         "properties": {
           "category": {
             "type": "string",
-            "description": "The most appropriate category of the non-functional requirement, such as security, performance, availability, scalability, reliability, usability, or compliance. Choose based only on information supported by the document."
+            "description": "The most specific category supported by the document, such as security, performance, availability, scalability, reliability, usability, accessibility, compliance, maintainability, or data integrity. Choose the category based only on the requirement's stated meaning. Do not invent a category-specific requirement or force an unsupported classification."
           },
           "description": {
             "type": "string",
-            "description": "The complete non-functional requirement. Preserve numeric values, units, thresholds, percentages, time limits, conditions, scope, actors, and qualifiers. For example, preserve '99.9% availability' rather than extracting only '99.9 percent'. Do not omit meaningful context."
+            "description": "The complete non-functional requirement. Preserve all numeric values, thresholds, percentages, units, durations, time limits, frequencies, conditions, scope, actors, environments, and qualifiers. Preserve the complete requirement rather than extracting only its numeric value or category. For example, preserve 'Average response time should stay below 500 milliseconds' rather than extracting only '500 milliseconds'. Do not omit meaningful context."
           }
         }
       }
@@ -79,55 +79,55 @@
 
     "assumptions": {
       "type": "array",
-      "description": "Statements explicitly presented or clearly treated in the document as assumptions about the project, users, environment, technology, or business.",
+      "description": "Statements explicitly presented or clearly treated in the document as assumptions about the project, users, environment, technology, business, or operating conditions.",
       "items": {
         "type": "string",
-        "description": "A complete project assumption. Preserve the assumption and all conditions or qualifiers that give it meaning. Do not convert an uncertain statement into a fact."
+        "description": "A complete project assumption. Preserve the assumption and all conditions or qualifiers that give it meaning. Preserve uncertainty where stated. Do not convert proposals, possibilities, guesses, recommendations, or unresolved questions into assumptions unless the document explicitly treats them as assumptions. Do not convert an assumption into a confirmed fact."
       }
     },
 
     "constraints": {
       "type": "array",
-      "description": "Known limitations, restrictions, boundaries, or conditions that constrain the project.",
+      "description": "Known limitations, restrictions, boundaries, deadlines, dependencies, mandated conditions, resource limitations, regulatory requirements, or other conditions that constrain the project.",
       "items": {
         "type": "string",
-        "description": "A complete project constraint. Preserve the affected area, limitation, restriction, threshold, deadline, dependency, or other meaningful qualifier."
+        "description": "A complete project constraint. Preserve the affected area, limitation, restriction, threshold, deadline, dependency, mandated condition, resource limitation, or other meaningful qualifier. Do not invent constraints from information that is merely implied."
       }
     },
 
     "risks": {
       "type": "array",
-      "description": "Potential events, conditions, or issues that could negatively affect the project.",
+      "description": "Potential future events, conditions, uncertainties, or issues that could negatively affect project scope, schedule, cost, quality, security, compliance, adoption, or delivery.",
       "items": {
         "type": "string",
-        "description": "A complete project risk. Preserve the potential issue, affected area, trigger, consequence, uncertainty, or other meaningful context stated in the document."
+        "description": "A complete project risk. Preserve the potential issue, cause, affected area, trigger, potential consequence, uncertainty, likelihood, severity, or other meaningful context stated in the document. Do not classify an already-existing problem as a risk unless the document explicitly treats it as a risk."
       }
     },
 
     "decisions": {
       "type": "array",
-      "description": "Explicit decisions that have been made about the project.",
+      "description": "Explicit project decisions that have already been made, agreed upon, or formally established in the document.",
       "items": {
         "type": "string",
-        "description": "A complete project decision. Preserve what was decided, the subject of the decision, relevant conditions or scope, and any stated rationale or timing. Do not reduce a decision to a vague summary."
+        "description": "A complete project decision. Preserve what was decided, the subject or affected area, conditions or scope, relevant rationale, decision status, and timing when stated. Do not treat suggestions, recommendations, options, discussions, possibilities, or unresolved alternatives as decisions."
       }
     },
 
     "out_of_scope": {
       "type": "array",
-      "description": "Features, capabilities, activities, or areas explicitly excluded from the project scope.",
+      "description": "Features, capabilities, activities, users, integrations, phases, or areas explicitly excluded, deferred, or designated as not part of the current project scope or release.",
       "items": {
         "type": "string",
-        "description": "A complete out-of-scope item. Preserve the specific feature, capability, activity, or area that is excluded and any stated scope or release qualifier."
+        "description": "A complete out-of-scope item. Preserve the specific feature, capability, activity, user, integration, phase, or area that is excluded and any stated scope, release, or timing qualifier. Extract only items explicitly stated or clearly designated as excluded, deferred, or outside the current scope. Do not infer that something is out of scope merely because it is not mentioned."
       }
     },
 
     "open_questions": {
       "type": "array",
-      "description": "Questions, ambiguities, unresolved decisions, or missing information that require clarification.",
+      "description": "Questions, ambiguities, unresolved decisions, missing information, conflicting requirements, or other issues explicitly requiring clarification.",
       "items": {
         "type": "string",
-        "description": "A complete open question or unresolved issue. Preserve the actual question, ambiguity, affected area, and relevant context. Do not turn an unresolved question into an assumed answer."
+        "description": "A complete open question or unresolved issue. Preserve the actual question, ambiguity, affected area, conflicting information, and relevant context. Do not answer the question, infer an answer, or convert the unresolved issue into a requirement, assumption, or decision."
       }
     }
   }
