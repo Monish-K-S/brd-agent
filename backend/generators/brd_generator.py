@@ -96,42 +96,240 @@ class BRDGenerator:
         project_knowledge_json: str,
     ) -> str:
         return f"""
-You are a Business Requirements Document generator.
+        You are a senior Business Analyst responsible for producing a professional Business Requirements Document (BRD).
 
-Construct a structured Business Requirements Document
-from the provided ProjectKnowledge.
+        Your task is to transform the provided ProjectKnowledge into a complete, clear, and professionally written BRD.
 
-Rules:
+        ProjectKnowledge is the source of truth.
 
-1. Use only information contained in ProjectKnowledge.
+        <instructions>
 
-2. Do not invent facts, requirements, stakeholders, risks,
-   decisions, constraints, assumptions, or project details.
+        ## 1. Grounding
 
-3. Preserve the meaning of all provided requirements.
+        Use only information contained in ProjectKnowledge.
 
-4. You may rewrite information for clarity and professional
-   BRD language.
+        Do not use external knowledge, assumptions, industry conventions, or your own knowledge to fill gaps.
 
-5. You may synthesize information when constructing the
-   executive summary, business requirements, and project scope,
-   but the resulting content must remain supported by
-   ProjectKnowledge.
+        Do not invent:
+        - project facts
+        - stakeholders
+        - business objectives
+        - requirements
+        - constraints
+        - assumptions
+        - risks
+        - decisions
+        - scope items
+        - open questions
+        - technical architecture
+        - implementation details
+        - timelines
+        - metrics
+        - business rules
 
-6. Do not introduce technical decisions that are not present
-   in ProjectKnowledge.
+        If information is not supported by ProjectKnowledge, leave the corresponding field empty.
 
-7. Do not remove meaningful requirements.
+        ## 2. Preserve information
 
-8. If information is unavailable, return an empty value or
-   empty list instead of inventing information.
+        Preserve the meaning and important details of ProjectKnowledge.
 
-9. Preserve explicitly stated out-of-scope items, decisions,
-   risks, assumptions, constraints, and open questions.
+        Do not remove meaningful:
+        - actors
+        - actions
+        - conditions
+        - states
+        - permissions
+        - business rules
+        - thresholds
+        - numbers
+        - units
+        - dates
+        - frequencies
+        - limits
+        - dependencies
+        - scope qualifiers
+        - release or phase qualifiers
 
-10. Return only the structured JSON requested by the schema.
+        You may rewrite wording to make the BRD clearer, more concise, consistent, and professional.
 
-ProjectKnowledge:
+        Rewriting must not change the meaning.
 
-{project_knowledge_json}
+        ## 3. Requirement preservation
+
+        The BRD must not contain any functional requirement, scope item,
+        business requirement, stakeholder, decision, risk, assumption,
+        constraint, or other factual claim that cannot be traced back to
+        ProjectKnowledge.
+
+        Do not add information merely because it is plausible, typical,
+        logically implied, or useful for a BRD.
+
+        When synthesizing business requirements or scope, every resulting
+        statement must be directly supported by one or more specific pieces
+        of ProjectKnowledge.
+
+        Every non-functional requirement in ProjectKnowledge must be represented in the BRD's non-functional requirements.
+
+        Do not merge separate requirements merely because they relate to the same feature.
+
+        Do not remove a requirement because it appears similar to another requirement.
+
+        Do not weaken a requirement by removing its conditions, limits, actors, or qualifiers.
+
+        ## 4. Business requirement synthesis
+
+        Business requirements may be synthesized from the business objectives and relevant project knowledge.
+
+        A business requirement should describe what the business needs to achieve or what business capability is required.
+
+        Do not turn technical implementation details into business requirements.
+
+        Do not invent business goals that are not supported by ProjectKnowledge.
+
+        ## 5. Executive summary
+
+        Write a concise professional executive summary based only on ProjectKnowledge.
+
+        The summary should communicate:
+        - what the project is
+        - why it exists
+        - the primary business goals
+        - the major scope or capability areas
+
+        Do not introduce new information.
+
+        Do not simply copy the project description if ProjectKnowledge contains enough information to produce a clearer synthesis.
+
+        ## 6. Project overview
+
+        Use the project name and description from ProjectKnowledge.
+
+        You may improve wording for clarity, but do not change the project's meaning.
+
+        ## 7. Business objectives
+
+        Preserve the business objectives from ProjectKnowledge.
+
+        Do not convert functional requirements into business objectives.
+
+        Do not invent measurable targets unless they are present in ProjectKnowledge.
+
+        ## 8. Scope
+
+        Construct the in-scope section from capabilities, requirements, and scope information supported by ProjectKnowledge.
+
+        Use functional requirements and explicitly stated scope information to describe what is included.
+
+        Do not introduce capabilities that are not supported by ProjectKnowledge.
+
+        Preserve every explicitly stated out-of-scope item.
+
+        Do not assume that something is out of scope simply because it is not mentioned.
+
+        ## 9. Stakeholders
+
+        Preserve all stakeholders from ProjectKnowledge.
+
+        Do not add stakeholders based on typical project roles.
+
+        Preserve names, roles, and organizations exactly where provided.
+
+        If a role or organization is missing, leave it unavailable rather than inventing it.
+
+        ## 10. Functional requirements
+
+        Preserve all functional requirements from ProjectKnowledge.
+
+        Rewrite them into consistent, professional requirement language when useful.
+
+        Preserve actors, actions, conditions, states, permissions, business rules, timing, limits, and other qualifiers.
+
+        Do not introduce implementation details.
+
+        ## 11. Non-functional requirements
+
+        Preserve all non-functional requirements from ProjectKnowledge.
+
+        Do not remove measurable values or qualifiers.
+
+        Preserve:
+        - thresholds
+        - percentages
+        - durations
+        - units
+        - concurrency values
+        - response-time targets
+        - availability targets
+        - security requirements
+        - compliance requirements
+        - backup or recovery requirements
+        - other stated quality attributes
+
+        Do not convert a non-functional requirement into a functional requirement.
+
+        ## 12. Assumptions and constraints
+
+        Preserve assumptions and constraints separately.
+
+        Do not convert an assumption into a fact.
+
+        Do not convert a risk or open question into a constraint.
+
+        Do not invent assumptions or constraints.
+
+        ## 13. Risks and decisions
+
+        Preserve all explicitly identified risks and decisions.
+
+        Do not convert open questions, suggestions, or possible options into decisions.
+
+        Do not invent risks merely because something could theoretically go wrong.
+
+        ## 14. Open questions
+
+        Preserve all open questions from ProjectKnowledge.
+
+        Do not answer them.
+
+        Do not convert them into requirements, decisions, assumptions, or constraints.
+
+        ## 15. Empty information
+
+        If a section has no supported information, return an empty array or empty value according to the schema.
+
+        Never fill an empty section with generic or assumed content.
+
+        ## 16. Consistency
+
+        Ensure the generated BRD is internally consistent.
+
+        For example:
+        - an explicitly out-of-scope item must not appear in in-scope;
+        - a decision must not be presented as an open question;
+        - an open question must not be presented as a confirmed requirement;
+        - a functional requirement must not contradict the provided project knowledge;
+        - a requirement's qualifiers must remain consistent across the BRD.
+
+        ## 17. Final validation
+
+        Before producing the response, verify that:
+        1. Every ProjectKnowledge field has been considered.
+        2. No meaningful requirement has been lost.
+        3. No unsupported information has been added.
+        4. Functional and non-functional requirements remain distinct.
+        5. Explicit scope exclusions are preserved.
+        6. Decisions, risks, assumptions, constraints, and open questions remain correctly classified.
+        7. The output conforms exactly to the provided JSON schema.
+
+        </instructions>
+
+        <project_knowledge>
+        {project_knowledge_json}
+        </project_knowledge>
+
+        <task>
+        Generate the complete Business Requirements Document from the ProjectKnowledge.
+
+        Return only the structured JSON required by the schema.
+        </task>
 """

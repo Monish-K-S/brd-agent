@@ -10,19 +10,22 @@ class BRDDocumentBuilder:
     Builds a human-readable PDF from a BRD object.
     """
 
-    LEFT_MARGIN = 20
-    RIGHT_MARGIN = 20
-    TOP_MARGIN = 20
-    BOTTOM_MARGIN = 20
+    LEFT_MARGIN = 22
+    RIGHT_MARGIN = 22
+    TOP_MARGIN = 22
+    BOTTOM_MARGIN = 22
 
     BODY_FONT_SIZE = 10
-    BODY_LINE_HEIGHT = 5
+    BODY_LINE_HEIGHT = 5.5
 
     SECTION_FONT_SIZE = 14
     SECTION_LINE_HEIGHT = 8
 
-    TITLE_FONT_SIZE = 20
-    TITLE_LINE_HEIGHT = 10
+    SUBHEADING_FONT_SIZE = 11
+    SUBHEADING_LINE_HEIGHT = 6
+
+    TITLE_FONT_SIZE = 22
+    PROJECT_TITLE_FONT_SIZE = 16
 
     def build(
         self,
@@ -42,7 +45,11 @@ class BRDDocumentBuilder:
             margin=self.BOTTOM_MARGIN,
         )
 
-        content_width = pdf.w - self.LEFT_MARGIN - self.RIGHT_MARGIN
+        content_width = (
+            pdf.w
+            - self.LEFT_MARGIN
+            - self.RIGHT_MARGIN
+        )
 
         self._add_title(
             pdf,
@@ -117,6 +124,7 @@ class BRDDocumentBuilder:
         )
 
         output = Path(output_path)
+
         output.parent.mkdir(
             parents=True,
             exist_ok=True,
@@ -134,7 +142,9 @@ class BRDDocumentBuilder:
     ) -> None:
         pdf.add_page()
 
+        # Document title
         pdf.set_x(self.LEFT_MARGIN)
+
         pdf.set_font(
             "Helvetica",
             "B",
@@ -143,27 +153,43 @@ class BRDDocumentBuilder:
 
         pdf.multi_cell(
             w=width,
-            h=self.TITLE_LINE_HEIGHT,
+            h=10,
             text="BUSINESS REQUIREMENTS DOCUMENT",
         )
 
         pdf.ln(4)
 
+        # Project title
+        pdf.set_x(self.LEFT_MARGIN)
+
         pdf.set_font(
             "Helvetica",
-            "",
-            self.BODY_FONT_SIZE,
+            "B",
+            self.PROJECT_TITLE_FONT_SIZE,
         )
 
         pdf.multi_cell(
             w=width,
-            h=self.BODY_LINE_HEIGHT,
+            h=8,
             text=self._normalize_text(
                 brd.project_overview.project_name
             ),
         )
 
-        pdf.ln(10)
+        pdf.ln(5)
+
+        # Horizontal separator
+        pdf.set_draw_color(0, 0, 0)
+        pdf.set_line_width(0.3)
+
+        pdf.line(
+            self.LEFT_MARGIN,
+            pdf.get_y(),
+            self.LEFT_MARGIN + width,
+            pdf.get_y(),
+        )
+
+        pdf.ln(8)
 
     def _add_executive_summary(
         self,
@@ -282,12 +308,15 @@ class BRDDocumentBuilder:
 
             if stakeholder.role:
                 details += (
-                    f" -- {self._normalize_text(stakeholder.role)}"
+                    f" -- "
+                    f"{self._normalize_text(stakeholder.role)}"
                 )
 
             if stakeholder.organization:
                 details += (
-                    f" ({self._normalize_text(stakeholder.organization)})"
+                    f" ("
+                    f"{self._normalize_text(stakeholder.organization)}"
+                    f")"
                 )
 
             self._add_bullet(
@@ -446,9 +475,10 @@ class BRDDocumentBuilder:
         width: float,
         text: str,
     ) -> None:
-        pdf.ln(6)
+        pdf.ln(7)
 
-        pdf.set_x(20)
+        pdf.set_x(22)
+
         pdf.set_font(
             "Helvetica",
             "B",
@@ -458,10 +488,23 @@ class BRDDocumentBuilder:
         pdf.multi_cell(
             w=width,
             h=8,
-            text=BRDDocumentBuilder._normalize_text(text),
+            text=BRDDocumentBuilder._normalize_text(
+                text
+            ),
         )
 
-        pdf.ln(2)
+        # Subtle section separator
+        pdf.set_draw_color(0, 0, 0)
+        pdf.set_line_width(0.2)
+
+        pdf.line(
+            22,
+            pdf.get_y(),
+            22 + width,
+            pdf.get_y(),
+        )
+
+        pdf.ln(4)
 
     @staticmethod
     def _add_subheading(
@@ -471,7 +514,8 @@ class BRDDocumentBuilder:
     ) -> None:
         pdf.ln(3)
 
-        pdf.set_x(20)
+        pdf.set_x(22)
+
         pdf.set_font(
             "Helvetica",
             "B",
@@ -481,10 +525,12 @@ class BRDDocumentBuilder:
         pdf.multi_cell(
             w=width,
             h=6,
-            text=BRDDocumentBuilder._normalize_text(text),
+            text=BRDDocumentBuilder._normalize_text(
+                text
+            ),
         )
 
-        pdf.ln(1)
+        pdf.ln(2)
 
     @staticmethod
     def _add_paragraph(
@@ -492,7 +538,7 @@ class BRDDocumentBuilder:
         width: float,
         text: str,
     ) -> None:
-        pdf.set_x(20)
+        pdf.set_x(22)
 
         pdf.set_font(
             "Helvetica",
@@ -502,9 +548,13 @@ class BRDDocumentBuilder:
 
         pdf.multi_cell(
             w=width,
-            h=5,
-            text=BRDDocumentBuilder._normalize_text(text),
+            h=5.5,
+            text=BRDDocumentBuilder._normalize_text(
+                text
+            ),
         )
+
+        pdf.ln(2)
 
     @staticmethod
     def _add_labeled_value(
@@ -513,7 +563,15 @@ class BRDDocumentBuilder:
         label: str,
         value: str,
     ) -> None:
-        pdf.set_x(20)
+        label = BRDDocumentBuilder._normalize_text(
+            label
+        )
+
+        value = BRDDocumentBuilder._normalize_text(
+            value
+        )
+
+        pdf.set_x(22)
 
         pdf.set_font(
             "Helvetica",
@@ -521,9 +579,13 @@ class BRDDocumentBuilder:
             10,
         )
 
+        label_width = pdf.get_string_width(
+            f"{label}: "
+        )
+
         pdf.write(
-            5,
-            f"{BRDDocumentBuilder._normalize_text(label)}: ",
+            5.5,
+            f"{label}: ",
         )
 
         pdf.set_font(
@@ -532,13 +594,18 @@ class BRDDocumentBuilder:
             10,
         )
 
+        # IMPORTANT:
+        # The remaining width must account for
+        # the label already written on this line.
+        remaining_width = width - label_width
+
         pdf.multi_cell(
-            w=width,
-            h=5,
-            text=BRDDocumentBuilder._normalize_text(value),
+            w=remaining_width,
+            h=5.5,
+            text=value,
         )
 
-        pdf.ln(1)
+        pdf.ln(2)
 
     @staticmethod
     def _add_bullet(
@@ -546,7 +613,20 @@ class BRDDocumentBuilder:
         width: float,
         text: str,
     ) -> None:
-        pdf.set_x(24)
+        text = BRDDocumentBuilder._normalize_text(
+            text
+        )
+
+        bullet_x = 25
+        text_x = 31
+
+        bullet_width = 4
+        text_width = (
+            width
+            - (text_x - 22)
+        )
+
+        pdf.set_x(bullet_x)
 
         pdf.set_font(
             "Helvetica",
@@ -554,13 +634,20 @@ class BRDDocumentBuilder:
             10,
         )
 
-        text = BRDDocumentBuilder._normalize_text(text)
+        pdf.write(
+            5.5,
+            "-",
+        )
+
+        pdf.set_x(text_x)
 
         pdf.multi_cell(
-            w=width - 4,
-            h=5,
-            text=f"- {text}",
+            w=text_width,
+            h=5.5,
+            text=text,
         )
+
+        pdf.ln(1)
 
     @staticmethod
     def _add_bullets(
@@ -568,6 +655,25 @@ class BRDDocumentBuilder:
         width: float,
         items: list[str],
     ) -> None:
+        if not items:
+            pdf.set_x(22)
+
+            pdf.set_font(
+                "Helvetica",
+                "I",
+                10,
+            )
+
+            pdf.multi_cell(
+                w=width,
+                h=5.5,
+                text="None specified.",
+            )
+
+            pdf.ln(1)
+
+            return
+
         for item in items:
             BRDDocumentBuilder._add_bullet(
                 pdf,
@@ -576,7 +682,9 @@ class BRDDocumentBuilder:
             )
 
     @staticmethod
-    def _normalize_text(text: str) -> str:
+    def _normalize_text(
+        text: str,
+    ) -> str:
         """
         Converts common Unicode punctuation generated by the LLM
         into characters supported by the built-in Helvetica font.

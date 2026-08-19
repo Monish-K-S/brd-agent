@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from builders.brd_document_builder import BRDDocumentBuilder
@@ -69,9 +70,7 @@ class BrdPipeline:
         if not documents:
             raise ValueError(f"No supported source files found in {source_directory}")
 
-        normalized_documents = self.normalizer.normalize(
-            documents
-        )
+        normalized_documents = self.normalizer.normalize(documents)
 
         combined_pdf_path = output_pdf_path.parent / "_project_input.pdf"
 
@@ -92,6 +91,17 @@ class BrdPipeline:
         )
 
         brd_json = self.brd_generator.generate(project_knowledge)
+
+        brd_json_path = output_pdf_path.parent / "gemini_brd.json"
+
+        brd_json_path.write_text(
+            json.dumps(
+                brd_json,
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
 
         brd = self.brd_mapper.map(brd_json)
 
