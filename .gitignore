@@ -5,3 +5,6 @@ backend/llm/.env
 backend/extractors/.env
 backend/generators/.env
 backend/output/
+server/.env
+server/.venv/
+server/app/__pycache__/
