@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from app.auth.dependencies import (
-    CurrentUser,
-    get_current_user,
-)
+from app.auth.current_user import get_current_db_user
+from app.db.models.user import User
 
 
 router = APIRouter(
@@ -12,10 +10,16 @@ router = APIRouter(
 )
 
 
-@router.get("/me")
+@router.get(
+    "/me",
+    response_model=None,
+)
 def get_me(
-    current_user: CurrentUser = Depends(
-        get_current_user,
+    current_user: User = Depends(
+        get_current_db_user,
     ),
-) -> CurrentUser:
-    return current_user
+):
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+    }
