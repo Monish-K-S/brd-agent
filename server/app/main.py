@@ -5,6 +5,9 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 
 
+from app.api.routes.auth import router as auth_router
+
+
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -28,3 +31,6 @@ def database_health_check():
         "status": "ok",
         "database": "connected",
     }
+
+
+app.include_router(auth_router)

@@ -9,8 +9,8 @@ class Settings(BaseSettings):
 
     environment: str = "development"
 
-    supabase_url: str | None = None
-    supabase_anon_key: str | None = None
+    supabase_url: str
+    supabase_publishable_key: str
     supabase_service_role_key: str | None = None
 
     database_url: str
