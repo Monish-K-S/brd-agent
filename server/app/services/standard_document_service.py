@@ -77,7 +77,7 @@ class StandardDocumentService:
         author: str | None = None,
         source_created_at: datetime | None = None,
         participants: list | None = None,
-        metadata: dict | None = None,
+        metadata_: dict | None = None,
     ) -> StandardDocument | None:
         workspace = self.workspace_service.get_workspace_for_user(
             workspace_id=workspace_id,
@@ -95,7 +95,7 @@ class StandardDocumentService:
             source_created_at=source_created_at,
             participants=participants or [],
             content=content,
-            metadata=metadata or {},
+            metadata_=metadata_ or {},
         )
 
         created_document = self.document_repository.create(
