@@ -1,7 +1,11 @@
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
-from datetime import datetime
+
+from app.ai.models.standard_document import (
+    StandardDocument as AIStandardDocument,
+)
 from app.db.models.standard_document import StandardDocument
 from app.repositories.standard_document_repository import (
     StandardDocumentRepository,
@@ -20,7 +24,6 @@ class StandardDocumentService:
         self.workspace_service = WorkspaceService(
             db,
         )
-
 
     def get_document_for_user(
         self,
@@ -44,10 +47,6 @@ class StandardDocumentService:
 
         return document
 
-
-
-
-
     def get_workspace_documents_for_user(
         self,
         workspace_id: UUID,
@@ -64,8 +63,6 @@ class StandardDocumentService:
         return self.document_repository.get_all_by_workspace_id(
             workspace_id,
         )
-
-
 
     def create_document(
         self,
@@ -124,3 +121,47 @@ class StandardDocumentService:
         self.db.commit()
 
         return True
+
+
+def create_documents_from_ingestion(
+    self,
+    workspace_id: UUID,
+    user_id: UUID,
+    documents: list[AIStandardDocument],
+) -> list[StandardDocument] | None:
+    """
+    Store parsed AI-layer StandardDocuments
+    as database StandardDocuments.
+    """
+
+    workspace = self.workspace_service.get_workspace_for_user(
+        workspace_id=workspace_id,
+        user_id=user_id,
+    )
+
+    if workspace is None:
+        return None
+
+    db_documents = []
+
+    for document in documents:
+        db_document = StandardDocument(
+            workspace_id=workspace_id,
+            source_type=document.source_type,
+            title=document.title,
+            author=document.author,
+            source_created_at=document.created_at,
+            participants=document.participants,
+            content=document.content,
+            metadata_=document.metadata,
+        )
+
+        db_documents.append(db_document)
+
+    created_documents = self.document_repository.create_many(
+        db_documents,
+    )
+
+    self.db.commit()
+
+    return created_documents
