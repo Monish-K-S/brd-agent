@@ -45,6 +45,23 @@ class WorkspaceService:
             workspace_id,
         )
 
+    def get_workspace_for_user(
+        self,
+        workspace_id: UUID,
+        user_id: UUID,
+    ) -> Workspace | None:
+        workspace = self.workspace_repository.get_by_id(
+            workspace_id,
+        )
+
+        if workspace is None:
+            return None
+
+        if workspace.user_id != user_id:
+            return None
+
+        return workspace
+
     def get_workspaces_for_user(
         self,
         user_id: UUID,

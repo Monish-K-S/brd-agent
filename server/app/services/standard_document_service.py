@@ -95,13 +95,66 @@ class StandardDocumentService:
             metadata_=metadata_ or {},
         )
 
-        created_document = self.document_repository.create(
-            document,
+        try:
+            created_document = self.document_repository.create(
+                document,
+            )
+
+            self.db.commit()
+
+            return created_document
+
+        except Exception:
+            self.db.rollback()
+            raise
+
+    def create_documents_from_ingestion(
+        self,
+        workspace_id: UUID,
+        user_id: UUID,
+        documents: list[AIStandardDocument],
+    ) -> list[StandardDocument] | None:
+        """
+        Convert AI pipeline StandardDocument objects into database
+        StandardDocument models and store them atomically.
+        """
+
+        workspace = self.workspace_service.get_workspace_for_user(
+            workspace_id=workspace_id,
+            user_id=user_id,
         )
 
-        self.db.commit()
+        if workspace is None:
+            return None
 
-        return created_document
+        db_documents = []
+
+        for document in documents:
+            db_document = StandardDocument(
+                workspace_id=workspace_id,
+                source_type=document.source_type,
+                title=document.title,
+                author=document.author,
+                source_created_at=document.source_created_at,
+                participants=document.participants,
+                content=document.content,
+                metadata_=document.metadata,
+            )
+
+            db_documents.append(db_document)
+
+        try:
+            created_documents = self.document_repository.create_many(
+                db_documents,
+            )
+
+            self.db.commit()
+
+            return created_documents
+
+        except Exception:
+            self.db.rollback()
+            raise
 
     def delete_document(
         self,
@@ -116,52 +169,13 @@ class StandardDocumentService:
         if document is None:
             return False
 
-        self.document_repository.delete(document)
+        try:
+            self.document_repository.delete(document)
 
-        self.db.commit()
+            self.db.commit()
 
-        return True
+            return True
 
-
-def create_documents_from_ingestion(
-    self,
-    workspace_id: UUID,
-    user_id: UUID,
-    documents: list[AIStandardDocument],
-) -> list[StandardDocument] | None:
-    """
-    Store parsed AI-layer StandardDocuments
-    as database StandardDocuments.
-    """
-
-    workspace = self.workspace_service.get_workspace_for_user(
-        workspace_id=workspace_id,
-        user_id=user_id,
-    )
-
-    if workspace is None:
-        return None
-
-    db_documents = []
-
-    for document in documents:
-        db_document = StandardDocument(
-            workspace_id=workspace_id,
-            source_type=document.source_type,
-            title=document.title,
-            author=document.author,
-            source_created_at=document.created_at,
-            participants=document.participants,
-            content=document.content,
-            metadata_=document.metadata,
-        )
-
-        db_documents.append(db_document)
-
-    created_documents = self.document_repository.create_many(
-        db_documents,
-    )
-
-    self.db.commit()
-
-    return created_documents
+        except Exception:
+            self.db.rollback()
+            raise
