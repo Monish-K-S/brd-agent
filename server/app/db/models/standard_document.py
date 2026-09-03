@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -52,6 +52,13 @@ class StandardDocument(Base):
     content: Mapped[str] = mapped_column(
         Text,
         nullable=False,
+    )
+
+    is_extracted: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
     )
 
     metadata_: Mapped[dict] = mapped_column(
