@@ -27,7 +27,25 @@ class StandardDocumentRepository:
             .filter(
                 StandardDocument.workspace_id == workspace_id,
             )
-            .order_by(StandardDocument.created_at.asc())
+            .order_by(
+                StandardDocument.created_at.asc(),
+            )
+            .all()
+        )
+
+    def get_unextracted_by_workspace_id(
+        self,
+        workspace_id: UUID,
+    ) -> list[StandardDocument]:
+        return (
+            self.db.query(StandardDocument)
+            .filter(
+                StandardDocument.workspace_id == workspace_id,
+                StandardDocument.is_extracted.is_(False),
+            )
+            .order_by(
+                StandardDocument.created_at.asc(),
+            )
             .all()
         )
 

@@ -4,12 +4,15 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.db.session import SessionLocal
 
-
 from app.api.routes.auth import router as auth_router
 from app.api.routes.workspace import router as workspace_router
 from app.api.routes.standard_document import (
     router as standard_document_router,
 )
+from app.api.routes.document_extraction import (
+    router as document_extraction_router,
+)
+
 
 app = FastAPI(
     title=settings.app_name,
@@ -39,3 +42,4 @@ def database_health_check():
 app.include_router(auth_router)
 app.include_router(workspace_router)
 app.include_router(standard_document_router)
+app.include_router(document_extraction_router)
