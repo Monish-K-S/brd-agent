@@ -13,6 +13,9 @@ from app.api.routes.document_extraction import (
     router as document_extraction_router,
 )
 
+from app.api.routes.project_knowledge import (
+    router as project_knowledge_router,
+)
 
 app = FastAPI(
     title=settings.app_name,
@@ -43,3 +46,4 @@ app.include_router(auth_router)
 app.include_router(workspace_router)
 app.include_router(standard_document_router)
 app.include_router(document_extraction_router)
+app.include_router(project_knowledge_router)
