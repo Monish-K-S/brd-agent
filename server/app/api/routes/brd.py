@@ -1,5 +1,13 @@
 from uuid import UUID
 
+from app.auth.current_user import get_current_db_user
+from app.db.models.user import User
+from app.db.session import get_db
+from app.schemas.brd import (
+    BRDResponse,
+    BRDStatusResponse,
+)
+from app.services.brd_service import BRDService
 from fastapi import (
     APIRouter,
     Depends,
@@ -7,13 +15,6 @@ from fastapi import (
     status,
 )
 from sqlalchemy.orm import Session
-
-from app.auth.current_user import get_current_db_user
-from app.db.models.user import User
-from app.db.session import get_db
-from app.schemas.brd import BRDResponse
-from app.services.brd_service import BRDService
-
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/brd",
@@ -43,10 +44,7 @@ def generate_brd(
     if brd is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=(
-                "Workspace not found or project knowledge "
-                "not available"
-            ),
+            detail=("Workspace not found or project knowledge not available"),
         )
 
     return BRDResponse(
@@ -55,6 +53,37 @@ def generate_brd(
         brd_data=brd.brd_data,
         created_at=brd.created_at,
         updated_at=brd.updated_at,
+    )
+
+
+@router.get(
+    "/status",
+    response_model=BRDStatusResponse,
+)
+def get_brd_status(
+    workspace_id: UUID,
+    current_user: User = Depends(
+        get_current_db_user,
+    ),
+    db: Session = Depends(get_db),
+) -> BRDStatusResponse:
+    brd_service = BRDService(db)
+
+    brd_status = brd_service.get_brd_status_for_user(
+        workspace_id=workspace_id,
+        user_id=current_user.id,
+    )
+
+    if brd_status is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found",
+        )
+
+    return BRDStatusResponse(
+        has_brd=brd_status["has_brd"],
+        has_new_sources=brd_status["has_new_sources"],
+        regeneration_required=(brd_status["regeneration_required"]),
     )
 
 

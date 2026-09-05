@@ -13,6 +13,9 @@ from app.ai.mappers.project_knowledge_mapper import (
 )
 from app.db.models.brd import BRD
 from app.repositories.brd_repository import BRDRepository
+from app.repositories.standard_document_repository import (
+    StandardDocumentRepository,
+)
 from app.services.project_knowledge_service import (
     ProjectKnowledgeService,
 )
@@ -24,16 +27,13 @@ class BRDService:
         self.db = db
 
         self.brd_repository = BRDRepository(db)
+        self.standard_document_repository = StandardDocumentRepository(db)
 
         self.workspace_service = WorkspaceService(db)
 
-        self.project_knowledge_service = (
-            ProjectKnowledgeService(db)
-        )
+        self.project_knowledge_service = ProjectKnowledgeService(db)
 
-        self.project_knowledge_mapper = (
-            ProjectKnowledgeMapper()
-        )
+        self.project_knowledge_mapper = ProjectKnowledgeMapper()
 
         self.brd_mapper = BRDMapper()
 
@@ -73,8 +73,7 @@ class BRDService:
         """
 
         project_knowledge_record = (
-            self.project_knowledge_service
-            .get_project_knowledge_for_user(
+            self.project_knowledge_service.get_project_knowledge_for_user(
                 workspace_id=workspace_id,
                 user_id=user_id,
             )
@@ -83,10 +82,8 @@ class BRDService:
         if project_knowledge_record is None:
             return None
 
-        project_knowledge = (
-            self.project_knowledge_mapper.map(
-                project_knowledge_record.knowledge_data,
-            )
+        project_knowledge = self.project_knowledge_mapper.map(
+            project_knowledge_record.knowledge_data,
         )
 
         generated_brd_data = self.brd_generator.generate(
@@ -149,3 +146,39 @@ class BRDService:
         except Exception:
             self.db.rollback()
             raise
+
+
+
+    def get_brd_status_for_user(
+        self,
+        workspace_id: UUID,
+        user_id: UUID,
+    ) -> dict | None:
+        workspace = self.workspace_service.get_workspace_for_user(
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+
+        if workspace is None:
+            return None
+
+        brd = self.brd_repository.get_by_workspace_id(
+            workspace_id,
+        )
+
+        has_new_sources = (
+            self.standard_document_repository
+            .has_unextracted_by_workspace_id(
+                workspace_id,
+            )
+        )
+
+        has_brd = brd is not None
+
+        return {
+            "has_brd": has_brd,
+            "has_new_sources": has_new_sources,
+            "regeneration_required": (
+                has_brd and has_new_sources
+            ),
+        }
