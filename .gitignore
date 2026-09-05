@@ -1,10 +1,6 @@
 datasets/
 .DS_Store
-backend/chroma_db/
-backend/llm/.env
-backend/extractors/.env
-backend/generators/.env
-backend/output/
+
 server/.env
 server/.venv/
 server/app/__pycache__/
