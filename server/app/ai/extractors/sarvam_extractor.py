@@ -100,7 +100,8 @@ class SarvamExtractor:
         self,
         job_id: str,
     ) -> None:
-        while True:
+        max_attempts = 60  # ~2 min at default interval
+        for attempt in range(max_attempts):
             status = self.client.doc_ai.get_status(
                 job_id=job_id,
             )
@@ -121,6 +122,10 @@ class SarvamExtractor:
             time.sleep(
                 self.POLL_INTERVAL_SECONDS,
             )
+
+        raise TimeoutError(
+            f"Sarvam extraction timed out. Job ID: {job_id}"
+        )
 
     def _get_results(
         self,
