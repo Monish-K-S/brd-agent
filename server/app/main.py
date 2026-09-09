@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.api.routes.auth import router as auth_router
@@ -47,3 +48,5 @@ app.include_router(standard_document_router)
 app.include_router(document_extraction_router)
 app.include_router(project_knowledge_router)
 app.include_router(brd_router)
+
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"], allow_credentials=True)
