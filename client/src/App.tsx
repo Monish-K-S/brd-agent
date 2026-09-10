@@ -1,7 +1,7 @@
 import { Link, BrowserRouter, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "@/auth/RequireAuth";
 import AuthPage from "@/pages/AuthPage";
-
+import WorkspacePage from "@/pages/WorkspacePage";
 import WorkspacesPage from "@/pages/WorkspacesPage";
 
 function App() {
@@ -44,7 +44,7 @@ function App() {
 
         <Route element={<RequireAuth />}>
           <Route path="/workspaces" element={<WorkspacesPage />} />
-          <Route path="/workspaces/:id" element={<div>Workspace</div>} />
+          <Route path="/workspaces/:id" element={<WorkspacePage />} />
         </Route>
       </Routes>
     </BrowserRouter>
