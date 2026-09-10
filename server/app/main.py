@@ -49,4 +49,4 @@ app.include_router(document_extraction_router)
 app.include_router(project_knowledge_router)
 app.include_router(brd_router)
 
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_methods=["*"], allow_headers=["*"], allow_credentials=True)
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_methods=["*"], allow_headers=["*"], allow_credentials=True)
