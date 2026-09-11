@@ -1,9 +1,9 @@
 import { apiClient } from "./client"
-
+import type { BRDData } from "@/components/brd/BRDViewer";
 export type BRD = {
   id: string
   workspace_id: string
-  brd_data: Record<string, unknown>
+  brd_data: BRDData
   created_at: string
   updated_at: string
 }

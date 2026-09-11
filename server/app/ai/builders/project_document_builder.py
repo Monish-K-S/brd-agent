@@ -21,12 +21,35 @@ class ProjectDocumentBuilder:
     FONT_SIZE = 8
     LINE_HEIGHT = 4
 
+    FONT_DIR = Path(__file__).resolve().parent.parent / "fonts"
+
+    REGULAR_FONT = FONT_DIR / "DejaVuSans.ttf"
+    BOLD_FONT = FONT_DIR / "DejaVuSans-Bold.ttf"
+
     def build(
         self,
         documents: list[StandardDocument],
         output_path: str | Path,
     ) -> str:
+        if not self.REGULAR_FONT.is_file():
+            raise FileNotFoundError(f"Unicode font not found: {self.REGULAR_FONT}")
+
+        if not self.BOLD_FONT.is_file():
+            raise FileNotFoundError(f"Unicode bold font not found: {self.BOLD_FONT}")
+
         pdf = FPDF()
+
+        pdf.add_font(
+            "DejaVu",
+            "",
+            str(self.REGULAR_FONT),
+        )
+
+        pdf.add_font(
+            "DejaVu",
+            "B",
+            str(self.BOLD_FONT),
+        )
 
         pdf.set_margins(
             left=self.LEFT_MARGIN,
@@ -39,11 +62,7 @@ class ProjectDocumentBuilder:
             margin=self.BOTTOM_MARGIN,
         )
 
-        content_width = (
-            pdf.w
-            - self.LEFT_MARGIN
-            - self.RIGHT_MARGIN
-        )
+        content_width = pdf.w - self.LEFT_MARGIN - self.RIGHT_MARGIN
 
         pdf.add_page()
 
@@ -81,7 +100,7 @@ class ProjectDocumentBuilder:
         # Document heading
         pdf.set_x(self.LEFT_MARGIN)
         pdf.set_font(
-            "Helvetica",
+            "DejaVu",
             "B",
             10,
         )
@@ -98,7 +117,7 @@ class ProjectDocumentBuilder:
             pdf.ln(1)
 
             pdf.set_font(
-                "Helvetica",
+                "DejaVu",
                 "",
                 7,
             )
@@ -117,7 +136,7 @@ class ProjectDocumentBuilder:
 
         pdf.set_x(self.LEFT_MARGIN)
         pdf.set_font(
-            "Helvetica",
+            "DejaVu",
             "B",
             8,
         )
@@ -132,7 +151,7 @@ class ProjectDocumentBuilder:
 
         pdf.set_x(self.LEFT_MARGIN)
         pdf.set_font(
-            "Helvetica",
+            "DejaVu",
             "",
             self.FONT_SIZE,
         )
@@ -150,29 +169,18 @@ class ProjectDocumentBuilder:
         metadata: list[str] = []
 
         if document.source_type:
-            metadata.append(
-                f"Source Type: {document.source_type}"
-            )
+            metadata.append(f"Source Type: {document.source_type}")
 
         if document.title:
-            metadata.append(
-                f"Title: {document.title}"
-            )
+            metadata.append(f"Title: {document.title}")
 
         if document.author:
-            metadata.append(
-                f"Author: {document.author}"
-            )
+            metadata.append(f"Author: {document.author}")
 
         if document.source_created_at:
-            metadata.append(
-                f"Created At: {document.source_created_at}"
-            )
+            metadata.append(f"Created At: {document.source_created_at}")
 
         if document.participants:
-            metadata.append(
-                "Participants: "
-                f"{', '.join(document.participants)}"
-            )
+            metadata.append(f"Participants: {', '.join(document.participants)}")
 
         return metadata

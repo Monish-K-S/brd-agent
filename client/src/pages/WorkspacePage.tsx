@@ -1,13 +1,14 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { deleteDocument, getDocuments, uploadDocuments } from "@/api/documents";
 import { getWorkspace } from "@/api/workspaces";
-import { generateBRD, getBRDStatus } from "@/api/brd";
+import { generateBRD, getBRD, getBRDStatus } from "@/api/brd";
 import { consolidateProjectKnowledge } from "@/api/projectKnowledge";
 import { extractDocuments } from "@/api/extractions";
-import { useState } from "react";
+import { BRDViewer } from "@/components/brd/BRDViewer";
 
 export default function WorkspacePage() {
   const navigate = useNavigate();
@@ -45,6 +46,17 @@ export default function WorkspacePage() {
     queryKey: ["brd-status", id],
     queryFn: () => getBRDStatus(id!),
     enabled: Boolean(id) && Boolean(workspace),
+    retry: false,
+  });
+
+  const {
+    data: brd,
+    isLoading: isBRDLoading,
+    isError: isBRDError,
+  } = useQuery({
+    queryKey: ["brd", id],
+    queryFn: () => getBRD(id!),
+    enabled: Boolean(id) && Boolean(workspace) && Boolean(brdStatus?.has_brd),
     retry: false,
   });
 
@@ -90,15 +102,12 @@ export default function WorkspacePage() {
       setGenerationError(false);
 
       setGenerationStep("processing-sources");
-
       await extractDocuments(id);
 
       setGenerationStep("preparing-knowledge");
-
       await consolidateProjectKnowledge(id);
 
       setGenerationStep("generating-brd");
-
       await generateBRD(id);
 
       setGenerationStep("idle");
@@ -106,11 +115,16 @@ export default function WorkspacePage() {
       await queryClient.invalidateQueries({
         queryKey: ["brd-status", id],
       });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["brd", id],
+      });
     } catch {
       setGenerationStep("idle");
       setGenerationError(true);
     }
   }
+
   async function handleSignOut() {
     await signOut();
     navigate("/auth", { replace: true });
@@ -273,119 +287,111 @@ export default function WorkspacePage() {
           )}
         </aside>
 
-        <section className="p-6">
-          <h2 className="text-xl font-semibold">BRD</h2>
+        <section className="bg-muted/20 p-6">
+          <div className="mb-6 flex items-center justify-between">
+            <h2 className="text-xl font-semibold">BRD</h2>
+          </div>
 
-          <div className="mt-6 rounded-lg border p-8">
-            {generationStep !== "idle" && (
-              <div>
-                <p className="font-medium">
-                  {generationStep === "processing-sources" &&
-                    "Processing sources..."}
+          {generationStep !== "idle" && (
+            <div className="rounded-lg border bg-background p-8">
+              <p className="font-medium">
+                {generationStep === "processing-sources" &&
+                  "Processing sources..."}
 
-                  {generationStep === "preparing-knowledge" &&
-                    "Preparing project knowledge..."}
+                {generationStep === "preparing-knowledge" &&
+                  "Preparing project knowledge..."}
 
-                  {generationStep === "generating-brd" &&
-                    "Generating BRD..."}
-                </p>
+                {generationStep === "generating-brd" && "Generating BRD..."}
+              </p>
 
-                <p className="mt-2 text-sm text-muted-foreground">
-                  This may take a little while.
-                </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                This may take a little while.
+              </p>
+            </div>
+          )}
+
+          {generationStep === "idle" && generationError && (
+            <div className="mb-6 rounded-lg border border-destructive/30 bg-background p-4">
+              <p className="text-sm text-destructive" role="alert">
+                Failed to generate BRD. Please try again.
+              </p>
+            </div>
+          )}
+
+          {generationStep === "idle" && isBRDStatusLoading && (
+            <div className="rounded-lg border bg-background p-8">
+              <p className="text-muted-foreground">Checking BRD status...</p>
+            </div>
+          )}
+
+          {generationStep === "idle" && isBRDStatusError && (
+            <div className="rounded-lg border bg-background p-8">
+              <p className="text-destructive">Failed to load BRD status.</p>
+            </div>
+          )}
+
+          {generationStep === "idle" &&
+            !isBRDStatusLoading &&
+            !isBRDStatusError &&
+            brdStatus &&
+            !brdStatus.has_brd && (
+              <div className="rounded-lg border bg-background p-8">
+                <p className="text-muted-foreground">No BRD generated yet.</p>
+
+                {brdStatus.has_new_sources && (
+                  <>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Sources are ready for BRD generation.
+                    </p>
+
+                    <Button className="mt-4" onClick={handleGenerateBRD}>
+                      Generate BRD
+                    </Button>
+                  </>
+                )}
               </div>
             )}
 
-            {generationStep === "idle" &&
-              isBRDStatusLoading && (
-                <p className="text-muted-foreground">
-                  Checking BRD status...
-                </p>
-              )}
+          {generationStep === "idle" &&
+            brdStatus?.has_brd &&
+            brdStatus.regeneration_required && (
+              <div className="mb-6 rounded-lg border bg-background p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-medium">BRD needs to be regenerated.</p>
 
-            {generationStep === "idle" &&
-              isBRDStatusError && (
-                <p className="text-destructive">
-                  Failed to load BRD status.
-                </p>
-              )}
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      New sources have been added since the last BRD generation.
+                    </p>
+                  </div>
 
-            {generationStep === "idle" &&
-              !isBRDStatusLoading &&
-              !isBRDStatusError &&
-              brdStatus &&
-              !brdStatus.has_brd && (
-                <div>
-                  <p className="text-muted-foreground">
-                    No BRD generated yet.
-                  </p>
-
-                  {brdStatus.has_new_sources && (
-                    <>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Sources are ready for BRD generation.
-                      </p>
-
-                      <Button
-                        className="mt-4"
-                        onClick={handleGenerateBRD}
-                      >
-                        Generate BRD
-                      </Button>
-                    </>
-                  )}
+                  <Button onClick={handleGenerateBRD}>Regenerate BRD</Button>
                 </div>
-              )}
+              </div>
+            )}
 
-            {generationStep === "idle" &&
-              !isBRDStatusLoading &&
-              !isBRDStatusError &&
-              brdStatus?.has_brd &&
-              !brdStatus.regeneration_required && (
-                <div>
-                  <p className="font-medium">
-                    BRD is up to date.
-                  </p>
+          {generationStep === "idle" &&
+            brdStatus?.has_brd &&
+            !brdStatus.regeneration_required &&
+            isBRDLoading && (
+              <div className="rounded-lg border bg-background p-8">
+                <p className="text-muted-foreground">Loading BRD...</p>
+              </div>
+            )}
 
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Your BRD reflects the current sources.
-                  </p>
-                </div>
-              )}
+          {generationStep === "idle" &&
+            brdStatus?.has_brd &&
+            !brdStatus.regeneration_required &&
+            isBRDError && (
+              <div className="rounded-lg border bg-background p-8">
+                <p className="text-destructive">Failed to load BRD.</p>
+              </div>
+            )}
 
-            {generationStep === "idle" &&
-              !isBRDStatusLoading &&
-              !isBRDStatusError &&
-              brdStatus?.regeneration_required && (
-                <div>
-                  <p className="font-medium">
-                    BRD needs to be regenerated.
-                  </p>
-
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    New sources have been added since the last BRD
-                    generation.
-                  </p>
-
-                  <Button
-                    className="mt-4"
-                    onClick={handleGenerateBRD}
-                  >
-                    Regenerate BRD
-                  </Button>
-                </div>
-              )}
-
-            {generationStep === "idle" &&
-              generationError && (
-                <p
-                  className="mt-4 text-sm text-destructive"
-                  role="alert"
-                >
-                  Failed to generate BRD. Please try again.
-                </p>
-              )}
-          </div>
+          {generationStep === "idle" &&
+            brdStatus?.has_brd &&
+            brd &&
+            !isBRDError && <BRDViewer data={brd.brd_data} />}
         </section>
       </div>
     </main>
