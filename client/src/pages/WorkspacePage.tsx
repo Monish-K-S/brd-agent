@@ -3,9 +3,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { deleteDocument, getDocuments, uploadDocuments } from "@/api/documents";
 import { getWorkspace } from "@/api/workspaces";
-import { generateBRD, getBRD, getBRDStatus } from "@/api/brd";
+import { generateBRD, getBRD, getBRDStatus, exportBRDPdf } from "@/api/brd";
 import { consolidateProjectKnowledge } from "@/api/projectKnowledge";
 import { extractDocuments } from "@/api/extractions";
 import { BRDViewer } from "@/components/brd/BRDViewer";
@@ -92,6 +98,30 @@ export default function WorkspacePage() {
       });
     },
   });
+
+  async function handleDownloadPdf() {
+    if (!id) {
+      return;
+    }
+
+    try {
+      const blob = await exportBRDPdf(id);
+
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${workspace.name} - BRD.pdf`;
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch {
+      window.alert("Failed to download BRD PDF. Please try again.");
+    }
+  }
 
   async function handleGenerateBRD() {
     if (!id || !brdStatus?.has_new_sources) {
@@ -290,6 +320,22 @@ export default function WorkspacePage() {
         <section className="bg-muted/20 p-6">
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-semibold">BRD</h2>
+
+            {brdStatus?.has_brd && (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={<Button variant="outline">Download</Button>}
+                />
+
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleDownloadPdf}>
+                    PDF
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem>DOCX</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {generationStep !== "idle" && (

@@ -43,3 +43,15 @@ export async function getBRDStatus(
 
   return response.data
 }
+
+
+export async function exportBRDPdf(workspaceId: string): Promise<Blob> {
+  const response = await apiClient.get(
+    `/workspaces/${workspaceId}/brd/export/pdf`,
+    {
+      responseType: "blob",
+    },
+  )
+
+  return response.data
+}

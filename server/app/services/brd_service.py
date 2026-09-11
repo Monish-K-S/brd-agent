@@ -1,9 +1,11 @@
+import tempfile
 from dataclasses import asdict
 from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.ai.builders.brd_document_builder import BRDDocumentBuilder
 from app.ai.generators.gemini_brd_generator import (
     GeminiBRDGenerator,
 )
@@ -45,6 +47,8 @@ class BRDService:
                 / "brd_schema.json"
             ),
         )
+
+        self.brd_document_builder = BRDDocumentBuilder()
 
     def get_brd_for_user(
         self,
@@ -104,6 +108,52 @@ class BRDService:
             brd_data=brd_data,
         )
 
+    def export_brd_pdf_for_user(
+        self,
+        workspace_id: UUID,
+        user_id: UUID,
+    ) -> tuple[str, str] | None:
+        workspace = self.workspace_service.get_workspace_for_user(
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+
+        if workspace is None:
+            return None
+
+        brd = self.brd_repository.get_by_workspace_id(
+            workspace_id
+        )
+
+        if brd is None:
+            return None
+
+        brd_model = self.brd_mapper.map(
+            brd.brd_data
+        )
+
+        temp_file = tempfile.NamedTemporaryFile(
+            suffix=".pdf",
+            delete=False,
+        )
+
+        temp_file.close()
+
+        output_path = temp_file.name
+
+        try:
+            self.brd_document_builder.build(
+                brd=brd_model,
+                output_path=output_path,
+            )
+        except Exception:
+            Path(output_path).unlink(
+                missing_ok=True
+            )
+            raise
+
+        return output_path, workspace.name
+
     def save_brd(
         self,
         workspace_id: UUID,
@@ -147,8 +197,6 @@ class BRDService:
             self.db.rollback()
             raise
 
-
-
     def get_brd_status_for_user(
         self,
         workspace_id: UUID,
@@ -167,8 +215,7 @@ class BRDService:
         )
 
         has_new_sources = (
-            self.standard_document_repository
-            .has_unextracted_by_workspace_id(
+            self.standard_document_repository.has_unextracted_by_workspace_id(
                 workspace_id,
             )
         )
@@ -178,7 +225,5 @@ class BRDService:
         return {
             "has_brd": has_brd,
             "has_new_sources": has_new_sources,
-            "regeneration_required": (
-                has_brd and has_new_sources
-            ),
+            "regeneration_required": (has_brd and has_new_sources),
         }

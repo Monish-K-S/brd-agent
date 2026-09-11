@@ -1,3 +1,4 @@
+from pathlib import Path
 from uuid import UUID
 
 from app.auth.current_user import get_current_db_user
@@ -14,7 +15,14 @@ from fastapi import (
     HTTPException,
     status,
 )
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
+
+
+def _cleanup_export_file(path: str) -> None:
+    Path(path).unlink(missing_ok=True)
+
 
 router = APIRouter(
     prefix="/workspaces/{workspace_id}/brd",
@@ -117,4 +125,38 @@ def get_brd(
         brd_data=brd.brd_data,
         created_at=brd.created_at,
         updated_at=brd.updated_at,
+    )
+
+
+@router.get("/export/pdf")
+def export_brd_pdf(
+    workspace_id: UUID,
+    current_user: User = Depends(get_current_db_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    brd_service = BRDService(db)
+
+    result = brd_service.export_brd_pdf_for_user(
+        workspace_id=workspace_id,
+        user_id=current_user.id,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="BRD not found",
+        )
+
+    output_path, workspace_name = result
+
+    filename = f"{workspace_name.strip() or 'BRD'} - BRD.pdf"
+
+    return FileResponse(
+        path=output_path,
+        media_type="application/pdf",
+        filename=filename,
+        background=BackgroundTask(
+            _cleanup_export_file,
+            output_path,
+        ),
     )
