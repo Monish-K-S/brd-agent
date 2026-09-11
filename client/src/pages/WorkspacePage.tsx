@@ -11,7 +11,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { deleteDocument, getDocuments, uploadDocuments } from "@/api/documents";
 import { getWorkspace } from "@/api/workspaces";
-import { generateBRD, getBRD, getBRDStatus, exportBRDPdf } from "@/api/brd";
+import {
+  generateBRD,
+  getBRD,
+  getBRDStatus,
+  exportBRDPdf,
+  exportBRDDocx,
+} from "@/api/brd";
 import { consolidateProjectKnowledge } from "@/api/projectKnowledge";
 import { extractDocuments } from "@/api/extractions";
 import { BRDViewer } from "@/components/brd/BRDViewer";
@@ -99,6 +105,20 @@ export default function WorkspacePage() {
     },
   });
 
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.URL.revokeObjectURL(url);
+  }
+
   async function handleDownloadPdf() {
     if (!id) {
       return;
@@ -107,19 +127,23 @@ export default function WorkspacePage() {
     try {
       const blob = await exportBRDPdf(id);
 
-      const url = window.URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${workspace.name} - BRD.pdf`;
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      window.URL.revokeObjectURL(url);
+      downloadBlob(blob, `${workspace.name} - BRD.pdf`);
     } catch {
       window.alert("Failed to download BRD PDF. Please try again.");
+    }
+  }
+
+  async function handleDownloadDocx() {
+    if (!id) {
+      return;
+    }
+
+    try {
+      const blob = await exportBRDDocx(id);
+
+      downloadBlob(blob, `${workspace.name} - BRD.docx`);
+    } catch {
+      window.alert("Failed to download BRD DOCX. Please try again.");
     }
   }
 
@@ -332,7 +356,9 @@ export default function WorkspacePage() {
                     PDF
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem>DOCX</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDownloadDocx}>
+                    DOCX
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             )}

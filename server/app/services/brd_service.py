@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.ai.builders.brd_document_builder import BRDDocumentBuilder
+from app.ai.builders.brd_docx_builder import BRDDocxBuilder
 from app.ai.generators.gemini_brd_generator import (
     GeminiBRDGenerator,
 )
@@ -49,6 +50,7 @@ class BRDService:
         )
 
         self.brd_document_builder = BRDDocumentBuilder()
+        self.brd_docx_builder = BRDDocxBuilder()
 
     def get_brd_for_user(
         self,
@@ -121,16 +123,12 @@ class BRDService:
         if workspace is None:
             return None
 
-        brd = self.brd_repository.get_by_workspace_id(
-            workspace_id
-        )
+        brd = self.brd_repository.get_by_workspace_id(workspace_id)
 
         if brd is None:
             return None
 
-        brd_model = self.brd_mapper.map(
-            brd.brd_data
-        )
+        brd_model = self.brd_mapper.map(brd.brd_data)
 
         temp_file = tempfile.NamedTemporaryFile(
             suffix=".pdf",
@@ -147,9 +145,47 @@ class BRDService:
                 output_path=output_path,
             )
         except Exception:
-            Path(output_path).unlink(
-                missing_ok=True
+            Path(output_path).unlink(missing_ok=True)
+            raise
+
+        return output_path, workspace.name
+
+    def export_brd_docx_for_user(
+        self,
+        workspace_id: UUID,
+        user_id: UUID,
+    ) -> tuple[str, str] | None:
+        workspace = self.workspace_service.get_workspace_for_user(
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+
+        if workspace is None:
+            return None
+
+        brd = self.brd_repository.get_by_workspace_id(workspace_id)
+
+        if brd is None:
+            return None
+
+        brd_model = self.brd_mapper.map(brd.brd_data)
+
+        temp_file = tempfile.NamedTemporaryFile(
+            suffix=".docx",
+            delete=False,
+        )
+
+        temp_file.close()
+
+        output_path = temp_file.name
+
+        try:
+            self.brd_docx_builder.build(
+                brd=brd_model,
+                output_path=output_path,
             )
+        except Exception:
+            Path(output_path).unlink(missing_ok=True)
             raise
 
         return output_path, workspace.name

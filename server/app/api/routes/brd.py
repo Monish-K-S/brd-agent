@@ -160,3 +160,43 @@ def export_brd_pdf(
             output_path,
         ),
     )
+
+
+
+@router.get("/export/docx")
+def export_brd_docx(
+    workspace_id: UUID,
+    current_user: User = Depends(get_current_db_user),
+    db: Session = Depends(get_db),
+) -> FileResponse:
+    brd_service = BRDService(db)
+
+    result = brd_service.export_brd_docx_for_user(
+        workspace_id=workspace_id,
+        user_id=current_user.id,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="BRD not found",
+        )
+
+    output_path, workspace_name = result
+
+    filename = (
+        f"{workspace_name.strip() or 'BRD'} - BRD.docx"
+    )
+
+    return FileResponse(
+        path=output_path,
+        media_type=(
+            "application/vnd.openxmlformats-officedocument."
+            "wordprocessingml.document"
+        ),
+        filename=filename,
+        background=BackgroundTask(
+            _cleanup_export_file,
+            output_path,
+        ),
+    )

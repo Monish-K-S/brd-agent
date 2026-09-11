@@ -55,3 +55,15 @@ export async function exportBRDPdf(workspaceId: string): Promise<Blob> {
 
   return response.data
 }
+
+
+export async function exportBRDDocx(workspaceId: string): Promise<Blob> {
+  const response = await apiClient.get(
+    `/workspaces/${workspaceId}/brd/export/docx`,
+    {
+      responseType: "blob",
+    },
+  )
+
+  return response.data
+}
