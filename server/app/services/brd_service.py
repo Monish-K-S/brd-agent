@@ -123,12 +123,16 @@ class BRDService:
         if workspace is None:
             return None
 
-        brd = self.brd_repository.get_by_workspace_id(workspace_id)
+        brd = self.brd_repository.get_by_workspace_id(
+            workspace_id,
+        )
 
         if brd is None:
             return None
 
-        brd_model = self.brd_mapper.map(brd.brd_data)
+        brd_model = self.brd_mapper.map(
+            brd.brd_data,
+        )
 
         temp_file = tempfile.NamedTemporaryFile(
             suffix=".pdf",
@@ -145,7 +149,9 @@ class BRDService:
                 output_path=output_path,
             )
         except Exception:
-            Path(output_path).unlink(missing_ok=True)
+            Path(output_path).unlink(
+                missing_ok=True,
+            )
             raise
 
         return output_path, workspace.name
@@ -163,12 +169,16 @@ class BRDService:
         if workspace is None:
             return None
 
-        brd = self.brd_repository.get_by_workspace_id(workspace_id)
+        brd = self.brd_repository.get_by_workspace_id(
+            workspace_id,
+        )
 
         if brd is None:
             return None
 
-        brd_model = self.brd_mapper.map(brd.brd_data)
+        brd_model = self.brd_mapper.map(
+            brd.brd_data,
+        )
 
         temp_file = tempfile.NamedTemporaryFile(
             suffix=".docx",
@@ -185,7 +195,9 @@ class BRDService:
                 output_path=output_path,
             )
         except Exception:
-            Path(output_path).unlink(missing_ok=True)
+            Path(output_path).unlink(
+                missing_ok=True,
+            )
             raise
 
         return output_path, workspace.name
@@ -213,6 +225,7 @@ class BRDService:
                 brd = BRD(
                     workspace_id=workspace_id,
                     brd_data=brd_data,
+                    source_revision=workspace.source_revision,
                 )
 
                 saved_brd = self.brd_repository.create(
@@ -220,6 +233,7 @@ class BRDService:
                 )
             else:
                 existing_brd.brd_data = brd_data
+                existing_brd.source_revision = workspace.source_revision
 
                 saved_brd = self.brd_repository.update(
                     existing_brd,
@@ -250,6 +264,12 @@ class BRDService:
             workspace_id,
         )
 
+        has_sources = (
+            self.standard_document_repository.has_by_workspace_id(
+                workspace_id,
+            )
+        )
+
         has_new_sources = (
             self.standard_document_repository.has_unextracted_by_workspace_id(
                 workspace_id,
@@ -258,8 +278,17 @@ class BRDService:
 
         has_brd = brd is not None
 
+        if not has_brd:
+            regeneration_required = False
+        else:
+            regeneration_required = (
+                brd.source_revision
+                != workspace.source_revision
+            )
+
         return {
             "has_brd": has_brd,
+            "has_sources": has_sources,
             "has_new_sources": has_new_sources,
-            "regeneration_required": (has_brd and has_new_sources),
+            "regeneration_required": regeneration_required,
         }

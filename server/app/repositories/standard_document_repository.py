@@ -78,7 +78,6 @@ class StandardDocumentRepository:
         self.db.delete(document)
         self.db.flush()
 
-
     def has_unextracted_by_workspace_id(
         self,
         workspace_id: UUID,
@@ -88,6 +87,19 @@ class StandardDocumentRepository:
             .filter(
                 StandardDocument.workspace_id == workspace_id,
                 StandardDocument.is_extracted.is_(False),
+            )
+            .first()
+            is not None
+        )
+
+    def has_by_workspace_id(
+        self,
+        workspace_id: UUID,
+    ) -> bool:
+        return (
+            self.db.query(StandardDocument)
+            .filter(
+                StandardDocument.workspace_id == workspace_id,
             )
             .first()
             is not None

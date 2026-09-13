@@ -100,6 +100,8 @@ class StandardDocumentService:
                 document,
             )
 
+            workspace.source_revision += 1
+
             self.db.commit()
 
             return created_document
@@ -148,6 +150,11 @@ class StandardDocumentService:
                 db_documents,
             )
 
+            if created_documents:
+                workspace.source_revision += len(
+                    created_documents,
+                )
+
             self.db.commit()
 
             return created_documents
@@ -169,8 +176,20 @@ class StandardDocumentService:
         if document is None:
             return False
 
+        workspace = self.workspace_service.get_workspace_for_user(
+            workspace_id=document.workspace_id,
+            user_id=user_id,
+        )
+
+        if workspace is None:
+            return False
+
         try:
-            self.document_repository.delete(document)
+            self.document_repository.delete(
+                document,
+            )
+
+            workspace.source_revision += 1
 
             self.db.commit()
 

@@ -90,8 +90,9 @@ def get_brd_status(
 
     return BRDStatusResponse(
         has_brd=brd_status["has_brd"],
+        has_sources=brd_status["has_sources"],
         has_new_sources=brd_status["has_new_sources"],
-        regeneration_required=(brd_status["regeneration_required"]),
+        regeneration_required=brd_status["regeneration_required"],
     )
 
 

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy import DateTime, ForeignKey, Integer, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,6 +27,12 @@ class BRD(Base):
     brd_data: Mapped[dict] = mapped_column(
         JSONB,
         nullable=False,
+    )
+
+    source_revision: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default="0",
     )
 
     created_at: Mapped[DateTime] = mapped_column(

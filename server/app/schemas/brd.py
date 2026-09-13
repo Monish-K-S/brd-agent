@@ -14,5 +14,6 @@ class BRDResponse(BaseModel):
 
 class BRDStatusResponse(BaseModel):
     has_brd: bool
+    has_sources: bool
     has_new_sources: bool
     regeneration_required: bool

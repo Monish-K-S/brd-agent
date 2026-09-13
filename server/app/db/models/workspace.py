@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -30,6 +30,13 @@ class Workspace(Base):
     description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
+    )
+
+    source_revision: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
     )
 
     created_at: Mapped[DateTime] = mapped_column(
