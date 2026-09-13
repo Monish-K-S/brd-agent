@@ -104,3 +104,18 @@ class StandardDocumentRepository:
             .first()
             is not None
         )
+
+    def get_by_gmail_message_id(
+        self,
+        workspace_id: UUID,
+        gmail_message_id: str,
+    ) -> StandardDocument | None:
+        return (
+            self.db.query(StandardDocument)
+            .filter(
+                StandardDocument.workspace_id == workspace_id,
+                StandardDocument.metadata_["gmail_message_id"].astext
+                == gmail_message_id,
+            )
+            .first()
+        )

@@ -1,8 +1,9 @@
-from datetime import timezone
+from datetime import datetime, timezone
 from uuid import UUID
 
 from app.core.config import settings
 from app.db.models.google_connection import GoogleConnection
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from sqlalchemy.orm import Session
@@ -158,3 +159,129 @@ class GmailService:
 
         self.db.delete(connection)
         self.db.commit()
+
+    def get_credentials(
+        self,
+        user_id: UUID,
+    ) -> Credentials:
+        connection = self.get_connection(user_id)
+
+        if connection is None:
+            raise ValueError("Gmail is not connected.")
+
+        credentials = Credentials(
+            token=connection.access_token,
+            refresh_token=connection.refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=settings.google_client_id,
+            client_secret=settings.google_client_secret,
+            scopes=[GMAIL_READONLY_SCOPE],
+        )
+
+        if credentials.expired:
+            if not credentials.refresh_token:
+                raise ValueError("Gmail connection has no refresh token.")
+
+            credentials.refresh(
+                Request(),
+            )
+
+            if credentials.token is None:
+                raise ValueError("Failed to refresh Gmail access token.")
+
+            connection.access_token = credentials.token
+
+            if credentials.expiry is not None:
+                expires_at = credentials.expiry
+
+                if expires_at.tzinfo is None:
+                    expires_at = expires_at.replace(
+                        tzinfo=timezone.utc,
+                    )
+
+                connection.expires_at = expires_at
+
+            self.db.commit()
+
+        return credentials
+
+    def list_messages(
+        self,
+        user_id: UUID,
+        query: str | None = None,
+        max_results: int = 5,
+    ) -> list[dict]:
+        from googleapiclient.discovery import build
+
+        credentials = self.get_credentials(user_id)
+
+        gmail = build(
+            "gmail",
+            "v1",
+            credentials=credentials,
+        )
+
+        response = (
+            gmail.users()
+            .messages()
+            .list(
+                userId="me",
+                q=query,
+                maxResults=max_results,
+            )
+            .execute()
+        )
+
+        message_references = response.get(
+            "messages",
+            [],
+        )
+
+        messages = []
+
+        for message_reference in message_references:
+            message = (
+                gmail.users()
+                .messages()
+                .get(
+                    userId="me",
+                    id=message_reference["id"],
+                    format="metadata",
+                    metadataHeaders=[
+                        "Subject",
+                        "From",
+                        "Date",
+                    ],
+                )
+                .execute()
+            )
+
+            messages.append(message)
+
+        return messages
+
+    def get_message(
+        self,
+        user_id: UUID,
+        message_id: str,
+    ) -> dict:
+        from googleapiclient.discovery import build
+
+        credentials = self.get_credentials(user_id)
+
+        gmail = build(
+            "gmail",
+            "v1",
+            credentials=credentials,
+        )
+
+        return (
+            gmail.users()
+            .messages()
+            .get(
+                userId="me",
+                id=message_id,
+                format="full",
+            )
+            .execute()
+        )

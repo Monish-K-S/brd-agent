@@ -72,10 +72,3 @@ class GoogleConnection(Base):
     user: Mapped["User"] = relationship(
         back_populates="google_connections",
     )
-
-
-    UniqueConstraint(
-        "user_id",
-        "provider",
-        name="uq_google_connections_user_provider",
-    )

@@ -6,6 +6,14 @@ import jwt
 from app.auth.dependencies import CurrentUser, get_current_user
 from app.core.config import settings
 from app.db.session import get_db
+from app.integrations.gmail.import_service import GmailImportService
+from app.integrations.gmail.mapper import GmailEmailMapper
+from app.integrations.gmail.schemas import (
+    GmailImportedDocument,
+    GmailImportRequest,
+    GmailImportResponse,
+    GmailMessageListResponse,
+)
 from app.integrations.gmail.service import GmailService
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -225,3 +233,119 @@ def disconnect_gmail(
     return {
         "status": "disconnected",
     }
+
+
+@router.get(
+    "/messages/recent",
+    response_model=GmailMessageListResponse,
+)
+def recent_gmail_messages(
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    gmail_service = GmailService(db)
+    mapper = GmailEmailMapper()
+
+    try:
+        messages = gmail_service.list_messages(
+            user_id=current_user.id,
+            max_results=5,
+        )
+
+        summaries = [mapper.to_message_summary(message) for message in messages]
+
+        return {
+            "messages": summaries,
+        }
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to retrieve Gmail messages: {exc}",
+        )
+
+
+@router.get(
+    "/messages/search",
+    response_model=GmailMessageListResponse,
+)
+def search_gmail_messages(
+    q: str = Query(..., min_length=1),
+    max_results: int = Query(
+        default=5,
+        ge=1,
+        le=20,
+    ),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    gmail_service = GmailService(db)
+    mapper = GmailEmailMapper()
+
+    try:
+        messages = gmail_service.list_messages(
+            user_id=current_user.id,
+            query=q,
+            max_results=max_results,
+        )
+
+        summaries = [mapper.to_message_summary(message) for message in messages]
+
+        return {
+            "messages": summaries,
+        }
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to search Gmail messages: {exc}",
+        )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/messages/import",
+    response_model=GmailImportResponse,
+)
+def import_gmail_messages(
+    workspace_id: UUID,
+    request: GmailImportRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    import_service = GmailImportService(db)
+
+    try:
+        created_documents, skipped_message_ids = import_service.import_messages(
+            workspace_id=workspace_id,
+            user_id=current_user.id,
+            message_ids=request.message_ids,
+        )
+
+        imported = [
+            GmailImportedDocument(
+                id=document.id,
+                gmail_message_id=document.metadata_.get(
+                    "gmail_message_id",
+                    "",
+                ),
+                title=document.title,
+            )
+            for document in created_documents
+        ]
+
+        return GmailImportResponse(
+            imported=imported,
+            skipped_message_ids=skipped_message_ids,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to import Gmail messages: {exc}",
+        )
