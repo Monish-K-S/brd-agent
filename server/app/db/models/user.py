@@ -39,3 +39,9 @@ class User(Base):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+
+
+    google_connections: Mapped[list["GoogleConnection"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

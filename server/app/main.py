@@ -16,6 +16,9 @@ from app.api.routes.standard_document import (
 from app.api.routes.workspace import router as workspace_router
 from app.core.config import settings
 from app.db.session import SessionLocal
+from app.integrations.gmail.router import (
+    router as gmail_router,
+)
 
 app = FastAPI(
     title=settings.app_name,
@@ -48,5 +51,12 @@ app.include_router(standard_document_router)
 app.include_router(document_extraction_router)
 app.include_router(project_knowledge_router)
 app.include_router(brd_router)
+app.include_router(gmail_router)
 
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], allow_methods=["*"], allow_headers=["*"], allow_credentials=True)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+    allow_credentials=True,
+)

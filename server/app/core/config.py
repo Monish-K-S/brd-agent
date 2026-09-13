@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     supabase_publishable_key: str
     supabase_service_role_key: str | None = None
 
+    google_client_id: str
+    google_client_secret: str
+    google_redirect_uri: str
+
     database_url: str
 
     model_config = SettingsConfigDict(
