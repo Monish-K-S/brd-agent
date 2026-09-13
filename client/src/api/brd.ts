@@ -9,10 +9,11 @@ export type BRD = {
 }
 
 export type BRDStatus = {
-  has_brd: boolean
-  has_new_sources: boolean
-  regeneration_required: boolean
-}
+  has_brd: boolean;
+  has_sources: boolean;
+  has_new_sources: boolean;
+  regeneration_required: boolean;
+};
 
 export async function generateBRD(
   workspaceId: string,

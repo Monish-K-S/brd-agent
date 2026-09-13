@@ -73,11 +73,22 @@ export default function WorkspacePage() {
   });
 
   type GenerationStep =
-    "idle" | "processing-sources" | "preparing-knowledge" | "generating-brd";
+    | "idle"
+    | "processing-sources"
+    | "preparing-knowledge"
+    | "generating-brd";
 
-  const [generationStep, setGenerationStep] = useState<GenerationStep>("idle");
+  const [generationStep, setGenerationStep] =
+    useState<GenerationStep>("idle");
 
   const [generationError, setGenerationError] = useState(false);
+
+  const canGenerateBRD =
+    Boolean(brdStatus) &&
+    (
+      (!brdStatus.has_brd && brdStatus.has_sources) ||
+      brdStatus.regeneration_required
+    );
 
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => uploadDocuments(id!, files),
@@ -148,7 +159,7 @@ export default function WorkspacePage() {
   }
 
   async function handleGenerateBRD() {
-    if (!id || !brdStatus?.has_new_sources) {
+    if (!id || !canGenerateBRD || generationStep !== "idle") {
       return;
     }
 
@@ -164,8 +175,6 @@ export default function WorkspacePage() {
       setGenerationStep("generating-brd");
       await generateBRD(id);
 
-      setGenerationStep("idle");
-
       await queryClient.invalidateQueries({
         queryKey: ["brd-status", id],
       });
@@ -173,9 +182,15 @@ export default function WorkspacePage() {
       await queryClient.invalidateQueries({
         queryKey: ["brd", id],
       });
+
+      setGenerationStep("idle");
     } catch {
       setGenerationStep("idle");
       setGenerationError(true);
+
+      await queryClient.invalidateQueries({
+        queryKey: ["brd-status", id],
+      });
     }
   }
 
@@ -410,13 +425,17 @@ export default function WorkspacePage() {
               <div className="rounded-lg border bg-background p-8">
                 <p className="text-muted-foreground">No BRD generated yet.</p>
 
-                {brdStatus.has_new_sources && (
+                {brdStatus.has_sources && (
                   <>
                     <p className="mt-2 text-sm text-muted-foreground">
                       Sources are ready for BRD generation.
                     </p>
 
-                    <Button className="mt-4" onClick={handleGenerateBRD}>
+                    <Button
+                      className="mt-4"
+                      onClick={handleGenerateBRD}
+                      disabled={generationStep !== "idle"}
+                    >
                       Generate BRD
                     </Button>
                   </>
@@ -430,14 +449,21 @@ export default function WorkspacePage() {
               <div className="mb-6 rounded-lg border bg-background p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-medium">BRD needs to be regenerated.</p>
+                    <p className="font-medium">
+                      BRD needs to be regenerated.
+                    </p>
 
                     <p className="mt-1 text-sm text-muted-foreground">
-                      New sources have been added since the last BRD generation.
+                      Your sources have changed since the last BRD generation.
                     </p>
                   </div>
 
-                  <Button onClick={handleGenerateBRD}>Regenerate BRD</Button>
+                  <Button
+                    onClick={handleGenerateBRD}
+                    disabled={generationStep !== "idle"}
+                  >
+                    Regenerate BRD
+                  </Button>
                 </div>
               </div>
             )}
