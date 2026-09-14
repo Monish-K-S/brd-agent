@@ -11,9 +11,44 @@ from sqlalchemy.orm import Session
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 
 
+GOOGLE_SCOPES = [
+    GMAIL_READONLY_SCOPE,
+]
+
+
 class GmailService:
     def __init__(self, db: Session):
         self.db = db
+
+    def _create_flow(
+        self,
+        state: str | None = None,
+        code_verifier: str | None = None,
+    ) -> Flow:
+        client_config = {
+            "web": {
+                "client_id": settings.google_client_id,
+                "client_secret": settings.google_client_secret,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [
+                    settings.google_redirect_uri,
+                ],
+            }
+        }
+
+        flow = Flow.from_client_config(
+            client_config,
+            scopes=GOOGLE_SCOPES,
+            state=state,
+        )
+
+        flow.redirect_uri = settings.google_redirect_uri
+
+        if code_verifier:
+            flow.code_verifier = code_verifier
+
+        return flow
 
     def create_authorization_url(
         self,
@@ -22,14 +57,11 @@ class GmailService:
     ) -> str:
         flow = self._create_flow(
             state=state,
+            code_verifier=code_verifier,
         )
-
-        flow.code_verifier = code_verifier
 
         authorization_url, _ = flow.authorization_url(
             access_type="offline",
-            include_granted_scopes="true",
-            state=state,
             prompt="consent",
         )
 
@@ -43,52 +75,54 @@ class GmailService:
     ) -> Credentials:
         flow = self._create_flow(
             state=state,
+            code_verifier=code_verifier,
         )
-
-        flow.code_verifier = code_verifier
 
         flow.fetch_token(
             code=code,
         )
 
-        credentials = flow.credentials
+        return flow.credentials
 
-        if not credentials.refresh_token:
-            raise ValueError("Google did not return a refresh token.")
-
-        return credentials
-
-    def _create_flow(
+    def _normalize_expiry(
         self,
-        state: str | None = None,
-    ) -> Flow:
-        client_config = {
-            "web": {
-                "client_id": settings.google_client_id,
-                "client_secret": settings.google_client_secret,
-                "auth_uri": ("https://accounts.google.com/o/oauth2/auth"),
-                "token_uri": ("https://oauth2.googleapis.com/token"),
-                "redirect_uris": [
-                    settings.google_redirect_uri,
-                ],
-            }
-        }
+        expires_at: datetime | None,
+    ) -> datetime | None:
+        if expires_at is None:
+            return None
 
-        flow = Flow.from_client_config(
-            client_config,
-            scopes=[GMAIL_READONLY_SCOPE],
-            state=state,
+        if expires_at.tzinfo is None:
+            return expires_at.replace(
+                tzinfo=timezone.utc,
+            )
+
+        return expires_at.astimezone(
+            timezone.utc,
         )
 
-        flow.redirect_uri = settings.google_redirect_uri
+    def _is_expired(
+        self,
+        expires_at: datetime | None,
+    ) -> bool:
+        if expires_at is None:
+            return False
 
-        return flow
+        normalized_expiry = self._normalize_expiry(
+            expires_at,
+        )
+
+        if normalized_expiry is None:
+            return False
+
+        return normalized_expiry <= datetime.now(
+            timezone.utc,
+        )
 
     def save_connection(
         self,
         user_id: UUID,
-        email: str,
         credentials: Credentials,
+        email: str,
     ) -> GoogleConnection:
         connection = (
             self.db.query(GoogleConnection)
@@ -99,15 +133,9 @@ class GmailService:
             .first()
         )
 
-        expires_at = credentials.expiry
-
-        if expires_at is None:
-            raise ValueError("Google credentials did not include an expiry time.")
-
-        if expires_at.tzinfo is None:
-            expires_at = expires_at.replace(
-                tzinfo=timezone.utc,
-            )
+        expires_at = self._normalize_expiry(
+            credentials.expiry,
+        )
 
         if connection is None:
             connection = GoogleConnection(
@@ -167,7 +195,21 @@ class GmailService:
         connection = self.get_connection(user_id)
 
         if connection is None:
-            raise ValueError("Gmail is not connected.")
+            raise ValueError("Google account is not connected.")
+
+        expires_at = self._normalize_expiry(
+            connection.expires_at,
+        )
+
+        # IMPORTANT:
+        # Do not use credentials.expired here.
+        #
+        # google-auth versions can internally compare
+        # timezone-naive and timezone-aware datetimes.
+        # We perform the comparison ourselves instead.
+        token_expired = self._is_expired(
+            expires_at,
+        )
 
         credentials = Credentials(
             token=connection.access_token,
@@ -175,31 +217,26 @@ class GmailService:
             token_uri="https://oauth2.googleapis.com/token",
             client_id=settings.google_client_id,
             client_secret=settings.google_client_secret,
-            scopes=[GMAIL_READONLY_SCOPE],
+            scopes=GOOGLE_SCOPES,
+            expiry=None,
         )
 
-        if credentials.expired:
-            if not credentials.refresh_token:
-                raise ValueError("Gmail connection has no refresh token.")
+        if token_expired:
+            if not connection.refresh_token:
+                raise ValueError(
+                    "Google access token has expired and "
+                    "no refresh token is available. "
+                    "Please reconnect Google."
+                )
 
-            credentials.refresh(
-                Request(),
-            )
-
-            if credentials.token is None:
-                raise ValueError("Failed to refresh Gmail access token.")
+            credentials.refresh(Request())
 
             connection.access_token = credentials.token
 
             if credentials.expiry is not None:
-                expires_at = credentials.expiry
-
-                if expires_at.tzinfo is None:
-                    expires_at = expires_at.replace(
-                        tzinfo=timezone.utc,
-                    )
-
-                connection.expires_at = expires_at
+                connection.expires_at = self._normalize_expiry(
+                    credentials.expiry,
+                )
 
             self.db.commit()
 
@@ -211,9 +248,9 @@ class GmailService:
         query: str | None = None,
         max_results: int = 5,
     ) -> list[dict]:
-        from googleapiclient.discovery import build
-
         credentials = self.get_credentials(user_id)
+
+        from googleapiclient.discovery import build
 
         gmail = build(
             "gmail",
@@ -221,53 +258,41 @@ class GmailService:
             credentials=credentials,
         )
 
-        response = (
+        request = (
             gmail.users()
             .messages()
             .list(
                 userId="me",
-                q=query,
                 maxResults=max_results,
             )
-            .execute()
         )
 
-        message_references = response.get(
+        if query:
+            request = (
+                gmail.users()
+                .messages()
+                .list(
+                    userId="me",
+                    q=query,
+                    maxResults=max_results,
+                )
+            )
+
+        response = request.execute()
+
+        return response.get(
             "messages",
             [],
         )
-
-        messages = []
-
-        for message_reference in message_references:
-            message = (
-                gmail.users()
-                .messages()
-                .get(
-                    userId="me",
-                    id=message_reference["id"],
-                    format="metadata",
-                    metadataHeaders=[
-                        "Subject",
-                        "From",
-                        "Date",
-                    ],
-                )
-                .execute()
-            )
-
-            messages.append(message)
-
-        return messages
 
     def get_message(
         self,
         user_id: UUID,
         message_id: str,
     ) -> dict:
-        from googleapiclient.discovery import build
-
         credentials = self.get_credentials(user_id)
+
+        from googleapiclient.discovery import build
 
         gmail = build(
             "gmail",

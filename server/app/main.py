@@ -53,6 +53,7 @@ app.include_router(project_knowledge_router)
 app.include_router(brd_router)
 app.include_router(gmail_router)
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],

@@ -70,10 +70,17 @@ def verify_oauth_state(
                 detail="Invalid OAuth state.",
             )
 
-        user_id = UUID(payload["sub"])
-        workspace_id = UUID(payload["workspace_id"])
+        user_id = UUID(
+            payload["sub"],
+        )
 
-        code_verifier = payload.get("code_verifier")
+        workspace_id = UUID(
+            payload["workspace_id"],
+        )
+
+        code_verifier = payload.get(
+            "code_verifier",
+        )
 
         if not code_verifier:
             raise HTTPException(
@@ -81,9 +88,17 @@ def verify_oauth_state(
                 detail="Invalid OAuth state.",
             )
 
-        return user_id, workspace_id, code_verifier
+        return (
+            user_id,
+            workspace_id,
+            code_verifier,
+        )
 
-    except (jwt.PyJWTError, KeyError, ValueError):
+    except (
+        jwt.PyJWTError,
+        KeyError,
+        ValueError,
+    ):
         raise HTTPException(
             status_code=400,
             detail="Invalid or expired OAuth state.",
@@ -93,7 +108,9 @@ def verify_oauth_state(
 @router.get("/connect")
 def connect_gmail(
     workspace_id: UUID = Query(...),
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(
+        get_current_user,
+    ),
     db: Session = Depends(get_db),
 ):
     code_verifier = secrets.token_urlsafe(64)
@@ -122,9 +139,11 @@ def gmail_callback(
     state: str = Query(...),
     db: Session = Depends(get_db),
 ):
-    user_id, workspace_id, code_verifier = verify_oauth_state(
-        state,
-    )
+    (
+        user_id,
+        workspace_id,
+        code_verifier,
+    ) = verify_oauth_state(state)
 
     gmail_service = GmailService(db)
 
@@ -135,7 +154,9 @@ def gmail_callback(
             code_verifier=code_verifier,
         )
 
-        email = get_google_account_email(credentials)
+        email = get_google_account_email(
+            credentials,
+        )
 
         gmail_service.save_connection(
             user_id=user_id,
@@ -152,7 +173,7 @@ def gmail_callback(
         )
 
     return RedirectResponse(
-        url=f"{settings.frontend_url}/workspaces/{workspace_id}",
+        url=(f"{settings.frontend_url}/workspaces/{workspace_id}"),
         status_code=303,
     )
 
@@ -246,7 +267,15 @@ def recent_gmail_messages(
             max_results=5,
         )
 
-        summaries = [mapper.to_message_summary(message) for message in messages]
+        summaries = []
+
+        for message in messages:
+            full_message = gmail_service.get_message(
+                user_id=current_user.id,
+                message_id=message["id"],
+            )
+
+            summaries.append(mapper.to_message_summary(full_message))
 
         return {
             "messages": summaries,
@@ -255,7 +284,7 @@ def recent_gmail_messages(
     except Exception as exc:
         raise HTTPException(
             status_code=400,
-            detail=f"Unable to retrieve Gmail messages: {exc}",
+            detail=(f"Unable to retrieve Gmail messages: {exc}"),
         )
 
 
@@ -283,7 +312,15 @@ def search_gmail_messages(
             max_results=max_results,
         )
 
-        summaries = [mapper.to_message_summary(message) for message in messages]
+        summaries = []
+
+        for message in messages:
+            full_message = gmail_service.get_message(
+                user_id=current_user.id,
+                message_id=message["id"],
+            )
+
+            summaries.append(mapper.to_message_summary(full_message))
 
         return {
             "messages": summaries,
@@ -292,7 +329,7 @@ def search_gmail_messages(
     except Exception as exc:
         raise HTTPException(
             status_code=400,
-            detail=f"Unable to search Gmail messages: {exc}",
+            detail=(f"Unable to search Gmail messages: {exc}"),
         )
 
 
@@ -303,13 +340,18 @@ def search_gmail_messages(
 def import_gmail_messages(
     workspace_id: UUID,
     request: GmailImportRequest,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(
+        get_current_user,
+    ),
     db: Session = Depends(get_db),
 ):
     import_service = GmailImportService(db)
 
     try:
-        created_documents, skipped_message_ids = import_service.import_messages(
+        (
+            created_documents,
+            skipped_message_ids,
+        ) = import_service.import_messages(
             workspace_id=workspace_id,
             user_id=current_user.id,
             message_ids=request.message_ids,
@@ -341,5 +383,5 @@ def import_gmail_messages(
     except Exception as exc:
         raise HTTPException(
             status_code=400,
-            detail=f"Unable to import Gmail messages: {exc}",
+            detail=(f"Unable to import Gmail messages: {exc}"),
         )
