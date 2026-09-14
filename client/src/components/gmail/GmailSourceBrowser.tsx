@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getRecentGmailMessages,
   searchGmailMessages,
@@ -86,14 +87,18 @@ export function GmailSourceBrowser({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden">
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl border border-[#e2e2e2] bg-white shadow-level-2">
-        <div className="flex items-center justify-between border-b border-[#e2e2e2] p-6">
+      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-[4px] border border-black/8 bg-white">
+        <div className="flex items-center justify-between border-b border-black/8 p-8">
           <div>
-            <h2 className="text-xl font-bold text-black">
+            <p className="font-mono text-[11px] leading-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+              Gmail
+            </p>
+
+            <h2 className="mt-2 text-[22px] leading-[25.3px] font-medium tracking-[-0.22px] text-black">
               Add Gmail sources
             </h2>
 
-            <p className="mt-1 text-sm text-[#5e5e5e]">
+            <p className="mt-2 text-[16px] leading-[20.8px] font-normal tracking-[-0.16px] text-[#999999]">
               Select emails to add to this workspace.
             </p>
           </div>
@@ -108,14 +113,14 @@ export function GmailSourceBrowser({
           </Button>
         </div>
 
-        <div className="border-b border-[#e2e2e2] p-4">
+        <div className="border-b border-black/8 p-4">
           <form onSubmit={handleSearch} className="flex gap-3">
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search Gmail..."
-              className="h-11 min-w-0 flex-1 rounded-lg border border-[#e2e2e2] bg-[#efefef] px-4 text-base text-black outline-none placeholder:text-[#afafaf] focus:border-black"
+              className="h-11 min-w-0 flex-1 rounded-[4px] border border-black/8 bg-white px-4 text-base tracking-[-0.16px] text-black outline-none placeholder:text-[#999999] focus:border-black"
               disabled={isImporting}
             />
 
@@ -138,21 +143,29 @@ export function GmailSourceBrowser({
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {activeSearch === "" && (
-            <p className="mb-3 text-sm font-medium text-black">
+            <p className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
               Recent emails
             </p>
           )}
 
           {activeSearch !== "" && (
-            <p className="mb-3 text-sm font-medium text-black">
+            <p className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
               Search results for "{activeSearch}"
             </p>
           )}
 
           {isLoading && (
-            <p className="py-8 text-center text-sm text-[#5e5e5e]">
-              Loading emails...
-            </p>
+            <div className="space-y-2" aria-label="Loading emails">
+              {[0, 1, 2].map((index) => (
+                <div
+                  key={index}
+                  className="rounded-[4px] border border-black/8 bg-white p-4"
+                >
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="mt-2 h-3 w-1/3" />
+                </div>
+              ))}
+            </div>
           )}
 
           {isError && (
@@ -162,7 +175,7 @@ export function GmailSourceBrowser({
           )}
 
           {!isLoading && !isError && messages.length === 0 && (
-            <p className="py-8 text-center text-sm text-[#5e5e5e]">
+            <p className="py-8 text-center text-[14px] leading-[19.6px] font-normal text-[#999999]">
               No emails found.
             </p>
           )}
@@ -175,7 +188,7 @@ export function GmailSourceBrowser({
                 return (
                   <label
                     key={message.id}
-                    className="flex cursor-pointer gap-3 rounded-2xl border border-[#e2e2e2] bg-white p-4 hover:bg-[#f3f3f3]"
+                    className="flex cursor-pointer gap-3 rounded-[4px] border border-black/8 bg-white p-4 transition-colors hover:border-black"
                   >
                     <input
                       type="checkbox"
@@ -187,21 +200,21 @@ export function GmailSourceBrowser({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="truncate text-sm font-medium text-black">
+                        <p className="truncate text-[16px] leading-[20.8px] font-medium tracking-[-0.16px] text-black">
                           {message.subject || "No subject"}
                         </p>
 
-                        <span className="shrink-0 text-xs text-[#afafaf]">
+                        <span className="shrink-0 font-mono text-[11px] tracking-[0.055px] text-[#999999]">
                           {formatDate(message.date)}
                         </span>
                       </div>
 
-                      <p className="mt-1 truncate text-xs text-[#5e5e5e]">
+                      <p className="mt-1 truncate text-[14px] leading-[19.6px] font-normal text-[#999999]">
                         {message.sender || "Unknown sender"}
                       </p>
 
                       {message.snippet && (
-                        <p className="mt-1 line-clamp-2 text-xs text-[#5e5e5e]">
+                        <p className="mt-1 line-clamp-2 text-[14px] leading-[19.6px] font-normal text-[#999999]">
                           {message.snippet}
                         </p>
                       )}
@@ -213,8 +226,8 @@ export function GmailSourceBrowser({
           )}
         </div>
 
-        <div className="flex items-center justify-between p-4">
-          <p className="text-sm text-[#5e5e5e]">
+        <div className="flex items-center justify-between border-t border-black/8 p-4">
+          <p className="text-[14px] leading-[19.6px] font-normal text-[#999999]">
             {selectedIds.length === 0
               ? "No emails selected"
               : `${selectedIds.length} email${

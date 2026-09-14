@@ -14,11 +14,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  createWorkspace,
-  deleteWorkspace,
-  getWorkspaces,
-} from "@/api/workspaces";
+import { createWorkspace, deleteWorkspace, getWorkspaces } from "@/api/workspaces";
+import { TopBar } from "@/components/layout/TopBar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function WorkspacesPage() {
   const navigate = useNavigate();
@@ -95,20 +93,38 @@ export default function WorkspacesPage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-8">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-black">
-          Workspaces
-        </h1>
+      <TopBar
+        left={
+          <h1 className="text-[28px] leading-[32.2px] font-medium tracking-[-0.42px] text-black">
+            Workspaces
+          </h1>
+        }
+        right={
+          <Button variant="secondary" onClick={handleSignOut}>
+            Sign out
+          </Button>
+        }
+      />
 
-        <Button variant="secondary" onClick={handleSignOut}>
-          Sign out
-        </Button>
-      </header>
+      <div className="mx-auto w-full max-w-[1280px] px-4 py-12 sm:px-8 sm:py-20">
 
-      <section className="mt-8">
+      <section>
         {isLoading && (
-          <p className="text-base text-[#5e5e5e]">Loading workspaces...</p>
+          <div
+            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            aria-label="Loading workspaces"
+          >
+            {[0, 1, 2].map((index) => (
+              <div
+                key={index}
+                className="rounded-[4px] border border-black/8 bg-white p-6"
+              >
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="mt-3 h-4 w-full" />
+                <Skeleton className="mt-2 h-4 w-1/2" />
+              </div>
+            ))}
+          </div>
         )}
 
         {isError && (
@@ -118,12 +134,18 @@ export default function WorkspacesPage() {
         )}
 
         {!isLoading && !isError && workspaces?.length === 0 && (
-          <div className="rounded-2xl bg-[#efefef] p-8 text-center">
-            <h2 className="text-xl font-bold text-black">
+          <div className="rounded-[4px] border border-black/8 bg-white p-8 text-center sm:p-12">
+            <p
+              className="font-mono text-[11px] leading-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase"
+            >
+              Getting started
+            </p>
+
+            <h2 className="mt-4 text-[22px] leading-[25.3px] font-medium tracking-[-0.22px] text-black">
               No workspaces yet
             </h2>
 
-            <p className="mt-2 text-base text-[#5e5e5e]">
+            <p className="mx-auto mt-2 max-w-sm text-[16px] leading-[20.8px] font-normal tracking-[-0.16px] text-[#999999]">
               Create your first workspace to get started.
             </p>
           </div>
@@ -134,19 +156,19 @@ export default function WorkspacesPage() {
             {workspaces.map((workspace) => (
               <div
                 key={workspace.id}
-                className="rounded-2xl border border-[#e2e2e2] bg-white p-6 transition-shadow hover:shadow-level-1"
+                className="rounded-[4px] border border-black/8 bg-white p-6 transition-opacity hover:opacity-80"
               >
                 <button
                   type="button"
                   onClick={() => navigate(`/workspaces/${workspace.id}`)}
-                  className="w-full text-left transition hover:opacity-80"
+                  className="w-full text-left"
                 >
-                  <h2 className="text-base font-medium text-black">
+                  <h2 className="text-[16px] leading-[20.8px] font-medium tracking-[-0.16px] text-black">
                     {workspace.name}
                   </h2>
 
                   {workspace.description && (
-                    <p className="mt-2 line-clamp-2 text-sm text-[#5e5e5e]">
+                    <p className="mt-2 line-clamp-2 text-[14px] leading-[19.6px] font-normal text-[#999999]">
                       {workspace.description}
                     </p>
                   )}

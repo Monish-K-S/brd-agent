@@ -31,7 +31,18 @@ import {
   getGmailStatus,
   importGmailMessages,
 } from "@/api/gmail";
+import {
+  ArrowLeft,
+  Download,
+  FileText,
+  Loader2,
+  Mail,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { BRDViewer } from "@/components/brd/BRDViewer";
+import { TopBar } from "@/components/layout/TopBar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const GmailSourceBrowser = lazy(() =>
   import("@/components/gmail/GmailSourceBrowser").then((module) => ({
@@ -351,7 +362,7 @@ export default function WorkspacePage() {
   if (isWorkspaceLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-white">
-        <p className="text-base text-[#5e5e5e]">
+        <p className="text-base text-[#999999]">
           Loading workspace...
         </p>
       </main>
@@ -377,46 +388,53 @@ export default function WorkspacePage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <header className="flex items-center justify-between bg-white px-4 py-4 print:hidden sm:px-8">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="secondary"
-            onClick={() => navigate("/workspaces")}
-          >
-            ← Workspaces
-          </Button>
+      <div className="print:hidden">
+        <TopBar
+          left={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => navigate("/workspaces")}
+              >
+                <ArrowLeft />
+                Workspaces
+              </Button>
 
-          <div>
-            <h1 className="text-xl font-bold text-black">
-              {workspace.name}
-            </h1>
+              <div className="min-w-0">
+                <h1 className="truncate text-[22px] leading-[25.3px] font-medium tracking-[-0.22px] text-black">
+                  {workspace.name}
+                </h1>
 
-            {workspace.description && (
-              <p className="text-sm text-[#5e5e5e]">
-                {workspace.description}
-              </p>
-            )}
-          </div>
-        </div>
+                {workspace.description && (
+                  <p className="truncate text-sm text-[#999999]">
+                    {workspace.description}
+                  </p>
+                )}
+              </div>
+            </>
+          }
+          right={
+            <Button variant="secondary" onClick={handleSignOut}>
+              Sign out
+            </Button>
+          }
+        />
+      </div>
 
-        <Button variant="secondary" onClick={handleSignOut}>
-          Sign out
-        </Button>
-      </header>
-
-      <div className="grid min-h-[calc(100vh-81px)] grid-cols-1 border-t border-[#e2e2e2] md:grid-cols-[280px_1fr]">
-        <aside className="border-b border-[#e2e2e2] bg-white p-6 print:hidden md:border-r md:border-b-0">
+      <div className="grid min-h-[calc(100vh-81px)] grid-cols-1 border-t border-black/8 md:grid-cols-[280px_1fr]">
+        <aside className="border-b border-black/8 bg-white p-6 print:hidden md:border-r md:border-b-0">
           {/* Sources */}
           <section>
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xs font-medium tracking-wide text-[#5e5e5e] uppercase">
+              <h2 className="font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
                 Sources
               </h2>
 
               <label
                 htmlFor="workspace-sources-upload"
-                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full bg-black px-4 text-sm font-medium text-white transition-colors hover:bg-[#282828]"
+                className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[4px] bg-black px-4 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity hover:opacity-80"
               >
+                <Upload />
                 {uploadMutation.isPending
                   ? "Uploading..."
                   : "Add sources"}
@@ -433,10 +451,22 @@ export default function WorkspacePage() {
               />
             </div>
 
+            <p className="mt-2 text-xs text-[#999999]">
+              Accepts .txt, .pdf, and .docx files.
+            </p>
+
             {isDocumentsLoading && (
-              <p className="mt-4 text-sm text-[#5e5e5e]">
-                Loading sources...
-              </p>
+              <div className="mt-4 space-y-2" aria-label="Loading sources">
+                {[0, 1].map((index) => (
+                  <div
+                    key={index}
+                    className="rounded-[4px] border border-black/8 bg-white p-4"
+                  >
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="mt-2 h-3 w-1/3" />
+                  </div>
+                ))}
+              </div>
             )}
 
             {isDocumentsError && (
@@ -448,7 +478,7 @@ export default function WorkspacePage() {
             {!isDocumentsLoading &&
               !isDocumentsError &&
               uploadedDocuments.length === 0 && (
-                <p className="mt-4 text-sm text-[#5e5e5e]">
+                <p className="mt-4 text-sm text-[#999999]">
                   No uploaded sources yet.
                 </p>
               )}
@@ -460,24 +490,38 @@ export default function WorkspacePage() {
                   {uploadedDocuments.map((document) => (
                     <div
                       key={document.id}
-                      className="rounded-2xl border border-[#e2e2e2] bg-white p-4"
+                      className="rounded-[4px] border border-black/8 bg-white p-4"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-black">
-                            {document.title || "Untitled source"}
-                          </p>
+                        <div className="flex min-w-0 items-start gap-3">
+                          <span
+                            aria-hidden="true"
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-black/8 bg-white text-black"
+                          >
+                            <FileText />
+                          </span>
 
-                            <p className="mt-2 inline-flex max-w-full rounded-full bg-[#efefef] px-3 py-1 text-xs font-medium text-black">
+                          <div className="min-w-0">
+                            <p
+                              className="line-clamp-2 text-sm leading-5 font-medium text-black"
+                              title={document.title || "Untitled source"}
+                            >
+                              {document.title || "Untitled source"}
+                            </p>
+
+                            <p className="mt-2 inline-flex max-w-full rounded-[4px] border border-black/8 bg-white px-3 py-1 font-mono text-[11px] font-medium tracking-[0.055px] text-black uppercase">
                               <span className="truncate">
                                 {document.source_type}
                               </span>
                             </p>
                           </div>
+                        </div>
 
                           <Button
                             variant="secondary"
-                            size="sm"
+                            size="icon-sm"
+                            aria-label="Delete source"
+                            title="Delete source"
                             onClick={() =>
                               handleDeleteDocument(document.id)
                             }
@@ -486,10 +530,7 @@ export default function WorkspacePage() {
                               deleteMutation.variables === document.id
                             }
                           >
-                            {deleteMutation.isPending &&
-                            deleteMutation.variables === document.id
-                              ? "Deleting..."
-                              : "Delete"}
+                            <Trash2 />
                           </Button>
                       </div>
                     </div>
@@ -505,9 +546,9 @@ export default function WorkspacePage() {
           </section>
 
           {/* Gmail */}
-          <section className="mt-8 border-t border-[#e2e2e2] pt-6">
+          <section className="mt-8 border-t border-black/8 pt-6">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xs font-medium tracking-wide text-[#5e5e5e] uppercase">
+              <h2 className="font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
                 Gmail
               </h2>
 
@@ -553,7 +594,7 @@ export default function WorkspacePage() {
             </div>
 
             {isGmailStatusLoading && (
-              <p className="mt-3 text-xs text-[#5e5e5e]">
+              <p className="mt-3 text-xs text-[#999999]">
                 Checking connection...
               </p>
             )}
@@ -567,7 +608,7 @@ export default function WorkspacePage() {
             {!isGmailStatusLoading &&
               !isGmailStatusError &&
               !gmailStatus?.connected && (
-                <p className="mt-3 text-xs text-[#5e5e5e]">
+                <p className="mt-3 text-xs text-[#999999]">
                   Connect Gmail to add emails as sources.
                 </p>
               )}
@@ -576,12 +617,12 @@ export default function WorkspacePage() {
               !isGmailStatusError &&
               gmailStatus?.connected && (
                 <>
-                  <p className="mt-3 truncate text-xs text-[#5e5e5e]">
+                  <p className="mt-3 truncate text-xs text-[#999999]">
                     Connected: {gmailStatus.email}
                   </p>
 
                   {emailDocuments.length === 0 && (
-                    <p className="mt-4 text-sm text-[#5e5e5e]">
+                    <p className="mt-4 text-sm text-[#999999]">
                       No Gmail emails added yet.
                     </p>
                   )}
@@ -591,34 +632,41 @@ export default function WorkspacePage() {
                       {emailDocuments.map((document) => (
                         <div
                           key={document.id}
-                          className="rounded-2xl border border-[#e2e2e2] bg-white p-4"
+                          className="rounded-[4px] border border-black/8 bg-white p-4"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-black">
-                                {document.title || "No subject"}
-                              </p>
+                            <div className="flex min-w-0 items-start gap-3">
+                              <span
+                                aria-hidden="true"
+                            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-black/8 bg-white text-black"
+                              >
+                                <Mail />
+                              </span>
 
-                              {document.author && (
-                                <p className="mt-1 truncate text-xs text-[#5e5e5e]">
-                                  {document.author}
+                              <div className="min-w-0">
+                                <p
+                                  className="line-clamp-2 text-sm leading-5 font-medium text-black"
+                                  title={document.title || "No subject"}
+                                >
+                                  {document.title || "No subject"}
                                 </p>
-                              )}
 
-                              {document.source_created_at && (
-                                <p className="mt-2 inline-flex max-w-full rounded-full bg-[#efefef] px-3 py-1 text-xs font-medium text-black">
-                                  <span className="truncate">
-                                    {new Date(
-                                      document.source_created_at,
-                                    ).toLocaleDateString()}
-                                  </span>
-                                </p>
-                              )}
+                                {document.author && (
+                                  <p
+                                    className="mt-1 truncate text-xs text-[#999999]"
+                                    title={document.author}
+                                  >
+                                    {document.author}
+                                  </p>
+                                )}
+                              </div>
                             </div>
 
                               <Button
                                 variant="secondary"
-                                size="sm"
+                                size="icon-sm"
+                                aria-label="Delete source"
+                                title="Delete source"
                                 onClick={() =>
                                   handleDeleteDocument(document.id)
                                 }
@@ -627,10 +675,7 @@ export default function WorkspacePage() {
                                   deleteMutation.variables === document.id
                                 }
                               >
-                                {deleteMutation.isPending &&
-                                deleteMutation.variables === document.id
-                                  ? "Deleting..."
-                                  : "Delete"}
+                                <Trash2 />
                               </Button>
                           </div>
                         </div>
@@ -659,19 +704,6 @@ export default function WorkspacePage() {
             )}
           </section>
 
-          {/* Google Meet */}
-          <section className="mt-8 border-t border-[#e2e2e2] pt-6">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xs font-medium tracking-wide text-[#5e5e5e] uppercase">
-                Google Meet
-              </h2>
-            </div>
-
-            <p className="mt-3 text-sm text-[#5e5e5e]">
-              No meeting transcripts yet.
-            </p>
-          </section>
-
           {deleteMutation.isError && (
             <p className="mt-6 text-sm font-medium text-black" role="alert">
               Failed to delete source. Please try again.
@@ -679,9 +711,9 @@ export default function WorkspacePage() {
           )}
         </aside>
 
-        <section className="bg-[#f3f3f3] p-6 print:bg-white print:p-0 sm:p-8">
+        <section className="bg-white p-6 print:p-0 sm:p-8">
           <div className="mb-6 flex items-center justify-between print:hidden">
-            <h2 className="text-2xl font-bold text-black">
+            <h2 className="text-[28px] leading-[32.2px] font-medium tracking-[-0.42px] text-black">
               BRD
             </h2>
 
@@ -689,7 +721,8 @@ export default function WorkspacePage() {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <Button className="shadow-level-3">
+                    <Button>
+                      <Download />
                       Download
                     </Button>
                   }
@@ -709,26 +742,65 @@ export default function WorkspacePage() {
           </div>
 
           {generationStep !== "idle" && (
-            <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
-              <p className="text-base font-medium text-black">
-                {generationStep === "processing-sources" &&
-                  "Processing sources..."}
+            <div className="rounded-[4px] border border-black/8 bg-white p-6">
+              <ol className="space-y-3">
+                {(
+                  [
+                    ["processing-sources", "Processing sources"],
+                    ["preparing-knowledge", "Preparing project knowledge"],
+                    ["generating-brd", "Generating BRD"],
+                  ] as const
+                ).map(([step, label]) => {
+                  const order = [
+                    "processing-sources",
+                    "preparing-knowledge",
+                    "generating-brd",
+                  ] as const;
+                  const isActive = generationStep === step;
+                  const isDone =
+                    order.indexOf(generationStep as (typeof order)[number]) >
+                    order.indexOf(step);
 
-                {generationStep === "preparing-knowledge" &&
-                  "Preparing project knowledge..."}
+                  return (
+                    <li key={step} className="flex items-center gap-3">
+                      <span
+                        aria-hidden="true"
+                        className={
+                          isActive
+                            ? "flex size-6 items-center justify-center rounded-full bg-black text-white"
+                            : isDone
+                              ? "size-6 rounded-full bg-black"
+                              : "size-6 rounded-full border border-black/8"
+                        }
+                      >
+                        {isActive && (
+                          <Loader2 className="animate-spin" />
+                        )}
+                      </span>
 
-                {generationStep === "generating-brd" &&
-                  "Generating BRD..."}
-              </p>
+                      <span
+                        className={
+                          isActive || isDone
+                            ? "text-base font-medium text-black"
+                            : "text-base text-[#999999]"
+                        }
+                      >
+                        {label}
+                        {isActive ? "..." : ""}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
 
-              <p className="mt-2 text-sm text-[#5e5e5e]">
+              <p className="mt-4 text-sm text-[#999999]">
                 This may take a little while.
               </p>
             </div>
           )}
 
           {generationStep === "idle" && generationError && (
-            <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-4">
+            <div className="mb-6 rounded-[4px] border border-black/8 bg-white p-4">
               <p className="text-sm font-medium text-black" role="alert">
                 Failed to generate BRD. Please try again.
               </p>
@@ -736,15 +808,15 @@ export default function WorkspacePage() {
           )}
 
           {generationStep === "idle" && isBRDStatusLoading && (
-            <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
-              <p className="text-base text-[#5e5e5e]">
+            <div className="rounded-[4px] border border-black/8 bg-white p-6">
+              <p className="text-base text-[#999999]">
                 Checking BRD status...
               </p>
             </div>
           )}
 
           {generationStep === "idle" && isBRDStatusError && (
-            <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
+            <div className="rounded-[4px] border border-black/8 bg-white p-6">
               <p className="text-sm font-medium text-black">
                 Failed to load BRD status.
               </p>
@@ -756,14 +828,18 @@ export default function WorkspacePage() {
             !isBRDStatusError &&
             brdStatus &&
             !brdStatus.has_brd && (
-              <div className="rounded-2xl bg-[#efefef] p-8 text-center shadow-level-2">
-                <p className="text-base text-[#5e5e5e]">
-                  No BRD generated yet.
+              <div className="rounded-[4px] border border-black/8 bg-white p-8 text-center sm:p-12">
+                <p className="font-mono text-[11px] leading-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                  Getting started
                 </p>
 
-                {brdStatus.has_sources && (
+                <h3 className="mt-4 text-[22px] leading-[25.3px] font-medium tracking-[-0.22px] text-black">
+                  No BRD generated yet.
+                </h3>
+
+                {brdStatus.has_sources ? (
                   <>
-                    <p className="mt-2 text-sm text-[#5e5e5e]">
+                    <p className="mx-auto mt-2 max-w-sm text-sm text-[#999999]">
                       Sources are ready for BRD generation.
                     </p>
 
@@ -775,6 +851,10 @@ export default function WorkspacePage() {
                       Generate BRD
                     </Button>
                   </>
+                ) : (
+                  <p className="mx-auto mt-2 max-w-sm text-sm text-[#999999]">
+                    Add sources from the panel to get started.
+                  </p>
                 )}
               </div>
             )}
@@ -784,20 +864,20 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             brdStatus.regeneration_required &&
             brdStatus.has_user_edits && (
-              <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-6">
+              <div className="mb-6 rounded-[4px] border border-black/8 bg-white p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-base font-medium text-black">
                       Your BRD needs to be regenerated.
                     </p>
 
-                    <p className="mt-2 text-sm leading-6 text-[#5e5e5e]">
+                    <p className="mt-2 text-sm leading-6 text-[#999999]">
                       Your sources have changed since the last BRD
                       generation, and this BRD contains manual changes.
                       Regenerating may overwrite those changes.
                     </p>
 
-                    <p className="mt-2 text-sm leading-6 text-[#5e5e5e]">
+                    <p className="mt-2 text-sm leading-6 text-[#999999]">
                       We recommend downloading your current BRD using
                       the Download menu above before regenerating it.
                     </p>
@@ -818,14 +898,14 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             brdStatus.regeneration_required &&
             !brdStatus.has_user_edits && (
-              <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-6 print:hidden">
+              <div className="mb-6 rounded-[4px] border border-black/8 bg-white p-6 print:hidden">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-base font-medium text-black">
                       BRD needs to be regenerated.
                     </p>
 
-                    <p className="mt-1 text-sm text-[#5e5e5e]">
+                    <p className="mt-1 text-sm text-[#999999]">
                       Your sources have changed since the last BRD
                       generation.
                     </p>
@@ -844,17 +924,26 @@ export default function WorkspacePage() {
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
             isBRDLoading && (
-              <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
-                <p className="text-base text-[#5e5e5e]">
-                  Loading BRD...
-                </p>
+              <div
+                className="rounded-[4px] border border-black/8 bg-white p-6 sm:p-8"
+                aria-label="Loading BRD"
+              >
+                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="mt-4 h-8 w-2/3" />
+                <Skeleton className="mt-4 h-4 w-full" />
+                <Skeleton className="mt-2 h-4 w-5/6" />
+                <div className="mt-8 border-t border-black/8 pt-8">
+                  <Skeleton className="h-5 w-1/4" />
+                  <Skeleton className="mt-3 h-4 w-full" />
+                  <Skeleton className="mt-2 h-4 w-4/6" />
+                </div>
               </div>
             )}
 
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
             isBRDError && (
-              <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
+              <div className="rounded-[4px] border border-black/8 bg-white p-6">
                 <p className="text-sm font-medium text-black">
                   Failed to load BRD.
                 </p>
