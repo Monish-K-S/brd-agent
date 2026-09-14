@@ -1,6 +1,9 @@
 import base64
 from datetime import datetime
 from email.utils import parsedate_to_datetime
+from html import unescape
+
+from bs4 import BeautifulSoup
 
 from app.ai.models.standard_document import StandardDocument
 
@@ -112,7 +115,7 @@ class GmailEmailMapper:
         )
 
         if plain_text:
-            return plain_text
+            return self._clean_text(plain_text)
 
         html = self._find_body_part(
             payload,
@@ -166,17 +169,42 @@ class GmailEmailMapper:
         self,
         html: str,
     ) -> str:
-        from bs4 import BeautifulSoup
-
         soup = BeautifulSoup(
             html,
             "html.parser",
         )
 
-        return soup.get_text(
+        text = soup.get_text(
             "\n",
             strip=True,
         )
+
+        return self._clean_text(text)
+
+    def _clean_text(
+        self,
+        text: str,
+    ) -> str:
+        """
+        Decode HTML entities that may remain in the extracted
+        email content.
+
+        Handles both normal and double-encoded entities, e.g.:
+
+            &#39;       -> '
+            &amp;        -> &
+            &amp;#39;    -> &#39; -> '
+        """
+
+        for _ in range(2):
+            decoded = unescape(text)
+
+            if decoded == text:
+                break
+
+            text = decoded
+
+        return text
 
     def _parse_date(
         self,
@@ -224,5 +252,7 @@ class GmailEmailMapper:
             "date": self._parse_date(
                 headers.get("date"),
             ),
-            "snippet": message.get("snippet"),
+            "snippet": self._clean_text(
+                message.get("snippet", ""),
+            ),
         }

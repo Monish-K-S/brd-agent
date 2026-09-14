@@ -266,7 +266,7 @@ def recent_gmail_messages(
 def search_gmail_messages(
     q: str = Query(..., min_length=1),
     max_results: int = Query(
-        default=5,
+        default=10,
         ge=1,
         le=20,
     ),
