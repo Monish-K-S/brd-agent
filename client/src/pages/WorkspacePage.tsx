@@ -20,6 +20,7 @@ import {
 } from "@/api/brd";
 import { consolidateProjectKnowledge } from "@/api/projectKnowledge";
 import { extractDocuments } from "@/api/extractions";
+import { connectGmail, disconnectGmail, getGmailStatus } from "@/api/gmail";
 import { BRDViewer } from "@/components/brd/BRDViewer";
 
 export default function WorkspacePage() {
@@ -51,6 +52,17 @@ export default function WorkspacePage() {
   });
 
   const {
+    data: gmailStatus,
+    isLoading: isGmailStatusLoading,
+    isError: isGmailStatusError,
+  } = useQuery({
+    queryKey: ["gmail-status"],
+    queryFn: getGmailStatus,
+    enabled: Boolean(workspace),
+    retry: false,
+  });
+
+  const {
     data: brdStatus,
     isLoading: isBRDStatusLoading,
     isError: isBRDStatusError,
@@ -73,22 +85,16 @@ export default function WorkspacePage() {
   });
 
   type GenerationStep =
-    | "idle"
-    | "processing-sources"
-    | "preparing-knowledge"
-    | "generating-brd";
+    "idle" | "processing-sources" | "preparing-knowledge" | "generating-brd";
 
-  const [generationStep, setGenerationStep] =
-    useState<GenerationStep>("idle");
+  const [generationStep, setGenerationStep] = useState<GenerationStep>("idle");
 
   const [generationError, setGenerationError] = useState(false);
 
   const canGenerateBRD =
     Boolean(brdStatus) &&
-    (
-      (!brdStatus.has_brd && brdStatus.has_sources) ||
-      brdStatus.regeneration_required
-    );
+    ((!brdStatus.has_brd && brdStatus.has_sources) ||
+      brdStatus.regeneration_required);
 
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => uploadDocuments(id!, files),
@@ -112,6 +118,22 @@ export default function WorkspacePage() {
 
       queryClient.invalidateQueries({
         queryKey: ["brd-status", id],
+      });
+    },
+  });
+
+  const connectGmailMutation = useMutation({
+    mutationFn: () => connectGmail(id!),
+    onSuccess: (authorizationUrl) => {
+      window.location.assign(authorizationUrl);
+    },
+  });
+
+  const disconnectGmailMutation = useMutation({
+    mutationFn: disconnectGmail,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["gmail-status"],
       });
     },
   });
@@ -224,6 +246,22 @@ export default function WorkspacePage() {
     deleteMutation.mutate(documentId);
   }
 
+  function handleConnectGmail() {
+    connectGmailMutation.mutate();
+  }
+
+  function handleDisconnectGmail() {
+    const confirmed = window.confirm(
+      "Are you sure you want to disconnect Gmail?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    disconnectGmailMutation.mutate();
+  }
+
   if (isWorkspaceLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center">
@@ -289,6 +327,84 @@ export default function WorkspacePage() {
                 disabled={uploadMutation.isPending}
               />
             </label>
+          </div>
+
+          <div className="mt-6 rounded-md border p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Gmail</p>
+
+                {isGmailStatusLoading && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Checking connection...
+                  </p>
+                )}
+
+                {!isGmailStatusLoading && isGmailStatusError && (
+                  <p className="mt-1 text-xs text-destructive">
+                    Failed to check Gmail connection.
+                  </p>
+                )}
+
+                {!isGmailStatusLoading &&
+                  !isGmailStatusError &&
+                  gmailStatus?.connected && (
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      Connected: {gmailStatus.email}
+                    </p>
+                  )}
+
+                {!isGmailStatusLoading &&
+                  !isGmailStatusError &&
+                  !gmailStatus?.connected && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Not connected
+                    </p>
+                  )}
+              </div>
+
+              {!isGmailStatusLoading &&
+                !isGmailStatusError &&
+                !gmailStatus?.connected && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleConnectGmail}
+                    disabled={connectGmailMutation.isPending}
+                  >
+                    {connectGmailMutation.isPending
+                      ? "Connecting..."
+                      : "Connect"}
+                  </Button>
+                )}
+
+              {!isGmailStatusLoading &&
+                !isGmailStatusError &&
+                gmailStatus?.connected && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleDisconnectGmail}
+                    disabled={disconnectGmailMutation.isPending}
+                  >
+                    {disconnectGmailMutation.isPending
+                      ? "Disconnecting..."
+                      : "Disconnect"}
+                  </Button>
+                )}
+            </div>
+
+            {connectGmailMutation.isError && (
+              <p className="mt-2 text-xs text-destructive" role="alert">
+                Failed to connect Gmail. Please try again.
+              </p>
+            )}
+
+            {disconnectGmailMutation.isError && (
+              <p className="mt-2 text-xs text-destructive" role="alert">
+                Failed to disconnect Gmail. Please try again.
+              </p>
+            )}
           </div>
 
           {isDocumentsLoading && (
@@ -449,9 +565,7 @@ export default function WorkspacePage() {
               <div className="mb-6 rounded-lg border bg-background p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-medium">
-                      BRD needs to be regenerated.
-                    </p>
+                    <p className="font-medium">BRD needs to be regenerated.</p>
 
                     <p className="mt-1 text-sm text-muted-foreground">
                       Your sources have changed since the last BRD generation.
