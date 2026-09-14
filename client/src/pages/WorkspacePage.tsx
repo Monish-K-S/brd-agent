@@ -9,11 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  deleteDocument,
-  getDocuments,
-  uploadDocuments,
-} from "@/api/documents";
+import { deleteDocument, getDocuments, uploadDocuments } from "@/api/documents";
 import { getWorkspace } from "@/api/workspaces";
 import {
   generateBRD,
@@ -92,21 +88,14 @@ export default function WorkspacePage() {
   } = useQuery({
     queryKey: ["brd", id],
     queryFn: () => getBRD(id!),
-    enabled:
-      Boolean(id) &&
-      Boolean(workspace) &&
-      Boolean(brdStatus?.has_brd),
+    enabled: Boolean(id) && Boolean(workspace) && Boolean(brdStatus?.has_brd),
     retry: false,
   });
 
   type GenerationStep =
-    | "idle"
-    | "processing-sources"
-    | "preparing-knowledge"
-    | "generating-brd";
+    "idle" | "processing-sources" | "preparing-knowledge" | "generating-brd";
 
-  const [generationStep, setGenerationStep] =
-    useState<GenerationStep>("idle");
+  const [generationStep, setGenerationStep] = useState<GenerationStep>("idle");
 
   const [generationError, setGenerationError] = useState(false);
 
@@ -158,8 +147,7 @@ export default function WorkspacePage() {
   });
 
   const importGmailMutation = useMutation({
-    mutationFn: (messageIds: string[]) =>
-      importGmailMessages(id!, messageIds),
+    mutationFn: (messageIds: string[]) => importGmailMessages(id!, messageIds),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["documents", id],
@@ -223,8 +211,10 @@ export default function WorkspacePage() {
     try {
       setGenerationError(false);
 
-      setGenerationStep("processing-sources");
-      await extractDocuments(id);
+      if (brdStatus?.has_new_sources) {
+        setGenerationStep("processing-sources");
+        await extractDocuments(id);
+      }
 
       setGenerationStep("preparing-knowledge");
       await consolidateProjectKnowledge(id);
@@ -250,15 +240,12 @@ export default function WorkspacePage() {
       });
     }
   }
-
   async function handleSignOut() {
     await signOut();
     navigate("/auth", { replace: true });
   }
 
-  function handleFileChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
 
     if (files.length === 0) {
@@ -308,36 +295,27 @@ export default function WorkspacePage() {
   }
 
   const uploadedDocuments =
-    documents?.filter(
-      (document) => document.source_type !== "email",
-    ) ?? [];
+    documents?.filter((document) => document.source_type !== "email") ?? [];
 
   const emailDocuments =
-    documents?.filter(
-      (document) => document.source_type === "email",
-    ) ?? [];
+    documents?.filter((document) => document.source_type === "email") ?? [];
 
   if (isWorkspaceLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">
-          Loading workspace...
-        </p>
+      <main className="flex min-h-screen items-center justify-center bg-white">
+        <p className="text-base text-[#5e5e5e]">Loading workspace...</p>
       </main>
     );
   }
 
   if (isWorkspaceError || !workspace) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-4">
-        <p className="text-destructive">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-white px-4 sm:px-8">
+        <p className="text-sm font-medium text-black">
           Failed to load workspace.
         </p>
 
-        <Button
-          variant="outline"
-          onClick={() => navigate("/workspaces")}
-        >
+        <Button variant="secondary" onClick={() => navigate("/workspaces")}>
           Back to Workspaces
         </Button>
       </main>
@@ -345,69 +323,62 @@ export default function WorkspacePage() {
   }
 
   return (
-    <main className="min-h-screen">
-      <header className="flex items-center justify-between border-b px-6 py-4">
+    <main className="min-h-screen bg-white">
+      <header className="flex items-center justify-between bg-white px-4 py-4 sm:px-8">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/workspaces")}
-          >
+          <Button variant="secondary" onClick={() => navigate("/workspaces")}>
             ← Workspaces
           </Button>
 
           <div>
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-xl font-bold tracking-tight text-black">
               {workspace.name}
             </h1>
 
             {workspace.description && (
-              <p className="text-sm text-muted-foreground">
-                {workspace.description}
-              </p>
+              <p className="text-sm text-[#5e5e5e]">{workspace.description}</p>
             )}
           </div>
         </div>
 
-        <Button variant="outline" onClick={handleSignOut}>
+        <Button variant="secondary" onClick={handleSignOut}>
           Sign out
         </Button>
       </header>
 
-      <div className="grid min-h-[calc(100vh-81px)] grid-cols-1 md:grid-cols-[280px_1fr]">
-        <aside className="border-b p-6 md:border-b-0 md:border-r">
+      <div className="grid min-h-[calc(100vh-81px)] grid-cols-1 border-t border-[#e2e2e2] md:grid-cols-[280px_1fr]">
+        <aside className="border-b border-[#e2e2e2] bg-white p-6 md:border-r md:border-b-0">
           {/* Sources */}
           <section>
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide">
+              <h2 className="text-xs font-medium tracking-wide text-[#5e5e5e] uppercase">
                 Sources
               </h2>
 
-              <label className="inline-flex cursor-pointer">
-                <span className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
-                  {uploadMutation.isPending
-                    ? "Uploading..."
-                    : "Add sources"}
-                </span>
-
-                <input
-                  type="file"
-                  multiple
-                  accept=".txt,.pdf,.docx"
-                  className="hidden"
-                  onChange={handleFileChange}
-                  disabled={uploadMutation.isPending}
-                />
+              <label
+                htmlFor="workspace-sources-upload"
+                className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full bg-black px-4 text-sm font-medium text-white transition-colors hover:bg-[#282828]"
+              >
+                {uploadMutation.isPending ? "Uploading..." : "Add sources"}
               </label>
+
+              <input
+                id="workspace-sources-upload"
+                type="file"
+                multiple
+                accept=".txt,.pdf,.docx"
+                className="sr-only"
+                onChange={handleFileChange}
+                disabled={uploadMutation.isPending}
+              />
             </div>
 
             {isDocumentsLoading && (
-              <p className="mt-4 text-sm text-muted-foreground">
-                Loading sources...
-              </p>
+              <p className="mt-4 text-sm text-[#5e5e5e]">Loading sources...</p>
             )}
 
             {isDocumentsError && (
-              <p className="mt-4 text-sm text-destructive">
+              <p className="mt-4 text-sm font-medium text-black">
                 Failed to load sources.
               </p>
             )}
@@ -415,61 +386,56 @@ export default function WorkspacePage() {
             {!isDocumentsLoading &&
               !isDocumentsError &&
               uploadedDocuments.length === 0 && (
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="mt-4 text-sm text-[#5e5e5e]">
                   No uploaded sources yet.
                 </p>
               )}
 
-            {!isDocumentsLoading &&
-              !isDocumentsError &&
-              uploadedDocuments.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {uploadedDocuments.map((document) => (
-                    <div
-                      key={document.id}
-                      className="rounded-md border p-3"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">
-                            {document.title || "Untitled source"}
-                          </p>
+              {!isDocumentsLoading &&
+                !isDocumentsError &&
+                uploadedDocuments.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {uploadedDocuments.map((document) => (
+                      <div
+                        key={document.id}
+                        className="rounded-2xl border border-[#e2e2e2] bg-white p-4"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-black">
+                              {document.title || "Untitled source"}
+                            </p>
 
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {document.source_type}
-                          </p>
+                            <p className="mt-1 text-xs text-[#afafaf]">
+                              {document.source_type}
+                            </p>
+                          </div>
+
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleDeleteDocument(document.id)}
+                            disabled={deleteMutation.isPending}
+                          >
+                            Delete
+                          </Button>
                         </div>
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteDocument(document.id)
-                          }
-                          disabled={deleteMutation.isPending}
-                        >
-                          Delete
-                        </Button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
             {uploadMutation.isError && (
-              <p
-                className="mt-4 text-sm text-destructive"
-                role="alert"
-              >
+              <p className="mt-4 text-sm font-medium text-black" role="alert">
                 Failed to upload sources. Please try again.
               </p>
             )}
           </section>
 
           {/* Gmail */}
-          <section className="mt-8 border-t pt-6">
+          <section className="mt-8 border-t border-[#e2e2e2] pt-6">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide">
+              <h2 className="text-xs font-medium tracking-wide text-[#5e5e5e] uppercase">
                 Gmail
               </h2>
 
@@ -477,7 +443,7 @@ export default function WorkspacePage() {
                 !isGmailStatusError &&
                 !gmailStatus?.connected && (
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
                     onClick={handleConnectGmail}
                     disabled={connectGmailMutation.isPending}
@@ -491,164 +457,159 @@ export default function WorkspacePage() {
               {!isGmailStatusLoading &&
                 !isGmailStatusError &&
                 gmailStatus?.connected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setIsGmailBrowserOpen(true)
-                    }
-                  >
-                    Browse
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsGmailBrowserOpen(true)}
+                    >
+                      Browse
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDisconnectGmail}
+                      disabled={disconnectGmailMutation.isPending}
+                    >
+                      {disconnectGmailMutation.isPending
+                        ? "Disconnecting..."
+                        : "Disconnect"}
+                    </Button>
+                  </div>
                 )}
             </div>
 
             {isGmailStatusLoading && (
-              <p className="mt-3 text-xs text-muted-foreground">
+              <p className="mt-3 text-xs text-[#5e5e5e]">
                 Checking connection...
               </p>
             )}
 
-            {!isGmailStatusLoading &&
-              isGmailStatusError && (
-                <p className="mt-3 text-xs text-destructive">
-                  Failed to check Gmail connection.
-                </p>
-              )}
+            {!isGmailStatusLoading && isGmailStatusError && (
+              <p className="mt-3 text-xs font-medium text-black">
+                Failed to check Gmail connection.
+              </p>
+            )}
 
             {!isGmailStatusLoading &&
               !isGmailStatusError &&
               !gmailStatus?.connected && (
-                <p className="mt-3 text-xs text-muted-foreground">
+                <p className="mt-3 text-xs text-[#5e5e5e]">
                   Connect Gmail to add emails as sources.
                 </p>
               )}
 
-            {!isGmailStatusLoading &&
-              !isGmailStatusError &&
-              gmailStatus?.connected && (
-                <>
-                  <p className="mt-3 truncate text-xs text-muted-foreground">
-                    Connected: {gmailStatus.email}
-                  </p>
-
-                  {emailDocuments.length === 0 && (
-                    <p className="mt-4 text-sm text-muted-foreground">
-                      No Gmail emails added yet.
+              {!isGmailStatusLoading &&
+                !isGmailStatusError &&
+                gmailStatus?.connected && (
+                  <>
+                    <p className="mt-3 truncate text-xs text-[#5e5e5e]">
+                      Connected: {gmailStatus.email}
                     </p>
-                  )}
 
-                  {emailDocuments.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      {emailDocuments.map((document) => (
-                        <div
-                          key={document.id}
-                          className="rounded-md border p-3"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-medium">
-                                {document.title || "No subject"}
-                              </p>
+                    {emailDocuments.length === 0 && (
+                      <p className="mt-4 text-sm text-[#5e5e5e]">
+                        No Gmail emails added yet.
+                      </p>
+                    )}
 
-                              {document.author && (
-                                <p className="mt-1 truncate text-xs text-muted-foreground">
-                                  {document.author}
+                    {emailDocuments.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {emailDocuments.map((document) => (
+                          <div
+                            key={document.id}
+                            className="rounded-2xl border border-[#e2e2e2] bg-white p-4"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-black">
+                                  {document.title || "No subject"}
                                 </p>
-                              )}
 
-                              {document.source_created_at && (
-                                <p className="mt-1 text-xs text-muted-foreground">
-                                  {new Date(
-                                    document.source_created_at,
-                                  ).toLocaleDateString()}
-                                </p>
-                              )}
+                                {document.author && (
+                                  <p className="mt-1 truncate text-xs text-[#5e5e5e]">
+                                    {document.author}
+                                  </p>
+                                )}
+
+                                {document.source_created_at && (
+                                  <p className="mt-1 text-xs text-[#afafaf]">
+                                    {new Date(
+                                      document.source_created_at,
+                                    ).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  handleDeleteDocument(document.id)
+                                }
+                                disabled={deleteMutation.isPending}
+                              >
+                                Delete
+                              </Button>
                             </div>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                handleDeleteDocument(
-                                  document.id,
-                                )
-                              }
-                              disabled={deleteMutation.isPending}
-                            >
-                              Delete
-                            </Button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
 
             {connectGmailMutation.isError && (
-              <p
-                className="mt-3 text-xs text-destructive"
-                role="alert"
-              >
+              <p className="mt-3 text-xs font-medium text-black" role="alert">
                 Failed to connect Gmail. Please try again.
               </p>
             )}
 
             {disconnectGmailMutation.isError && (
-              <p
-                className="mt-3 text-xs text-destructive"
-                role="alert"
-              >
+              <p className="mt-3 text-xs font-medium text-black" role="alert">
                 Failed to disconnect Gmail. Please try again.
               </p>
             )}
 
             {importGmailMutation.isError && (
-              <p
-                className="mt-3 text-xs text-destructive"
-                role="alert"
-              >
-                Failed to add Gmail emails as sources. Please try
-                again.
+              <p className="mt-3 text-xs font-medium text-black" role="alert">
+                Failed to add Gmail emails as sources. Please try again.
               </p>
             )}
           </section>
 
           {/* Google Meet */}
-          <section className="mt-8 border-t pt-6">
+          <section className="mt-8 border-t border-[#e2e2e2] pt-6">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide">
+              <h2 className="text-xs font-medium tracking-wide text-[#5e5e5e] uppercase">
                 Google Meet
               </h2>
             </div>
 
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="mt-3 text-sm text-[#5e5e5e]">
               No meeting transcripts yet.
             </p>
           </section>
 
           {deleteMutation.isError && (
-            <p
-              className="mt-6 text-sm text-destructive"
-              role="alert"
-            >
+            <p className="mt-6 text-sm font-medium text-black" role="alert">
               Failed to delete source. Please try again.
             </p>
           )}
         </aside>
 
-        <section className="bg-muted/20 p-6">
+        <section className="bg-[#f3f3f3] p-6 sm:p-8">
           <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">BRD</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-black">
+              BRD
+            </h2>
 
             {brdStatus?.has_brd && (
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <Button variant="outline">
-                      Download
-                    </Button>
+                    <Button className="shadow-level-3">Download</Button>
                   }
                 />
 
@@ -666,28 +627,27 @@ export default function WorkspacePage() {
           </div>
 
           {generationStep !== "idle" && (
-            <div className="rounded-lg border bg-background p-8">
-              <p className="font-medium">
+            <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
+              <p className="text-base font-medium text-black">
                 {generationStep === "processing-sources" &&
                   "Processing sources..."}
 
                 {generationStep === "preparing-knowledge" &&
                   "Preparing project knowledge..."}
 
-                {generationStep === "generating-brd" &&
-                  "Generating BRD..."}
+                {generationStep === "generating-brd" && "Generating BRD..."}
               </p>
 
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-[#5e5e5e]">
                 This may take a little while.
               </p>
             </div>
           )}
 
           {generationStep === "idle" && generationError && (
-            <div className="mb-6 rounded-lg border border-destructive/30 bg-background p-4">
+            <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-4">
               <p
-                className="text-sm text-destructive"
+                className="text-sm font-medium text-black"
                 role="alert"
               >
                 Failed to generate BRD. Please try again.
@@ -695,37 +655,35 @@ export default function WorkspacePage() {
             </div>
           )}
 
-          {generationStep === "idle" &&
-            isBRDStatusLoading && (
-              <div className="rounded-lg border bg-background p-8">
-                <p className="text-muted-foreground">
-                  Checking BRD status...
-                </p>
-              </div>
-            )}
+          {generationStep === "idle" && isBRDStatusLoading && (
+            <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
+              <p className="text-base text-[#5e5e5e]">
+                Checking BRD status...
+              </p>
+            </div>
+          )}
 
-          {generationStep === "idle" &&
-            isBRDStatusError && (
-              <div className="rounded-lg border bg-background p-8">
-                <p className="text-destructive">
-                  Failed to load BRD status.
-                </p>
-              </div>
-            )}
+          {generationStep === "idle" && isBRDStatusError && (
+            <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
+              <p className="text-sm font-medium text-black">
+                Failed to load BRD status.
+              </p>
+            </div>
+          )}
 
           {generationStep === "idle" &&
             !isBRDStatusLoading &&
             !isBRDStatusError &&
             brdStatus &&
             !brdStatus.has_brd && (
-              <div className="rounded-lg border bg-background p-8">
-                <p className="text-muted-foreground">
+              <div className="rounded-2xl bg-[#efefef] p-8 text-center shadow-level-2">
+                <p className="text-base text-[#5e5e5e]">
                   No BRD generated yet.
                 </p>
 
                 {brdStatus.has_sources && (
                   <>
-                    <p className="mt-2 text-sm text-muted-foreground">
+                    <p className="mt-2 text-sm text-[#5e5e5e]">
                       Sources are ready for BRD generation.
                     </p>
 
@@ -744,16 +702,15 @@ export default function WorkspacePage() {
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
             brdStatus.regeneration_required && (
-              <div className="mb-6 rounded-lg border bg-background p-5">
+              <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="font-medium">
+                    <p className="text-base font-medium text-black">
                       BRD needs to be regenerated.
                     </p>
 
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Your sources have changed since the last BRD
-                      generation.
+                    <p className="mt-1 text-sm text-[#5e5e5e]">
+                      Your sources have changed since the last BRD generation.
                     </p>
                   </div>
 
@@ -771,10 +728,8 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             !brdStatus.regeneration_required &&
             isBRDLoading && (
-              <div className="rounded-lg border bg-background p-8">
-                <p className="text-muted-foreground">
-                  Loading BRD...
-                </p>
+              <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
+                <p className="text-base text-[#5e5e5e]">Loading BRD...</p>
               </div>
             )}
 
@@ -782,8 +737,8 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             !brdStatus.regeneration_required &&
             isBRDError && (
-              <div className="rounded-lg border bg-background p-8">
-                <p className="text-destructive">
+              <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
+                <p className="text-sm font-medium text-black">
                   Failed to load BRD.
                 </p>
               </div>
@@ -792,9 +747,7 @@ export default function WorkspacePage() {
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
             brd &&
-            !isBRDError && (
-              <BRDViewer data={brd.brd_data} />
-            )}
+            !isBRDError && <BRDViewer data={brd.brd_data} />}
         </section>
       </div>
 

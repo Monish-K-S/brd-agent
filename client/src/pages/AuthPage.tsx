@@ -50,26 +50,27 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-6 text-center">
+    <main className="flex min-h-screen items-center justify-center bg-white px-4 sm:px-8">
+      <div className="w-full max-w-sm rounded-2xl bg-[#efefef] p-6 text-center shadow-level-2">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold">Welcome to BRD Agent</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-black">
+            Welcome to BRD Agent
+          </h1>
 
-          <p className="text-muted-foreground text-sm">
+          <p className="text-base text-[#5e5e5e]">
             Sign in or create an account to continue.
           </p>
         </div>
 
         {error && (
-          <p className="text-destructive text-sm" role="alert">
+          <p className="mt-4 text-sm font-medium text-black" role="alert">
             {error}
           </p>
         )}
 
         <Button
           type="button"
-          variant="outline"
-          className="w-full"
+          className="mt-6 w-full"
           onClick={handleGoogleAuth}
           disabled={loading}
         >

@@ -86,18 +86,20 @@ export function GmailSourceBrowser({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-lg border bg-background shadow-lg">
-        <div className="flex items-center justify-between border-b p-5">
+      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl border border-[#e2e2e2] bg-white shadow-level-2">
+        <div className="flex items-center justify-between border-b border-[#e2e2e2] p-6">
           <div>
-            <h2 className="text-lg font-semibold">Add Gmail sources</h2>
+            <h2 className="text-xl font-bold tracking-tight text-black">
+              Add Gmail sources
+            </h2>
 
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-[#5e5e5e]">
               Select emails to add to this workspace.
             </p>
           </div>
 
           <Button
-            variant="ghost"
+            variant="secondary"
             size="sm"
             onClick={onClose}
             disabled={isImporting}
@@ -106,18 +108,18 @@ export function GmailSourceBrowser({
           </Button>
         </div>
 
-        <div className="border-b p-4">
-          <form onSubmit={handleSearch} className="flex gap-2">
+        <div className="border-b border-[#e2e2e2] p-4">
+          <form onSubmit={handleSearch} className="flex gap-3">
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search Gmail..."
-              className="h-9 min-w-0 flex-1 rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+              className="h-11 min-w-0 flex-1 rounded-lg border border-[#e2e2e2] bg-[#efefef] px-4 text-base text-black outline-none placeholder:text-[#afafaf] focus:border-black"
               disabled={isImporting}
             />
 
-            <Button type="submit" variant="outline" disabled={isImporting}>
+            <Button type="submit" variant="secondary" disabled={isImporting}>
               Search
             </Button>
 
@@ -136,29 +138,31 @@ export function GmailSourceBrowser({
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {activeSearch === "" && (
-            <p className="mb-3 text-sm font-medium">Recent emails</p>
+            <p className="mb-3 text-sm font-medium text-black">
+              Recent emails
+            </p>
           )}
 
           {activeSearch !== "" && (
-            <p className="mb-3 text-sm font-medium">
+            <p className="mb-3 text-sm font-medium text-black">
               Search results for "{activeSearch}"
             </p>
           )}
 
           {isLoading && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
+            <p className="py-8 text-center text-sm text-[#5e5e5e]">
               Loading emails...
             </p>
           )}
 
           {isError && (
-            <p className="py-8 text-center text-sm text-destructive">
+            <p className="py-8 text-center text-sm font-medium text-black">
               Failed to load Gmail messages.
             </p>
           )}
 
           {!isLoading && !isError && messages.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
+            <p className="py-8 text-center text-sm text-[#5e5e5e]">
               No emails found.
             </p>
           )}
@@ -171,33 +175,33 @@ export function GmailSourceBrowser({
                 return (
                   <label
                     key={message.id}
-                    className="flex cursor-pointer gap-3 rounded-md border p-3 hover:bg-muted/50"
+                    className="flex cursor-pointer gap-3 rounded-2xl border border-[#e2e2e2] bg-white p-4 hover:bg-[#f3f3f3]"
                   >
                     <input
                       type="checkbox"
                       checked={selected}
                       onChange={() => toggleSelection(message.id)}
                       disabled={isImporting}
-                      className="mt-1"
+                      className="mt-1 accent-black"
                     />
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="truncate text-sm font-medium">
+                        <p className="truncate text-sm font-medium text-black">
                           {message.subject || "No subject"}
                         </p>
 
-                        <span className="shrink-0 text-xs text-muted-foreground">
+                        <span className="shrink-0 text-xs text-[#afafaf]">
                           {formatDate(message.date)}
                         </span>
                       </div>
 
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                      <p className="mt-1 truncate text-xs text-[#5e5e5e]">
                         {message.sender || "Unknown sender"}
                       </p>
 
                       {message.snippet && (
-                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                        <p className="mt-1 line-clamp-2 text-xs text-[#5e5e5e]">
                           {message.snippet}
                         </p>
                       )}
@@ -209,8 +213,8 @@ export function GmailSourceBrowser({
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t p-4">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between p-4">
+          <p className="text-sm text-[#5e5e5e]">
             {selectedIds.length === 0
               ? "No emails selected"
               : `${selectedIds.length} email${
@@ -218,8 +222,12 @@ export function GmailSourceBrowser({
                 } selected`}
           </p>
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} disabled={isImporting}>
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              onClick={onClose}
+              disabled={isImporting}
+            >
               Cancel
             </Button>
 

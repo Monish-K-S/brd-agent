@@ -11,12 +11,14 @@ function App() {
         <Route
           path="/"
           element={
-            <main className="flex min-h-screen items-center justify-center px-4">
+            <main className="flex min-h-screen items-center justify-center bg-white px-4 sm:px-8">
               <div className="w-full max-w-sm space-y-6 text-center">
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-semibold">BRD Agent</h1>
+                  <h1 className="text-4xl font-bold tracking-tight text-black">
+                    BRD Agent
+                  </h1>
 
-                  <p className="text-muted-foreground">
+                  <p className="text-lg font-medium text-[#5e5e5e]">
                     Turn your project sources into a structured BRD.
                   </p>
                 </div>
@@ -24,14 +26,14 @@ function App() {
                 <div className="flex flex-col gap-3">
                   <Link
                     to="/auth"
-                    className="inline-flex h-9 w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-xs transition-colors hover:bg-primary/90"
+                    className="inline-flex h-11 w-full items-center justify-center rounded-full bg-black px-5 py-2 text-base font-medium text-white transition-colors hover:bg-[#282828]"
                   >
                     Get Started
                   </Link>
 
                   <Link
                     to="/auth"
-                    className="inline-flex h-9 w-full items-center justify-center rounded-md border bg-background px-4 py-2 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+                    className="inline-flex h-11 w-full items-center justify-center rounded-full border border-[#e2e2e2] bg-white px-5 py-2 text-base font-medium text-black transition-colors hover:bg-[#efefef]"
                   >
                     Sign In
                   </Link>

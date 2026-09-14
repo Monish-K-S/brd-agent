@@ -94,47 +94,59 @@ export default function WorkspacesPage() {
   }
 
   return (
-    <main className="min-h-screen p-6">
+    <main className="min-h-screen bg-white">
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-8">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Workspaces</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-black">
+          Workspaces
+        </h1>
 
-        <Button variant="outline" onClick={handleSignOut}>
+        <Button variant="secondary" onClick={handleSignOut}>
           Sign out
         </Button>
       </header>
 
       <section className="mt-8">
         {isLoading && (
-          <p className="text-muted-foreground">Loading workspaces...</p>
+          <p className="text-base text-[#5e5e5e]">Loading workspaces...</p>
         )}
 
         {isError && (
-          <p className="text-destructive">Failed to load workspaces.</p>
+          <p className="text-sm font-medium text-black">
+            Failed to load workspaces.
+          </p>
         )}
 
         {!isLoading && !isError && workspaces?.length === 0 && (
-          <div className="rounded-lg border p-8 text-center">
-            <h2 className="text-lg font-medium">No workspaces yet</h2>
+          <div className="rounded-2xl bg-[#efefef] p-8 text-center">
+            <h2 className="text-xl font-bold tracking-tight text-black">
+              No workspaces yet
+            </h2>
 
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-base text-[#5e5e5e]">
               Create your first workspace to get started.
             </p>
           </div>
         )}
 
         {!isLoading && !isError && workspaces && workspaces.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {workspaces.map((workspace) => (
-              <div key={workspace.id} className="rounded-lg border p-5">
+              <div
+                key={workspace.id}
+                className="rounded-2xl border border-[#e2e2e2] bg-white p-6 transition-shadow hover:shadow-level-1"
+              >
                 <button
                   type="button"
                   onClick={() => navigate(`/workspaces/${workspace.id}`)}
                   className="w-full text-left transition hover:opacity-80"
                 >
-                  <h2 className="font-medium">{workspace.name}</h2>
+                  <h2 className="text-base font-medium text-black">
+                    {workspace.name}
+                  </h2>
 
                   {workspace.description && (
-                    <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
+                    <p className="mt-2 line-clamp-2 text-sm text-[#5e5e5e]">
                       {workspace.description}
                     </p>
                   )}
@@ -142,7 +154,7 @@ export default function WorkspacesPage() {
 
                 <div className="mt-4 flex justify-end">
                   <Button
-                    variant="destructive"
+                    variant="secondary"
                     size="sm"
                     onClick={() => handleDeleteWorkspace(workspace.id)}
                     disabled={deleteMutation.isPending}
@@ -196,13 +208,13 @@ export default function WorkspacesPage() {
                 </div>
 
                 {createMutation.isError && (
-                  <p className="text-sm text-destructive" role="alert">
+                  <p className="text-sm font-medium text-black" role="alert">
                     Failed to create workspace. Please try again.
                   </p>
                 )}
 
                 {deleteMutation.isError && (
-                  <p className="text-sm text-destructive" role="alert">
+                  <p className="text-sm font-medium text-black" role="alert">
                     Failed to delete workspace. Please try again.
                   </p>
                 )}
@@ -211,7 +223,7 @@ export default function WorkspacesPage() {
               <DialogFooter>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => setDialogOpen(false)}
                   disabled={createMutation.isPending}
                 >
@@ -228,6 +240,7 @@ export default function WorkspacesPage() {
             </form>
           </DialogContent>
         </Dialog>
+      </div>
       </div>
     </main>
   );
