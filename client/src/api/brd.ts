@@ -6,13 +6,16 @@ export type BRD = {
   brd_data: BRDData
   created_at: string
   updated_at: string
+  user_edited_at: string | null
 }
+
 
 export type BRDStatus = {
   has_brd: boolean;
   has_sources: boolean;
   has_new_sources: boolean;
   regeneration_required: boolean;
+  has_user_edits: boolean;
 };
 
 export async function generateBRD(
@@ -33,6 +36,20 @@ export async function getBRD(
   )
 
   return response.data
+}
+
+export async function updateBRD(
+  workspaceId: string,
+  brdData: BRDData,
+): Promise<BRD> {
+  const response = await apiClient.put<BRD>(
+    `/workspaces/${workspaceId}/brd`,
+    {
+      brd_data: brdData,
+    },
+  );
+
+  return response.data;
 }
 
 export async function getBRDStatus(

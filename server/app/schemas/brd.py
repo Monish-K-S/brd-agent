@@ -10,6 +10,11 @@ class BRDResponse(BaseModel):
     brd_data: dict
     created_at: datetime
     updated_at: datetime
+    user_edited_at: datetime | None
+
+
+class BRDUpdateRequest(BaseModel):
+    brd_data: dict
 
 
 class BRDStatusResponse(BaseModel):
@@ -17,3 +22,4 @@ class BRDStatusResponse(BaseModel):
     has_sources: bool
     has_new_sources: bool
     regeneration_required: bool
+    has_user_edits: bool

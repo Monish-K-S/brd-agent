@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import tempfile
 from dataclasses import asdict
 from pathlib import Path
@@ -68,6 +69,43 @@ class BRDService:
         return self.brd_repository.get_by_workspace_id(
             workspace_id,
         )
+
+    def update_brd_for_user(
+        self,
+        workspace_id: UUID,
+        user_id: UUID,
+        brd_data: dict,
+    ) -> BRD | None:
+        workspace = self.workspace_service.get_workspace_for_user(
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+
+        if workspace is None:
+            return None
+
+        brd = self.brd_repository.get_by_workspace_id(
+            workspace_id,
+        )
+
+        if brd is None:
+            return None
+
+        try:
+            brd.brd_data = brd_data
+            brd.user_edited_at = datetime.now(timezone.utc)
+
+            saved_brd = self.brd_repository.update(
+                brd,
+            )
+
+            self.db.commit()
+
+            return saved_brd
+
+        except Exception:
+            self.db.rollback()
+            raise
 
     def generate_brd_for_user(
         self,
@@ -234,6 +272,7 @@ class BRDService:
             else:
                 existing_brd.brd_data = brd_data
                 existing_brd.source_revision = workspace.source_revision
+                existing_brd.user_edited_at = None
 
                 saved_brd = self.brd_repository.update(
                     existing_brd,
@@ -286,9 +325,15 @@ class BRDService:
                 != workspace.source_revision
             )
 
+        has_user_edits = (
+            brd is not None
+            and brd.user_edited_at is not None
+        )
+
         return {
             "has_brd": has_brd,
             "has_sources": has_sources,
             "has_new_sources": has_new_sources,
             "regeneration_required": regeneration_required,
+            "has_user_edits": has_user_edits,
         }

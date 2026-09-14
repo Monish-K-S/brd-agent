@@ -15,6 +15,7 @@ import {
   generateBRD,
   getBRD,
   getBRDStatus,
+  updateBRD,
   exportBRDPdf,
   exportBRDDocx,
 } from "@/api/brd";
@@ -93,9 +94,13 @@ export default function WorkspacePage() {
   });
 
   type GenerationStep =
-    "idle" | "processing-sources" | "preparing-knowledge" | "generating-brd";
+    | "idle"
+    | "processing-sources"
+    | "preparing-knowledge"
+    | "generating-brd";
 
-  const [generationStep, setGenerationStep] = useState<GenerationStep>("idle");
+  const [generationStep, setGenerationStep] =
+    useState<GenerationStep>("idle");
 
   const [generationError, setGenerationError] = useState(false);
 
@@ -158,6 +163,21 @@ export default function WorkspacePage() {
       });
 
       setIsGmailBrowserOpen(false);
+    },
+  });
+
+  const updateBRDMutation = useMutation({
+    mutationFn: (brdData: Parameters<typeof updateBRD>[1]) =>
+      updateBRD(id!, brdData),
+    onSuccess: (updatedBRD) => {
+      queryClient.setQueryData(
+        ["brd", id],
+        updatedBRD,
+      );
+
+      queryClient.invalidateQueries({
+        queryKey: ["brd-status", id],
+      });
     },
   });
 
@@ -240,6 +260,15 @@ export default function WorkspacePage() {
       });
     }
   }
+
+  async function handleSaveBRD(brdData: Parameters<typeof updateBRD>[1]) {
+    if (!id) {
+      return;
+    }
+
+    await updateBRDMutation.mutateAsync(brdData);
+  }
+
   async function handleSignOut() {
     await signOut();
     navigate("/auth", { replace: true });
@@ -391,39 +420,39 @@ export default function WorkspacePage() {
                 </p>
               )}
 
-              {!isDocumentsLoading &&
-                !isDocumentsError &&
-                uploadedDocuments.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    {uploadedDocuments.map((document) => (
-                      <div
-                        key={document.id}
-                        className="rounded-2xl border border-[#e2e2e2] bg-white p-4"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-black">
-                              {document.title || "Untitled source"}
-                            </p>
+            {!isDocumentsLoading &&
+              !isDocumentsError &&
+              uploadedDocuments.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {uploadedDocuments.map((document) => (
+                    <div
+                      key={document.id}
+                      className="rounded-2xl border border-[#e2e2e2] bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-black">
+                            {document.title || "Untitled source"}
+                          </p>
 
-                            <p className="mt-1 text-xs text-[#afafaf]">
-                              {document.source_type}
-                            </p>
-                          </div>
-
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleDeleteDocument(document.id)}
-                            disabled={deleteMutation.isPending}
-                          >
-                            Delete
-                          </Button>
+                          <p className="mt-1 text-xs text-[#afafaf]">
+                            {document.source_type}
+                          </p>
                         </div>
+
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleDeleteDocument(document.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          Delete
+                        </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
             {uploadMutation.isError && (
               <p className="mt-4 text-sm font-medium text-black" role="alert">
@@ -500,65 +529,65 @@ export default function WorkspacePage() {
                 </p>
               )}
 
-              {!isGmailStatusLoading &&
-                !isGmailStatusError &&
-                gmailStatus?.connected && (
-                  <>
-                    <p className="mt-3 truncate text-xs text-[#5e5e5e]">
-                      Connected: {gmailStatus.email}
+            {!isGmailStatusLoading &&
+              !isGmailStatusError &&
+              gmailStatus?.connected && (
+                <>
+                  <p className="mt-3 truncate text-xs text-[#5e5e5e]">
+                    Connected: {gmailStatus.email}
+                  </p>
+
+                  {emailDocuments.length === 0 && (
+                    <p className="mt-4 text-sm text-[#5e5e5e]">
+                      No Gmail emails added yet.
                     </p>
+                  )}
 
-                    {emailDocuments.length === 0 && (
-                      <p className="mt-4 text-sm text-[#5e5e5e]">
-                        No Gmail emails added yet.
-                      </p>
-                    )}
+                  {emailDocuments.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {emailDocuments.map((document) => (
+                        <div
+                          key={document.id}
+                          className="rounded-2xl border border-[#e2e2e2] bg-white p-4"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-black">
+                                {document.title || "No subject"}
+                              </p>
 
-                    {emailDocuments.length > 0 && (
-                      <div className="mt-4 space-y-2">
-                        {emailDocuments.map((document) => (
-                          <div
-                            key={document.id}
-                            className="rounded-2xl border border-[#e2e2e2] bg-white p-4"
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-black">
-                                  {document.title || "No subject"}
+                              {document.author && (
+                                <p className="mt-1 truncate text-xs text-[#5e5e5e]">
+                                  {document.author}
                                 </p>
+                              )}
 
-                                {document.author && (
-                                  <p className="mt-1 truncate text-xs text-[#5e5e5e]">
-                                    {document.author}
-                                  </p>
-                                )}
-
-                                {document.source_created_at && (
-                                  <p className="mt-1 text-xs text-[#afafaf]">
-                                    {new Date(
-                                      document.source_created_at,
-                                    ).toLocaleDateString()}
-                                  </p>
-                                )}
-                              </div>
-
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                onClick={() =>
-                                  handleDeleteDocument(document.id)
-                                }
-                                disabled={deleteMutation.isPending}
-                              >
-                                Delete
-                              </Button>
+                              {document.source_created_at && (
+                                <p className="mt-1 text-xs text-[#afafaf]">
+                                  {new Date(
+                                    document.source_created_at,
+                                  ).toLocaleDateString()}
+                                </p>
+                              )}
                             </div>
+
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                handleDeleteDocument(document.id)
+                              }
+                              disabled={deleteMutation.isPending}
+                            >
+                              Delete
+                            </Button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
 
             {connectGmailMutation.isError && (
               <p className="mt-3 text-xs font-medium text-black" role="alert">
@@ -747,7 +776,13 @@ export default function WorkspacePage() {
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
             brd &&
-            !isBRDError && <BRDViewer data={brd.brd_data} />}
+            !isBRDError && (
+              <BRDViewer
+                data={brd.brd_data}
+                onSave={handleSaveBRD}
+                isSaving={updateBRDMutation.isPending}
+              />
+            )}
         </section>
       </div>
 

@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.schemas.brd import (
     BRDResponse,
     BRDStatusResponse,
+    BRDUpdateRequest,
 )
 from app.services.brd_service import BRDService
 from fastapi import (
@@ -61,6 +62,7 @@ def generate_brd(
         brd_data=brd.brd_data,
         created_at=brd.created_at,
         updated_at=brd.updated_at,
+        user_edited_at=brd.user_edited_at,
     )
 
 
@@ -93,6 +95,7 @@ def get_brd_status(
         has_sources=brd_status["has_sources"],
         has_new_sources=brd_status["has_new_sources"],
         regeneration_required=brd_status["regeneration_required"],
+        has_user_edits=brd_status["has_user_edits"],
     )
 
 
@@ -126,6 +129,43 @@ def get_brd(
         brd_data=brd.brd_data,
         created_at=brd.created_at,
         updated_at=brd.updated_at,
+        user_edited_at=brd.user_edited_at,
+    )
+
+
+@router.put(
+    "",
+    response_model=BRDResponse,
+)
+def update_brd(
+    workspace_id: UUID,
+    request: BRDUpdateRequest,
+    current_user: User = Depends(
+        get_current_db_user,
+    ),
+    db: Session = Depends(get_db),
+) -> BRDResponse:
+    brd_service = BRDService(db)
+
+    brd = brd_service.update_brd_for_user(
+        workspace_id=workspace_id,
+        user_id=current_user.id,
+        brd_data=request.brd_data,
+    )
+
+    if brd is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="BRD not found",
+        )
+
+    return BRDResponse(
+        id=brd.id,
+        workspace_id=brd.workspace_id,
+        brd_data=brd.brd_data,
+        created_at=brd.created_at,
+        updated_at=brd.updated_at,
+        user_edited_at=brd.user_edited_at,
     )
 
 
@@ -163,7 +203,6 @@ def export_brd_pdf(
     )
 
 
-
 @router.get("/export/docx")
 def export_brd_docx(
     workspace_id: UUID,
@@ -185,15 +224,12 @@ def export_brd_docx(
 
     output_path, workspace_name = result
 
-    filename = (
-        f"{workspace_name.strip() or 'BRD'} - BRD.docx"
-    )
+    filename = f"{workspace_name.strip() or 'BRD'} - BRD.docx"
 
     return FileResponse(
         path=output_path,
         media_type=(
-            "application/vnd.openxmlformats-officedocument."
-            "wordprocessingml.document"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ),
         filename=filename,
         background=BackgroundTask(
