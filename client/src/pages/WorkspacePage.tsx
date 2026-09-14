@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthProvider";
@@ -32,7 +32,12 @@ import {
   importGmailMessages,
 } from "@/api/gmail";
 import { BRDViewer } from "@/components/brd/BRDViewer";
-import { GmailSourceBrowser } from "@/components/gmail/GmailSourceBrowser";
+
+const GmailSourceBrowser = lazy(() =>
+  import("@/components/gmail/GmailSourceBrowser").then((module) => ({
+    default: module.GmailSourceBrowser,
+  })),
+);
 
 export default function WorkspacePage() {
   const navigate = useNavigate();
@@ -60,7 +65,7 @@ export default function WorkspacePage() {
   } = useQuery({
     queryKey: ["documents", id],
     queryFn: () => getDocuments(id!),
-    enabled: Boolean(id) && Boolean(workspace),
+    enabled: Boolean(id),
     retry: false,
   });
 
@@ -71,7 +76,7 @@ export default function WorkspacePage() {
   } = useQuery({
     queryKey: ["gmail-status"],
     queryFn: getGmailStatus,
-    enabled: Boolean(workspace),
+    enabled: Boolean(id),
     retry: false,
   });
 
@@ -82,7 +87,7 @@ export default function WorkspacePage() {
   } = useQuery({
     queryKey: ["brd-status", id],
     queryFn: () => getBRDStatus(id!),
-    enabled: Boolean(id) && Boolean(workspace),
+    enabled: Boolean(id),
     retry: false,
   });
 
@@ -247,13 +252,14 @@ export default function WorkspacePage() {
       setGenerationStep("generating-brd");
       await generateBRD(id);
 
-      await queryClient.invalidateQueries({
-        queryKey: ["brd-status", id],
-      });
-
-      await queryClient.invalidateQueries({
-        queryKey: ["brd", id],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["brd-status", id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["brd", id],
+        }),
+      ]);
 
       setGenerationStep("idle");
     } catch {
@@ -371,7 +377,7 @@ export default function WorkspacePage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <header className="flex items-center justify-between bg-white px-4 py-4 sm:px-8">
+      <header className="flex items-center justify-between bg-white px-4 py-4 print:hidden sm:px-8">
         <div className="flex items-center gap-4">
           <Button
             variant="secondary"
@@ -381,7 +387,7 @@ export default function WorkspacePage() {
           </Button>
 
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-black">
+            <h1 className="text-xl font-bold text-black">
               {workspace.name}
             </h1>
 
@@ -399,7 +405,7 @@ export default function WorkspacePage() {
       </header>
 
       <div className="grid min-h-[calc(100vh-81px)] grid-cols-1 border-t border-[#e2e2e2] md:grid-cols-[280px_1fr]">
-        <aside className="border-b border-[#e2e2e2] bg-white p-6 md:border-r md:border-b-0">
+        <aside className="border-b border-[#e2e2e2] bg-white p-6 print:hidden md:border-r md:border-b-0">
           {/* Sources */}
           <section>
             <div className="flex items-center justify-between gap-3">
@@ -462,21 +468,29 @@ export default function WorkspacePage() {
                             {document.title || "Untitled source"}
                           </p>
 
-                          <p className="mt-1 text-xs text-[#afafaf]">
-                            {document.source_type}
-                          </p>
-                        </div>
+                            <p className="mt-2 inline-flex max-w-full rounded-full bg-[#efefef] px-3 py-1 text-xs font-medium text-black">
+                              <span className="truncate">
+                                {document.source_type}
+                              </span>
+                            </p>
+                          </div>
 
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteDocument(document.id)
-                          }
-                          disabled={deleteMutation.isPending}
-                        >
-                          Delete
-                        </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() =>
+                              handleDeleteDocument(document.id)
+                            }
+                            disabled={
+                              deleteMutation.isPending &&
+                              deleteMutation.variables === document.id
+                            }
+                          >
+                            {deleteMutation.isPending &&
+                            deleteMutation.variables === document.id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </Button>
                       </div>
                     </div>
                   ))}
@@ -592,24 +606,32 @@ export default function WorkspacePage() {
                               )}
 
                               {document.source_created_at && (
-                                <p className="mt-1 text-xs text-[#afafaf]">
-                                  {new Date(
-                                    document.source_created_at,
-                                  ).toLocaleDateString()}
+                                <p className="mt-2 inline-flex max-w-full rounded-full bg-[#efefef] px-3 py-1 text-xs font-medium text-black">
+                                  <span className="truncate">
+                                    {new Date(
+                                      document.source_created_at,
+                                    ).toLocaleDateString()}
+                                  </span>
                                 </p>
                               )}
                             </div>
 
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() =>
-                                handleDeleteDocument(document.id)
-                              }
-                              disabled={deleteMutation.isPending}
-                            >
-                              Delete
-                            </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() =>
+                                  handleDeleteDocument(document.id)
+                                }
+                                disabled={
+                                  deleteMutation.isPending &&
+                                  deleteMutation.variables === document.id
+                                }
+                              >
+                                {deleteMutation.isPending &&
+                                deleteMutation.variables === document.id
+                                  ? "Deleting..."
+                                  : "Delete"}
+                              </Button>
                           </div>
                         </div>
                       ))}
@@ -657,9 +679,9 @@ export default function WorkspacePage() {
           )}
         </aside>
 
-        <section className="bg-[#f3f3f3] p-6 sm:p-8">
-          <div className="mb-6 flex items-center justify-between">
-            <h2 className="text-2xl font-bold tracking-tight text-black">
+        <section className="bg-[#f3f3f3] p-6 print:bg-white print:p-0 sm:p-8">
+          <div className="mb-6 flex items-center justify-between print:hidden">
+            <h2 className="text-2xl font-bold text-black">
               BRD
             </h2>
 
@@ -796,7 +818,7 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             brdStatus.regeneration_required &&
             !brdStatus.has_user_edits && (
-              <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-6">
+              <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-6 print:hidden">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-base font-medium text-black">
@@ -853,15 +875,17 @@ export default function WorkspacePage() {
       </div>
 
       {isGmailBrowserOpen && (
-        <GmailSourceBrowser
-          onClose={() => {
-            if (!importGmailMutation.isPending) {
-              setIsGmailBrowserOpen(false);
-            }
-          }}
-          onImport={handleImportGmailMessages}
-          isImporting={importGmailMutation.isPending}
-        />
+        <Suspense fallback={null}>
+          <GmailSourceBrowser
+            onClose={() => {
+              if (!importGmailMutation.isPending) {
+                setIsGmailBrowserOpen(false);
+              }
+            }}
+            onImport={handleImportGmailMessages}
+            isImporting={importGmailMutation.isPending}
+          />
+        </Suspense>
       )}
     </main>
   );

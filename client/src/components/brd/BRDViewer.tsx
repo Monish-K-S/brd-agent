@@ -101,7 +101,7 @@ function Section({
             {String(number).padStart(2, "0")}
           </span>
 
-          <h2 className="text-xl font-bold tracking-tight text-black">
+          <h2 className="text-xl font-bold text-black">
             {title}
           </h2>
         </div>
@@ -110,7 +110,7 @@ function Section({
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-full border border-[#e2e2e2] px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-[#efefef]"
+            className="rounded-full border border-[#e2e2e2] px-4 py-2 text-sm font-medium text-black transition-colors print:hidden hover:bg-[#efefef]"
           >
             Edit
           </button>
@@ -120,7 +120,7 @@ function Section({
       {children}
 
       {isEditing && (
-        <div className="mt-6 flex items-center justify-end gap-3 border-t border-[#e2e2e2] pt-5">
+        <div className="mt-6 flex items-center justify-end gap-3 border-t border-[#e2e2e2] pt-5 print:hidden">
           <button
             type="button"
             onClick={onCancel}
@@ -359,14 +359,14 @@ export function BRDViewer({
   }
 
   return (
-    <article className="mx-auto w-full max-w-4xl rounded-2xl bg-white shadow-level-1">
+    <article className="mx-auto w-full max-w-4xl rounded-2xl bg-white shadow-level-1 print:max-w-none print:rounded-none print:shadow-none">
       {/* Document Header */}
       <header className="border-b border-[#e2e2e2] px-6 py-10 sm:px-12 sm:py-14">
         <p className="text-xs font-medium tracking-[0.2em] text-[#5e5e5e] uppercase">
           Business Requirements Document
         </p>
 
-        <h1 className="mt-4 text-4xl font-bold tracking-tight text-black sm:text-4xl">
+        <h1 className="mt-4 text-4xl font-bold text-black sm:text-4xl">
           {data.project_overview.project_name}
         </h1>
 

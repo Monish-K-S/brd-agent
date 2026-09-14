@@ -14,7 +14,7 @@ function App() {
             <main className="flex min-h-screen items-center justify-center bg-white px-4 sm:px-8">
               <div className="w-full max-w-sm space-y-6 text-center">
                 <div className="space-y-2">
-                  <h1 className="text-4xl font-bold tracking-tight text-black">
+                  <h1 className="text-[52px] leading-[64px] font-bold text-black">
                     BRD Agent
                   </h1>
 
@@ -29,13 +29,6 @@ function App() {
                     className="inline-flex h-11 w-full items-center justify-center rounded-full bg-black px-5 py-2 text-base font-medium text-white transition-colors hover:bg-[#282828]"
                   >
                     Get Started
-                  </Link>
-
-                  <Link
-                    to="/auth"
-                    className="inline-flex h-11 w-full items-center justify-center rounded-full border border-[#e2e2e2] bg-white px-5 py-2 text-base font-medium text-black transition-colors hover:bg-[#efefef]"
-                  >
-                    Sign In
                   </Link>
                 </div>
               </div>

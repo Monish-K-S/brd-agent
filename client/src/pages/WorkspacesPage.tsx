@@ -97,7 +97,7 @@ export default function WorkspacesPage() {
     <main className="min-h-screen bg-white">
       <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-8">
       <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-black">
+        <h1 className="text-2xl font-bold text-black">
           Workspaces
         </h1>
 
@@ -119,7 +119,7 @@ export default function WorkspacesPage() {
 
         {!isLoading && !isError && workspaces?.length === 0 && (
           <div className="rounded-2xl bg-[#efefef] p-8 text-center">
-            <h2 className="text-xl font-bold tracking-tight text-black">
+            <h2 className="text-xl font-bold text-black">
               No workspaces yet
             </h2>
 
@@ -157,9 +157,15 @@ export default function WorkspacesPage() {
                     variant="secondary"
                     size="sm"
                     onClick={() => handleDeleteWorkspace(workspace.id)}
-                    disabled={deleteMutation.isPending}
+                    disabled={
+                      deleteMutation.isPending &&
+                      deleteMutation.variables === workspace.id
+                    }
                   >
-                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                    {deleteMutation.isPending &&
+                    deleteMutation.variables === workspace.id
+                      ? "Deleting..."
+                      : "Delete"}
                   </Button>
                 </div>
               </div>

@@ -53,7 +53,7 @@ export default function AuthPage() {
     <main className="flex min-h-screen items-center justify-center bg-white px-4 sm:px-8">
       <div className="w-full max-w-sm rounded-2xl bg-[#efefef] p-6 text-center shadow-level-2">
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight text-black">
+          <h1 className="text-2xl font-bold text-black">
             Welcome to BRD Agent
           </h1>
 

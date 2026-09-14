@@ -85,11 +85,11 @@ export function GmailSourceBrowser({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden">
       <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl border border-[#e2e2e2] bg-white shadow-level-2">
         <div className="flex items-center justify-between border-b border-[#e2e2e2] p-6">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-black">
+            <h2 className="text-xl font-bold text-black">
               Add Gmail sources
             </h2>
 

@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase"
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
+  timeout: 30_000,
 })
 
 apiClient.interceptors.request.use(async (config) => {

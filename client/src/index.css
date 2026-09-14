@@ -141,3 +141,20 @@
 @utility shadow-level-3 {
   box-shadow: rgba(0, 0, 0, 0.16) 0px 2px 8px 0px;
 }
+
+/* Brand selection: black duet */
+::selection {
+  background: #000000;
+  color: #ffffff;
+}
+
+/* Respect reduced-motion: kill enter animations and transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
