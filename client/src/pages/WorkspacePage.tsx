@@ -9,7 +9,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { deleteDocument, getDocuments, uploadDocuments } from "@/api/documents";
+import {
+  deleteDocument,
+  getDocuments,
+  uploadDocuments,
+} from "@/api/documents";
 import { getWorkspace } from "@/api/workspaces";
 import {
   generateBRD,
@@ -89,7 +93,10 @@ export default function WorkspacePage() {
   } = useQuery({
     queryKey: ["brd", id],
     queryFn: () => getBRD(id!),
-    enabled: Boolean(id) && Boolean(workspace) && Boolean(brdStatus?.has_brd),
+    enabled:
+      Boolean(id) &&
+      Boolean(workspace) &&
+      Boolean(brdStatus?.has_brd),
     retry: false,
   });
 
@@ -152,7 +159,8 @@ export default function WorkspacePage() {
   });
 
   const importGmailMutation = useMutation({
-    mutationFn: (messageIds: string[]) => importGmailMessages(id!, messageIds),
+    mutationFn: (messageIds: string[]) =>
+      importGmailMessages(id!, messageIds),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["documents", id],
@@ -170,10 +178,7 @@ export default function WorkspacePage() {
     mutationFn: (brdData: Parameters<typeof updateBRD>[1]) =>
       updateBRD(id!, brdData),
     onSuccess: (updatedBRD) => {
-      queryClient.setQueryData(
-        ["brd", id],
-        updatedBRD,
-      );
+      queryClient.setQueryData(["brd", id], updatedBRD);
 
       queryClient.invalidateQueries({
         queryKey: ["brd-status", id],
@@ -261,7 +266,9 @@ export default function WorkspacePage() {
     }
   }
 
-  async function handleSaveBRD(brdData: Parameters<typeof updateBRD>[1]) {
+  async function handleSaveBRD(
+    brdData: Parameters<typeof updateBRD>[1],
+  ) {
     if (!id) {
       return;
     }
@@ -274,7 +281,9 @@ export default function WorkspacePage() {
     navigate("/auth", { replace: true });
   }
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) {
     const files = Array.from(event.target.files ?? []);
 
     if (files.length === 0) {
@@ -324,15 +333,21 @@ export default function WorkspacePage() {
   }
 
   const uploadedDocuments =
-    documents?.filter((document) => document.source_type !== "email") ?? [];
+    documents?.filter(
+      (document) => document.source_type !== "email",
+    ) ?? [];
 
   const emailDocuments =
-    documents?.filter((document) => document.source_type === "email") ?? [];
+    documents?.filter(
+      (document) => document.source_type === "email",
+    ) ?? [];
 
   if (isWorkspaceLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-white">
-        <p className="text-base text-[#5e5e5e]">Loading workspace...</p>
+        <p className="text-base text-[#5e5e5e]">
+          Loading workspace...
+        </p>
       </main>
     );
   }
@@ -344,7 +359,10 @@ export default function WorkspacePage() {
           Failed to load workspace.
         </p>
 
-        <Button variant="secondary" onClick={() => navigate("/workspaces")}>
+        <Button
+          variant="secondary"
+          onClick={() => navigate("/workspaces")}
+        >
           Back to Workspaces
         </Button>
       </main>
@@ -355,7 +373,10 @@ export default function WorkspacePage() {
     <main className="min-h-screen bg-white">
       <header className="flex items-center justify-between bg-white px-4 py-4 sm:px-8">
         <div className="flex items-center gap-4">
-          <Button variant="secondary" onClick={() => navigate("/workspaces")}>
+          <Button
+            variant="secondary"
+            onClick={() => navigate("/workspaces")}
+          >
             ← Workspaces
           </Button>
 
@@ -365,7 +386,9 @@ export default function WorkspacePage() {
             </h1>
 
             {workspace.description && (
-              <p className="text-sm text-[#5e5e5e]">{workspace.description}</p>
+              <p className="text-sm text-[#5e5e5e]">
+                {workspace.description}
+              </p>
             )}
           </div>
         </div>
@@ -388,7 +411,9 @@ export default function WorkspacePage() {
                 htmlFor="workspace-sources-upload"
                 className="inline-flex h-9 cursor-pointer items-center justify-center rounded-full bg-black px-4 text-sm font-medium text-white transition-colors hover:bg-[#282828]"
               >
-                {uploadMutation.isPending ? "Uploading..." : "Add sources"}
+                {uploadMutation.isPending
+                  ? "Uploading..."
+                  : "Add sources"}
               </label>
 
               <input
@@ -403,7 +428,9 @@ export default function WorkspacePage() {
             </div>
 
             {isDocumentsLoading && (
-              <p className="mt-4 text-sm text-[#5e5e5e]">Loading sources...</p>
+              <p className="mt-4 text-sm text-[#5e5e5e]">
+                Loading sources...
+              </p>
             )}
 
             {isDocumentsError && (
@@ -443,7 +470,9 @@ export default function WorkspacePage() {
                         <Button
                           variant="secondary"
                           size="sm"
-                          onClick={() => handleDeleteDocument(document.id)}
+                          onClick={() =>
+                            handleDeleteDocument(document.id)
+                          }
                           disabled={deleteMutation.isPending}
                         >
                           Delete
@@ -638,7 +667,9 @@ export default function WorkspacePage() {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <Button className="shadow-level-3">Download</Button>
+                    <Button className="shadow-level-3">
+                      Download
+                    </Button>
                   }
                 />
 
@@ -664,7 +695,8 @@ export default function WorkspacePage() {
                 {generationStep === "preparing-knowledge" &&
                   "Preparing project knowledge..."}
 
-                {generationStep === "generating-brd" && "Generating BRD..."}
+                {generationStep === "generating-brd" &&
+                  "Generating BRD..."}
               </p>
 
               <p className="mt-2 text-sm text-[#5e5e5e]">
@@ -675,10 +707,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && generationError && (
             <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-4">
-              <p
-                className="text-sm font-medium text-black"
-                role="alert"
-              >
+              <p className="text-sm font-medium text-black" role="alert">
                 Failed to generate BRD. Please try again.
               </p>
             </div>
@@ -728,9 +757,45 @@ export default function WorkspacePage() {
               </div>
             )}
 
+          {/* Outdated BRD with manual edits */}
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
-            brdStatus.regeneration_required && (
+            brdStatus.regeneration_required &&
+            brdStatus.has_user_edits && (
+              <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-base font-medium text-black">
+                      Your BRD needs to be regenerated.
+                    </p>
+
+                    <p className="mt-2 text-sm leading-6 text-[#5e5e5e]">
+                      Your sources have changed since the last BRD
+                      generation, and this BRD contains manual changes.
+                      Regenerating may overwrite those changes.
+                    </p>
+
+                    <p className="mt-2 text-sm leading-6 text-[#5e5e5e]">
+                      We recommend downloading your current BRD using
+                      the Download menu above before regenerating it.
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateBRD}
+                    disabled={generationStep !== "idle"}
+                  >
+                    Regenerate BRD
+                  </Button>
+                </div>
+              </div>
+            )}
+
+          {/* Outdated BRD without manual edits */}
+          {generationStep === "idle" &&
+            brdStatus?.has_brd &&
+            brdStatus.regeneration_required &&
+            !brdStatus.has_user_edits && (
               <div className="mb-6 rounded-2xl border border-[#e2e2e2] bg-white p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -739,7 +804,8 @@ export default function WorkspacePage() {
                     </p>
 
                     <p className="mt-1 text-sm text-[#5e5e5e]">
-                      Your sources have changed since the last BRD generation.
+                      Your sources have changed since the last BRD
+                      generation.
                     </p>
                   </div>
 
@@ -755,16 +821,16 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
-            !brdStatus.regeneration_required &&
             isBRDLoading && (
               <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
-                <p className="text-base text-[#5e5e5e]">Loading BRD...</p>
+                <p className="text-base text-[#5e5e5e]">
+                  Loading BRD...
+                </p>
               </div>
             )}
 
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
-            !brdStatus.regeneration_required &&
             isBRDError && (
               <div className="rounded-2xl border border-[#e2e2e2] bg-white p-6">
                 <p className="text-sm font-medium text-black">
