@@ -110,7 +110,7 @@ function Section({
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-[4px] border border-black/8 px-4 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors print:hidden hover:bg-black/5"
+            className="rounded-full border border-black/8 px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors print:hidden hover:bg-black/5"
           >
             Edit
           </button>
@@ -125,7 +125,7 @@ function Section({
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            className="rounded-[4px] border border-black/8 px-4 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-black/8 px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
@@ -134,7 +134,7 @@ function Section({
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="rounded-[4px] bg-black px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-black px-6 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? "Saving..." : "Save"}
           </button>
@@ -202,7 +202,7 @@ function EditableList({
           <button
             type="button"
             onClick={() => removeItem(index)}
-            className="rounded-[4px] border border-black/8 px-3 py-2 font-mono text-[11px] font-medium tracking-[0.055px] text-[#999999] uppercase transition-colors hover:bg-black/5 hover:text-black"
+            className="rounded-full border border-black/8 px-4 py-2 font-mono text-[11px] font-medium tracking-[0.055px] text-[#999999] uppercase transition-colors hover:bg-black/5 hover:text-black"
           >
             Remove
           </button>
@@ -212,7 +212,7 @@ function EditableList({
       <button
         type="button"
         onClick={addItem}
-        className="rounded-[4px] border border-black/8 px-4 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5"
+        className="rounded-full border border-black/8 px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5"
       >
         + Add item
       </button>
@@ -640,7 +640,7 @@ export function BRDViewer({
                         onClick={() =>
                           removeStakeholder(index)
                         }
-                        className="rounded-[4px] border border-black/8 px-3 py-2 font-mono text-[11px] font-medium tracking-[0.055px] text-[#999999] uppercase transition-colors hover:bg-black/5 hover:text-black"
+                        className="rounded-full border border-black/8 px-4 py-2 font-mono text-[11px] font-medium tracking-[0.055px] text-[#999999] uppercase transition-colors hover:bg-black/5 hover:text-black"
                       >
                         Remove
                       </button>
@@ -652,7 +652,7 @@ export function BRDViewer({
               <button
                 type="button"
                 onClick={addStakeholder}
-                className="rounded-[4px] border border-black/8 px-4 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5"
+                className="rounded-full border border-black/8 px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5"
               >
                 + Add stakeholder
               </button>

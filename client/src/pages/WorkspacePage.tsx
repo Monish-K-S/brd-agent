@@ -432,7 +432,7 @@ export default function WorkspacePage() {
 
               <label
                 htmlFor="workspace-sources-upload"
-                className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-[4px] bg-black px-4 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity hover:opacity-80"
+                className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-black px-5 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity hover:opacity-80"
               >
                 <Upload />
                 {uploadMutation.isPending

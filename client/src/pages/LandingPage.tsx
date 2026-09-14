@@ -96,7 +96,7 @@ export default function LandingPage() {
             <div className="mt-8">
               <Link
                 to="/auth"
-                className="inline-flex min-h-[44px] items-center justify-center rounded-[4px] bg-black px-6 py-3 text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity hover:opacity-80"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-black px-6 py-3 text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity hover:opacity-80"
                 style={{ fontFamily: MONO_FONT }}
               >
                 Get started

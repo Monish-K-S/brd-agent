@@ -96,7 +96,7 @@ export default function AuthPage() {
           type="button"
           onClick={handleGoogleAuth}
           disabled={loading}
-          className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[4px] bg-black px-6 py-3 text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-black/50 disabled:pointer-events-none disabled:opacity-50"
+          className="mt-6 inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-full bg-black px-6 py-3 text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-black/50 disabled:pointer-events-none disabled:opacity-50"
           style={{
             fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace",
           }}
