@@ -9,11 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  deleteDocument,
-  getDocuments,
-  uploadDocuments,
-} from "@/api/documents";
+import { deleteDocument, getDocuments, uploadDocuments } from "@/api/documents";
 import { getWorkspace } from "@/api/workspaces";
 import {
   generateBRD,
@@ -41,6 +37,7 @@ import {
   Upload,
 } from "lucide-react";
 import { BRDViewer } from "@/components/brd/BRDViewer";
+import { BRDQAPanel } from "@/components/brd/BRDQAPanel";
 import { TopBar } from "@/components/layout/TopBar";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -109,21 +106,14 @@ export default function WorkspacePage() {
   } = useQuery({
     queryKey: ["brd", id],
     queryFn: () => getBRD(id!),
-    enabled:
-      Boolean(id) &&
-      Boolean(workspace) &&
-      Boolean(brdStatus?.has_brd),
+    enabled: Boolean(id) && Boolean(workspace) && Boolean(brdStatus?.has_brd),
     retry: false,
   });
 
   type GenerationStep =
-    | "idle"
-    | "processing-sources"
-    | "preparing-knowledge"
-    | "generating-brd";
+    "idle" | "processing-sources" | "preparing-knowledge" | "generating-brd";
 
-  const [generationStep, setGenerationStep] =
-    useState<GenerationStep>("idle");
+  const [generationStep, setGenerationStep] = useState<GenerationStep>("idle");
 
   const [generationError, setGenerationError] = useState(false);
 
@@ -175,8 +165,7 @@ export default function WorkspacePage() {
   });
 
   const importGmailMutation = useMutation({
-    mutationFn: (messageIds: string[]) =>
-      importGmailMessages(id!, messageIds),
+    mutationFn: (messageIds: string[]) => importGmailMessages(id!, messageIds),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ["documents", id],
@@ -283,9 +272,7 @@ export default function WorkspacePage() {
     }
   }
 
-  async function handleSaveBRD(
-    brdData: Parameters<typeof updateBRD>[1],
-  ) {
+  async function handleSaveBRD(brdData: Parameters<typeof updateBRD>[1]) {
     if (!id) {
       return;
     }
@@ -298,9 +285,7 @@ export default function WorkspacePage() {
     navigate("/auth", { replace: true });
   }
 
-  function handleFileChange(
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) {
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
 
     if (files.length === 0) {
@@ -350,21 +335,15 @@ export default function WorkspacePage() {
   }
 
   const uploadedDocuments =
-    documents?.filter(
-      (document) => document.source_type !== "email",
-    ) ?? [];
+    documents?.filter((document) => document.source_type !== "email") ?? [];
 
   const emailDocuments =
-    documents?.filter(
-      (document) => document.source_type === "email",
-    ) ?? [];
+    documents?.filter((document) => document.source_type === "email") ?? [];
 
   if (isWorkspaceLoading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-white">
-        <p className="text-base text-[#999999]">
-          Loading workspace...
-        </p>
+        <p className="text-base text-[#999999]">Loading workspace...</p>
       </main>
     );
   }
@@ -376,10 +355,7 @@ export default function WorkspacePage() {
           Failed to load workspace.
         </p>
 
-        <Button
-          variant="secondary"
-          onClick={() => navigate("/workspaces")}
-        >
+        <Button variant="secondary" onClick={() => navigate("/workspaces")}>
           Back to Workspaces
         </Button>
       </main>
@@ -421,7 +397,7 @@ export default function WorkspacePage() {
         />
       </div>
 
-      <div className="grid min-h-[calc(100vh-81px)] grid-cols-1 border-t border-black/8 md:grid-cols-[280px_1fr]">
+      <div className="grid min-h-[calc(100vh-81px)] grid-cols-1 border-t border-black/8 md:h-[calc(100vh-81px)] md:grid-cols-[280px_minmax(0,1fr)_320px] md:overflow-hidden">
         <aside className="border-b border-black/8 bg-white p-6 print:hidden md:border-r md:border-b-0">
           {/* Sources */}
           <section>
@@ -435,9 +411,7 @@ export default function WorkspacePage() {
                 className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-black px-5 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity hover:opacity-80"
               >
                 <Upload />
-                {uploadMutation.isPending
-                  ? "Uploading..."
-                  : "Add sources"}
+                {uploadMutation.isPending ? "Uploading..." : "Add sources"}
               </label>
 
               <input
@@ -496,7 +470,7 @@ export default function WorkspacePage() {
                         <div className="flex min-w-0 items-start gap-3">
                           <span
                             aria-hidden="true"
-                                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-black/8 bg-white text-black"
+                            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-black/8 bg-white text-black"
                           >
                             <FileText />
                           </span>
@@ -517,21 +491,19 @@ export default function WorkspacePage() {
                           </div>
                         </div>
 
-                          <Button
-                            variant="secondary"
-                            size="icon-sm"
-                            aria-label="Delete source"
-                            title="Delete source"
-                            onClick={() =>
-                              handleDeleteDocument(document.id)
-                            }
-                            disabled={
-                              deleteMutation.isPending &&
-                              deleteMutation.variables === document.id
-                            }
-                          >
-                            <Trash2 />
-                          </Button>
+                        <Button
+                          variant="secondary"
+                          size="icon-sm"
+                          aria-label="Delete source"
+                          title="Delete source"
+                          onClick={() => handleDeleteDocument(document.id)}
+                          disabled={
+                            deleteMutation.isPending &&
+                            deleteMutation.variables === document.id
+                          }
+                        >
+                          <Trash2 />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -638,7 +610,7 @@ export default function WorkspacePage() {
                             <div className="flex min-w-0 items-start gap-3">
                               <span
                                 aria-hidden="true"
-                            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-black/8 bg-white text-black"
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full border border-black/8 bg-white text-black"
                               >
                                 <Mail />
                               </span>
@@ -662,21 +634,19 @@ export default function WorkspacePage() {
                               </div>
                             </div>
 
-                              <Button
-                                variant="secondary"
-                                size="icon-sm"
-                                aria-label="Delete source"
-                                title="Delete source"
-                                onClick={() =>
-                                  handleDeleteDocument(document.id)
-                                }
-                                disabled={
-                                  deleteMutation.isPending &&
-                                  deleteMutation.variables === document.id
-                                }
-                              >
-                                <Trash2 />
-                              </Button>
+                            <Button
+                              variant="secondary"
+                              size="icon-sm"
+                              aria-label="Delete source"
+                              title="Delete source"
+                              onClick={() => handleDeleteDocument(document.id)}
+                              disabled={
+                                deleteMutation.isPending &&
+                                deleteMutation.variables === document.id
+                              }
+                            >
+                              <Trash2 />
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -711,7 +681,7 @@ export default function WorkspacePage() {
           )}
         </aside>
 
-        <section className="bg-white p-6 print:p-0 sm:p-8">
+        <section className="min-h-0 min-w-0 overflow-y-auto bg-white p-6 print:p-0 sm:p-8">
           <div className="mb-6 flex items-center justify-between print:hidden">
             <h2 className="text-[28px] leading-[32.2px] font-medium tracking-[-0.42px] text-black">
               BRD
@@ -756,7 +726,9 @@ export default function WorkspacePage() {
                     "preparing-knowledge",
                     "generating-brd",
                   ] as const;
+
                   const isActive = generationStep === step;
+
                   const isDone =
                     order.indexOf(generationStep as (typeof order)[number]) >
                     order.indexOf(step);
@@ -773,9 +745,7 @@ export default function WorkspacePage() {
                               : "size-6 rounded-full border border-black/8"
                         }
                       >
-                        {isActive && (
-                          <Loader2 className="animate-spin" />
-                        )}
+                        {isActive && <Loader2 className="animate-spin" />}
                       </span>
 
                       <span
@@ -809,9 +779,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && isBRDStatusLoading && (
             <div className="rounded-[4px] border border-black/8 bg-white p-6">
-              <p className="text-base text-[#999999]">
-                Checking BRD status...
-              </p>
+              <p className="text-base text-[#999999]">Checking BRD status...</p>
             </div>
           )}
 
@@ -872,14 +840,14 @@ export default function WorkspacePage() {
                     </p>
 
                     <p className="mt-2 text-sm leading-6 text-[#999999]">
-                      Your sources have changed since the last BRD
-                      generation, and this BRD contains manual changes.
-                      Regenerating may overwrite those changes.
+                      Your sources have changed since the last BRD generation,
+                      and this BRD contains manual changes. Regenerating may
+                      overwrite those changes.
                     </p>
 
                     <p className="mt-2 text-sm leading-6 text-[#999999]">
-                      We recommend downloading your current BRD using
-                      the Download menu above before regenerating it.
+                      We recommend downloading your current BRD using the
+                      Download menu above before regenerating it.
                     </p>
                   </div>
 
@@ -906,8 +874,7 @@ export default function WorkspacePage() {
                     </p>
 
                     <p className="mt-1 text-sm text-[#999999]">
-                      Your sources have changed since the last BRD
-                      generation.
+                      Your sources have changed since the last BRD generation.
                     </p>
                   </div>
 
@@ -921,34 +888,31 @@ export default function WorkspacePage() {
               </div>
             )}
 
-          {generationStep === "idle" &&
-            brdStatus?.has_brd &&
-            isBRDLoading && (
-              <div
-                className="rounded-[4px] border border-black/8 bg-white p-6 sm:p-8"
-                aria-label="Loading BRD"
-              >
-                <Skeleton className="h-3 w-1/3" />
-                <Skeleton className="mt-4 h-8 w-2/3" />
-                <Skeleton className="mt-4 h-4 w-full" />
-                <Skeleton className="mt-2 h-4 w-5/6" />
-                <div className="mt-8 border-t border-black/8 pt-8">
-                  <Skeleton className="h-5 w-1/4" />
-                  <Skeleton className="mt-3 h-4 w-full" />
-                  <Skeleton className="mt-2 h-4 w-4/6" />
-                </div>
-              </div>
-            )}
+          {generationStep === "idle" && brdStatus?.has_brd && isBRDLoading && (
+            <div
+              className="rounded-[4px] border border-black/8 bg-white p-6 sm:p-8"
+              aria-label="Loading BRD"
+            >
+              <Skeleton className="h-3 w-1/3" />
+              <Skeleton className="mt-4 h-8 w-2/3" />
+              <Skeleton className="mt-4 h-4 w-full" />
+              <Skeleton className="mt-2 h-4 w-5/6" />
 
-          {generationStep === "idle" &&
-            brdStatus?.has_brd &&
-            isBRDError && (
-              <div className="rounded-[4px] border border-black/8 bg-white p-6">
-                <p className="text-sm font-medium text-black">
-                  Failed to load BRD.
-                </p>
+              <div className="mt-8 border-t border-black/8 pt-8">
+                <Skeleton className="h-5 w-1/4" />
+                <Skeleton className="mt-3 h-4 w-full" />
+                <Skeleton className="mt-2 h-4 w-4/6" />
               </div>
-            )}
+            </div>
+          )}
+
+          {generationStep === "idle" && brdStatus?.has_brd && isBRDError && (
+            <div className="rounded-[4px] border border-black/8 bg-white p-6">
+              <p className="text-sm font-medium text-black">
+                Failed to load BRD.
+              </p>
+            </div>
+          )}
 
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
@@ -961,6 +925,8 @@ export default function WorkspacePage() {
               />
             )}
         </section>
+
+        {id && <BRDQAPanel workspaceId={id} />}
       </div>
 
       {isGmailBrowserOpen && (

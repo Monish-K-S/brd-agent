@@ -1,3 +1,4 @@
+import re
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -17,6 +18,10 @@ from app.services.workspace_service import WorkspaceService
 
 
 class BRDQAService:
+    MAX_RELEVANT_SOURCES = 8
+    MAX_SOURCE_CONTENT_LENGTH = 12000
+    MIN_RELEVANCE_SCORE = 2
+
     def __init__(self, db: Session):
         self.db = db
 
@@ -64,21 +69,34 @@ class BRDQAService:
                 "sources": [],
             }
 
-        source_documents = self.standard_document_repository.get_all_by_workspace_id(
-            workspace_id,
+        source_documents = (
+            self.standard_document_repository.get_all_by_workspace_id(
+                workspace_id,
+            )
         )
 
-        brd_data = brd.brd_data if brd is not None else {}
+        brd_data = (
+            brd.brd_data
+            if brd is not None
+            else {}
+        )
 
         project_knowledge_data = (
-            project_knowledge.knowledge_data if project_knowledge is not None else {}
+            project_knowledge.knowledge_data
+            if project_knowledge is not None
+            else {}
+        )
+
+        relevant_documents = self._select_relevant_documents(
+            question=question,
+            documents=source_documents,
         )
 
         source_context = [
             self._serialize_source_document(
                 document,
             )
-            for document in source_documents
+            for document in relevant_documents
         ]
 
         generated_response = self.qa_generator.answer(
@@ -106,10 +124,156 @@ class BRDQAService:
             "sources": sources,
         }
 
+    @classmethod
+    def _select_relevant_documents(
+        cls,
+        question: str,
+        documents: list[StandardDocument],
+    ) -> list[StandardDocument]:
+        if not documents:
+            return []
+
+        question_terms = cls._tokenize(question)
+
+        if not question_terms:
+            return documents[: cls.MAX_RELEVANT_SOURCES]
+
+        scored_documents: list[
+            tuple[int, int, StandardDocument]
+        ] = []
+
+        for index, document in enumerate(documents):
+            score = cls._score_document(
+                question_terms=question_terms,
+                document=document,
+            )
+
+            scored_documents.append(
+                (
+                    score,
+                    index,
+                    document,
+                )
+            )
+
+        relevant_documents = [
+            item
+            for item in scored_documents
+            if item[0] >= cls.MIN_RELEVANCE_SCORE
+        ]
+
+        relevant_documents.sort(
+            key=lambda item: (-item[0], item[1]),
+        )
+
+        if relevant_documents:
+            return [
+                item[2]
+                for item in relevant_documents[
+                    : cls.MAX_RELEVANT_SOURCES
+                ]
+            ]
+
+        # No meaningful lexical match.
+        # Include a small deterministic fallback so Gemini can still
+        # answer questions whose wording differs from the source text.
+        scored_documents.sort(
+            key=lambda item: item[1],
+        )
+
+        return [
+            item[2]
+            for item in scored_documents[
+                : cls.MAX_RELEVANT_SOURCES
+            ]
+        ]
+
+    @classmethod
+    def _score_document(
+        cls,
+        question_terms: set[str],
+        document: StandardDocument,
+    ) -> int:
+        title_terms = cls._tokenize(
+            document.title or "",
+        )
+
+        content_terms = cls._tokenize(
+            document.content or "",
+        )
+
+        score = 0
+
+        for term in question_terms:
+            if term in title_terms:
+                score += 5
+
+            if term in content_terms:
+                score += 1
+
+        return score
+
     @staticmethod
+    def _tokenize(text: str) -> set[str]:
+        words = re.findall(
+            r"[a-zA-Z0-9]+",
+            text.lower(),
+        )
+
+        stop_words = {
+            "a",
+            "about",
+            "an",
+            "and",
+            "are",
+            "be",
+            "can",
+            "do",
+            "does",
+            "for",
+            "from",
+            "how",
+            "i",
+            "in",
+            "is",
+            "it",
+            "of",
+            "on",
+            "or",
+            "our",
+            "the",
+            "this",
+            "to",
+            "what",
+            "when",
+            "where",
+            "which",
+            "who",
+            "why",
+            "with",
+            "you",
+            "your",
+        }
+
+        return {
+            word
+            for word in words
+            if len(word) >= 3 and word not in stop_words
+        }
+
+    @classmethod
     def _serialize_source_document(
+        cls,
         document: StandardDocument,
     ) -> dict:
+        content = document.content or ""
+
+        if len(content) > cls.MAX_SOURCE_CONTENT_LENGTH:
+            content = (
+                content[: cls.MAX_SOURCE_CONTENT_LENGTH]
+                + "\n\n[Source content truncated for Q&A context.]"
+            )
+
         return {
             "id": str(document.id),
             "title": document.title,
@@ -121,7 +285,7 @@ class BRDQAService:
                 else None
             ),
             "participants": document.participants,
-            "content": document.content,
+            "content": content,
         }
 
     @staticmethod
@@ -139,6 +303,13 @@ class BRDQAService:
         source_documents: list[StandardDocument],
         source_ids: list[str],
     ) -> set[str]:
-        available_ids = {str(document.id) for document in source_documents}
+        available_ids = {
+            str(document.id)
+            for document in source_documents
+        }
 
-        return {source_id for source_id in source_ids if source_id in available_ids}
+        return {
+            source_id
+            for source_id in source_ids
+            if source_id in available_ids
+        }
