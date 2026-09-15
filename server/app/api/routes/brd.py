@@ -9,6 +9,11 @@ from app.schemas.brd import (
     BRDStatusResponse,
     BRDUpdateRequest,
 )
+from app.schemas.brd_qa import (
+    BRDQARequest,
+    BRDQAResponse,
+)
+from app.services.brd_qa_service import BRDQAService
 from app.services.brd_service import BRDService
 from fastapi import (
     APIRouter,
@@ -166,6 +171,38 @@ def update_brd(
         created_at=brd.created_at,
         updated_at=brd.updated_at,
         user_edited_at=brd.user_edited_at,
+    )
+
+
+@router.post(
+    "/ask",
+    response_model=BRDQAResponse,
+)
+def ask_brd(
+    workspace_id: UUID,
+    request: BRDQARequest,
+    current_user: User = Depends(
+        get_current_db_user,
+    ),
+    db: Session = Depends(get_db),
+) -> BRDQAResponse:
+    brd_qa_service = BRDQAService(db)
+
+    result = brd_qa_service.answer_question_for_user(
+        workspace_id=workspace_id,
+        user_id=current_user.id,
+        question=request.question,
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found",
+        )
+
+    return BRDQAResponse(
+        answer=result["answer"],
+        sources=result["sources"],
     )
 
 
