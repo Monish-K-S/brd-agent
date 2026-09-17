@@ -21,6 +21,11 @@ class Settings(BaseSettings):
 
     database_url: str
 
+    max_upload_files: int = 10
+    max_upload_bytes: int = 10 * 1024 * 1024
+    max_extracted_chars: int = 500_000
+    max_pdf_pages: int = 200
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

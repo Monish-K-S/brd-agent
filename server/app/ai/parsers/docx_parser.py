@@ -4,6 +4,7 @@ from docx import Document
 
 from app.ai.models.standard_document import StandardDocument
 from app.ai.parsers.base import BaseParser
+from app.core.config import settings
 
 
 class DocxParser(BaseParser):
@@ -27,13 +28,30 @@ class DocxParser(BaseParser):
                 "Expected a .docx file"
             )
 
+        if file_path.stat().st_size > settings.max_upload_bytes:
+            raise ValueError(
+                f"File too large: {file_path.name} "
+                f"(max {settings.max_upload_bytes // (1024 * 1024)}MB)"
+            )
+
         document = Document(file_path)
 
-        paragraphs = [
-            paragraph.text
-            for paragraph in document.paragraphs
-            if paragraph.text.strip()
-        ]
+        paragraphs = []
+        total_chars = 0
+
+        for paragraph in document.paragraphs:
+            if not paragraph.text.strip():
+                continue
+
+            total_chars += len(paragraph.text)
+
+            if total_chars > settings.max_extracted_chars:
+                raise ValueError(
+                    f"File content too large: {file_path.name} "
+                    f"(max {settings.max_extracted_chars} characters)"
+                )
+
+            paragraphs.append(paragraph.text)
 
         content = "\n".join(paragraphs)
 

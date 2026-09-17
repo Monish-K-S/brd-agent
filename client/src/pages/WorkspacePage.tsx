@@ -285,17 +285,52 @@ export default function WorkspacePage() {
     navigate("/auth", { replace: true });
   }
 
+  const MAX_UPLOAD_FILES = 10;
+  const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+  const ALLOWED_EXTENSIONS = [".txt", ".pdf", ".docx"];
+
+  const [uploadValidationError, setUploadValidationError] = useState<
+    string | null
+  >(null);
+
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
+
+    // Allow selecting the same file again after an upload.
+    event.target.value = "";
 
     if (files.length === 0) {
       return;
     }
 
-    uploadMutation.mutate(files);
+    setUploadValidationError(null);
 
-    // Allow selecting the same file again after an upload.
-    event.target.value = "";
+    if (files.length > MAX_UPLOAD_FILES) {
+      setUploadValidationError(
+        `Too many files: ${files.length}. Maximum ${MAX_UPLOAD_FILES} files per upload.`,
+      );
+      return;
+    }
+
+    for (const file of files) {
+      const suffix = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
+
+      if (!ALLOWED_EXTENSIONS.includes(suffix)) {
+        setUploadValidationError(
+          `Unsupported file type: ${file.name}. Supported types: .txt, .pdf, .docx`,
+        );
+        return;
+      }
+
+      if (file.size > MAX_UPLOAD_BYTES) {
+        setUploadValidationError(
+          `File too large: ${file.name} (max 10MB)`,
+        );
+        return;
+      }
+    }
+
+    uploadMutation.mutate(files);
   }
 
   function handleDeleteDocument(documentId: string) {
@@ -509,6 +544,12 @@ export default function WorkspacePage() {
                   ))}
                 </div>
               )}
+
+            {uploadValidationError && (
+              <p className="mt-4 text-sm font-medium text-black" role="alert">
+                {uploadValidationError}
+              </p>
+            )}
 
             {uploadMutation.isError && (
               <p className="mt-4 text-sm font-medium text-black" role="alert">

@@ -2,6 +2,7 @@ from pathlib import Path
 
 from app.ai.models.standard_document import StandardDocument
 from app.ai.parsers.base import BaseParser
+from app.core.config import settings
 
 
 class TxtParser(BaseParser):
@@ -25,9 +26,21 @@ class TxtParser(BaseParser):
                 "Expected a .txt file"
             )
 
+        if file_path.stat().st_size > settings.max_upload_bytes:
+            raise ValueError(
+                f"File too large: {file_path.name} "
+                f"(max {settings.max_upload_bytes // (1024 * 1024)}MB)"
+            )
+
         content = file_path.read_text(
             encoding="utf-8"
         )
+
+        if len(content) > settings.max_extracted_chars:
+            raise ValueError(
+                f"File content too large: {file_path.name} "
+                f"(max {settings.max_extracted_chars} characters)"
+            )
 
         return [
             StandardDocument(

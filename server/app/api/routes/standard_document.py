@@ -1,5 +1,5 @@
-import shutil
 import tempfile
+import zipfile
 from pathlib import Path
 from typing import Annotated
 from uuid import UUID
@@ -15,6 +15,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.auth.current_user import get_current_db_user
+from app.core.config import settings
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.standard_document import StandardDocumentResponse
@@ -30,6 +31,72 @@ router = APIRouter(
     prefix="/workspaces/{workspace_id}/documents",
     tags=["Documents"],
 )
+
+
+_CHUNK_SIZE = 64 * 1024
+
+
+class _FileTooLargeError(ValueError):
+    pass
+
+
+def _copy_upload_with_limit(file: UploadFile, dest_path: str) -> int:
+    total = 0
+
+    with open(dest_path, "wb") as dest:
+        while True:
+            chunk = file.file.read(_CHUNK_SIZE)
+
+            if not chunk:
+                break
+
+            total += len(chunk)
+
+            if total > settings.max_upload_bytes:
+                raise _FileTooLargeError(
+                    f"File too large: {file.filename} "
+                    f"(max {settings.max_upload_bytes // (1024 * 1024)}MB)"
+                )
+
+            dest.write(chunk)
+
+    return total
+
+
+def _validate_file_magic(path: Path, suffix: str) -> bool:
+    try:
+        if suffix == ".pdf":
+            with open(path, "rb") as handle:
+                return handle.read(5) == b"%PDF-"
+
+        if suffix == ".docx":
+            with open(path, "rb") as handle:
+                if handle.read(4) != b"PK\x03\x04":
+                    return False
+
+            try:
+                with zipfile.ZipFile(path) as archive:
+                    return (
+                        "[Content_Types].xml" in archive.namelist()
+                    )
+            except zipfile.BadZipFile:
+                return False
+
+        if suffix == ".txt":
+            with open(path, "rb") as handle:
+                sample = handle.read(8192)
+
+            if b"\x00" in sample:
+                return False
+
+            sample.decode("utf-8")
+
+            return True
+
+    except (OSError, UnicodeDecodeError):
+        return False
+
+    return False
 
 
 @router.post(
@@ -53,6 +120,15 @@ def upload_documents(
     document_service = StandardDocumentService(db)
 
     all_documents = []
+
+    if len(files) > settings.max_upload_files:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Too many files: {len(files)}. "
+                f"Maximum {settings.max_upload_files} files per request"
+            ),
+        )
 
     try:
         for file in files:
@@ -80,16 +156,47 @@ def upload_documents(
                     delete=False,
                     suffix=suffix,
                 ) as temp_file:
-                    shutil.copyfileobj(
-                        file.file,
-                        temp_file,
-                    )
-
                     temp_path = Path(temp_file.name)
 
-                documents = ingestion_service.ingest(
-                    temp_path,
-                )
+                try:
+                    _copy_upload_with_limit(file, str(temp_path))
+                except _FileTooLargeError as exc:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=str(exc),
+                    )
+
+                if not _validate_file_magic(temp_path, suffix):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"Unsupported file type: {file.filename}. "
+                            "File content does not match its extension"
+                        ),
+                    )
+
+                try:
+                    documents = ingestion_service.ingest(
+                        temp_path,
+                    )
+                except _FileTooLargeError as exc:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=str(exc),
+                    )
+                except ValueError as exc:
+                    message = str(exc)
+
+                    if "too large" in message.lower():
+                        raise HTTPException(
+                            status_code=413,
+                            detail=message,
+                        )
+
+                    raise HTTPException(
+                        status_code=400,
+                        detail=message,
+                    )
 
                 for document in documents:
                     document.title = file.filename
