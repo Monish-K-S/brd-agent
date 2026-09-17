@@ -5,9 +5,12 @@ from app.auth.current_user import get_current_db_user
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.brd import (
+    BRDDataInvalidError,
+    BRDDataTooLargeError,
     BRDResponse,
     BRDStatusResponse,
     BRDUpdateRequest,
+    validate_brd_data,
 )
 from app.schemas.brd_qa import (
     BRDQARequest,
@@ -176,6 +179,19 @@ def update_brd(
     ),
     db: Session = Depends(get_db),
 ) -> BRDResponse:
+    try:
+        validate_brd_data(request.brd_data)
+    except BRDDataTooLargeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=str(exc),
+        )
+    except BRDDataInvalidError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        )
+
     brd_service = BRDService(db)
 
     brd = brd_service.update_brd_for_user(

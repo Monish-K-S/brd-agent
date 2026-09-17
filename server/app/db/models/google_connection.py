@@ -46,9 +46,9 @@ class GoogleConnection(Base):
         nullable=False,
     )
 
-    refresh_token: Mapped[str] = mapped_column(
+    refresh_token: Mapped[str | None] = mapped_column(
         String,
-        nullable=False,
+        nullable=True,
     )
 
     expires_at: Mapped[datetime] = mapped_column(

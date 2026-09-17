@@ -268,13 +268,17 @@ def disconnect_gmail(
 ):
     gmail_service = GmailService(db)
 
+    revoked = gmail_service.revoke_connection(
+        current_user.id,
+    )
+
     gmail_service.delete_connection(
         current_user.id,
     )
 
     audit(
         event="gmail.disconnect",
-        outcome="success",
+        outcome="success" if revoked else "revoke_failed",
         user_id=current_user.id,
     )
 

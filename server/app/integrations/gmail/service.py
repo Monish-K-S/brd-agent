@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+import requests
 from app.core.config import settings
 from app.db.models.google_connection import GoogleConnection
 from google.auth.transport.requests import Request
@@ -9,6 +10,8 @@ from google_auth_oauthlib.flow import Flow
 from sqlalchemy.orm import Session
 
 GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+
+GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke"
 
 
 GOOGLE_SCOPES = [
@@ -175,6 +178,36 @@ class GmailService:
             )
             .first()
         )
+
+    def revoke_connection(
+        self,
+        user_id: UUID,
+    ) -> bool:
+        connection = self.get_connection(user_id)
+
+        if connection is None:
+            return False
+
+        for token in (
+            connection.refresh_token,
+            connection.access_token,
+        ):
+            if not token:
+                continue
+
+            try:
+                response = requests.post(
+                    GOOGLE_REVOKE_URL,
+                    data={"token": token},
+                    timeout=5,
+                )
+
+                if response.status_code == 200:
+                    return True
+            except requests.RequestException:
+                continue
+
+        return False
 
     def delete_connection(
         self,
