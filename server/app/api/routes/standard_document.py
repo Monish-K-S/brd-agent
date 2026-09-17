@@ -16,6 +16,7 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from app.auth.current_user import get_current_db_user
+from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.db.models.user import User
@@ -389,3 +390,10 @@ def delete_document(
             status_code=404,
             detail="Document not found",
         )
+
+    audit(
+        event="document.delete",
+        outcome="success",
+        user_id=current_user.id,
+        workspace_id=workspace_id,
+    )

@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -17,8 +18,10 @@ from app.api.routes.standard_document import (
     router as standard_document_router,
 )
 from app.api.routes.workspace import router as workspace_router
+from app.core.audit import AuditMiddleware
 from app.core.config import settings
 from app.core.rate_limit import limiter
+from app.core.security_headers import SecurityHeadersMiddleware
 from app.db.session import SessionLocal
 from app.integrations.gmail.router import (
     router as gmail_router,
@@ -31,6 +34,12 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+app.add_middleware(
+    SecurityHeadersMiddleware,
+    enable_hsts=settings.environment == "production",
+)
+app.add_middleware(AuditMiddleware)
 
 
 def _retry_after_seconds(exc: RateLimitExceeded) -> int:
@@ -77,6 +86,9 @@ def health_check():
 
 @app.get("/health/database")
 def database_health_check():
+    if settings.environment == "production" and not settings.expose_db_health:
+        return Response(status_code=404)
+
     with SessionLocal() as db:
         db.execute(text("SELECT 1"))
 

@@ -15,6 +15,7 @@ from app.integrations.gmail.schemas import (
     GmailMessageListResponse,
 )
 from app.integrations.gmail.service import GmailService
+from app.core.audit import audit
 from app.core.rate_limit import limiter
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
@@ -131,6 +132,13 @@ def connect_gmail(
         code_verifier=code_verifier,
     )
 
+    audit(
+        event="gmail.connect",
+        outcome="started",
+        user_id=current_user.id,
+        workspace_id=workspace_id,
+    )
+
     return {
         "authorization_url": authorization_url,
     }
@@ -172,10 +180,24 @@ def gmail_callback(
     except Exception as exc:
         db.rollback()
 
+        audit(
+            event="gmail.connect",
+            outcome="failed",
+            user_id=user_id,
+            workspace_id=workspace_id,
+        )
+
         raise HTTPException(
             status_code=400,
             detail=f"Unable to connect Gmail: {exc}",
         )
+
+    audit(
+        event="gmail.connect",
+        outcome="success",
+        user_id=user_id,
+        workspace_id=workspace_id,
+    )
 
     return RedirectResponse(
         url=(f"{settings.frontend_url}/workspaces/{workspace_id}"),
@@ -248,6 +270,12 @@ def disconnect_gmail(
 
     gmail_service.delete_connection(
         current_user.id,
+    )
+
+    audit(
+        event="gmail.disconnect",
+        outcome="success",
+        user_id=current_user.id,
     )
 
     return {

@@ -15,6 +15,7 @@ from app.schemas.brd_qa import (
 )
 from app.services.brd_qa_service import BRDQAService
 from app.services.brd_service import BRDService
+from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import limiter
 from fastapi import (
@@ -31,6 +32,26 @@ from starlette.background import BackgroundTask
 
 def _cleanup_export_file(path: str) -> None:
     Path(path).unlink(missing_ok=True)
+
+
+MAX_EXPORT_NAME_CHARS = 80
+
+
+def safe_export_filename(workspace_name: str, extension: str) -> str:
+    stem = " ".join(workspace_name.split()) or "BRD"
+
+    stem = "".join(
+        char
+        for char in stem
+        if char.isprintable() and char not in {'"', "\\", "/"}
+    )
+
+    stem = stem.strip("./") or "BRD"
+
+    if len(stem) > MAX_EXPORT_NAME_CHARS:
+        stem = stem[:MAX_EXPORT_NAME_CHARS].rstrip() or "BRD"
+
+    return f"{stem} - BRD.{extension}"
 
 
 router = APIRouter(
@@ -236,7 +257,15 @@ def export_brd_pdf(
 
     output_path, workspace_name = result
 
-    filename = f"{workspace_name.strip() or 'BRD'} - BRD.pdf"
+    filename = safe_export_filename(workspace_name, "pdf")
+
+    audit(
+        event="brd.export",
+        outcome="success",
+        user_id=current_user.id,
+        workspace_id=workspace_id,
+        extra={"format": "pdf"},
+    )
 
     return FileResponse(
         path=output_path,
@@ -272,7 +301,15 @@ def export_brd_docx(
 
     output_path, workspace_name = result
 
-    filename = f"{workspace_name.strip() or 'BRD'} - BRD.docx"
+    filename = safe_export_filename(workspace_name, "docx")
+
+    audit(
+        event="brd.export",
+        outcome="success",
+        user_id=current_user.id,
+        workspace_id=workspace_id,
+        extra={"format": "docx"},
+    )
 
     return FileResponse(
         path=output_path,

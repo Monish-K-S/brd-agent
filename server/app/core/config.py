@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     rate_limit_gmail_connect: str = "10/hour"
     rate_limit_gmail_callback: str = "20/minute"
 
+    allowed_hosts: list[str] = ["*"]
+    expose_db_health: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

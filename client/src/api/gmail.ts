@@ -47,7 +47,24 @@ export async function connectGmail(
     },
   );
 
-  return response.data.authorization_url;
+  const authorizationUrl = response.data.authorization_url;
+
+  let parsed: URL;
+
+  try {
+    parsed = new URL(authorizationUrl);
+  } catch {
+    throw new Error("Invalid Gmail authorization URL received.");
+  }
+
+  if (
+    parsed.protocol !== "https:" ||
+    parsed.hostname !== "accounts.google.com"
+  ) {
+    throw new Error("Invalid Gmail authorization URL received.");
+  }
+
+  return authorizationUrl;
 }
 
 export async function disconnectGmail(): Promise<void> {

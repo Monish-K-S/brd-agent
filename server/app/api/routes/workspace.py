@@ -1,4 +1,5 @@
 from app.auth.current_user import get_current_db_user
+from app.core.audit import audit
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.workspace import (
@@ -148,4 +149,11 @@ def delete_workspace(
 
     workspace_service.delete_workspace(
         workspace,
+    )
+
+    audit(
+        event="workspace.delete",
+        outcome="success",
+        user_id=current_user.id,
+        workspace_id=workspace_id,
     )
