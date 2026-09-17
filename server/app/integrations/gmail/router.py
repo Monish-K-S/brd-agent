@@ -15,7 +15,8 @@ from app.integrations.gmail.schemas import (
     GmailMessageListResponse,
 )
 from app.integrations.gmail.service import GmailService
-from fastapi import APIRouter, Depends, HTTPException, Query
+from app.core.rate_limit import limiter
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -106,7 +107,9 @@ def verify_oauth_state(
 
 
 @router.get("/connect")
+@limiter.limit(settings.rate_limit_gmail_connect)
 def connect_gmail(
+    request: Request,
     workspace_id: UUID = Query(...),
     current_user: CurrentUser = Depends(
         get_current_user,
@@ -134,7 +137,9 @@ def connect_gmail(
 
 
 @router.get("/callback")
+@limiter.limit(settings.rate_limit_gmail_callback)
 def gmail_callback(
+    request: Request,
     code: str = Query(...),
     state: str = Query(...),
     db: Session = Depends(get_db),
@@ -254,7 +259,9 @@ def disconnect_gmail(
     "/messages/recent",
     response_model=GmailMessageListResponse,
 )
+@limiter.limit(settings.rate_limit_gmail_recent)
 def recent_gmail_messages(
+    request: Request,
     current_user: CurrentUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -292,7 +299,9 @@ def recent_gmail_messages(
     "/messages/search",
     response_model=GmailMessageListResponse,
 )
+@limiter.limit(settings.rate_limit_gmail_search)
 def search_gmail_messages(
+    request: Request,
     q: str = Query(..., min_length=1),
     max_results: int = Query(
         default=10,
@@ -337,9 +346,11 @@ def search_gmail_messages(
     "/workspaces/{workspace_id}/messages/import",
     response_model=GmailImportResponse,
 )
+@limiter.limit(settings.rate_limit_gmail_import)
 def import_gmail_messages(
+    request: Request,
     workspace_id: UUID,
-    request: GmailImportRequest,
+    import_request: GmailImportRequest,
     current_user: CurrentUser = Depends(
         get_current_user,
     ),
@@ -354,7 +365,7 @@ def import_gmail_messages(
         ) = import_service.import_messages(
             workspace_id=workspace_id,
             user_id=current_user.id,
-            message_ids=request.message_ids,
+            message_ids=import_request.message_ids,
         )
 
         imported = [

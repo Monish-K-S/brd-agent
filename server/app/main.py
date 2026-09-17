@@ -1,5 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
 
 from app.api.routes.auth import router as auth_router
@@ -15,6 +18,7 @@ from app.api.routes.standard_document import (
 )
 from app.api.routes.workspace import router as workspace_router
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.db.session import SessionLocal
 from app.integrations.gmail.router import (
     router as gmail_router,
@@ -24,6 +28,43 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
 )
+
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+
+def _retry_after_seconds(exc: RateLimitExceeded) -> int:
+    granularity = str(getattr(exc.limit, "limit", "")).lower()
+
+    if "second" in granularity:
+        return 1
+
+    if "minute" in granularity:
+        return 60
+
+    if "day" in granularity:
+        return 86400
+
+    return 3600
+
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_exceeded_handler(
+    request: Request,
+    exc: RateLimitExceeded,
+) -> JSONResponse:
+    retry_seconds = _retry_after_seconds(exc)
+
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": (
+                "Rate limit exceeded. "
+                f"Try again in {retry_seconds}s."
+            ),
+        },
+        headers={"Retry-After": str(retry_seconds)},
+    )
 
 
 @app.get("/health")

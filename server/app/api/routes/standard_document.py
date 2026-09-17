@@ -9,6 +9,7 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Request,
     UploadFile,
     status,
 )
@@ -16,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.current_user import get_current_db_user
 from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.standard_document import StandardDocumentResponse
@@ -104,7 +106,9 @@ def _validate_file_magic(path: Path, suffix: str) -> bool:
     response_model=list[StandardDocumentResponse],
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit(settings.rate_limit_upload)
 def upload_documents(
+    request: Request,
     workspace_id: UUID,
     files: Annotated[
         list[UploadFile],

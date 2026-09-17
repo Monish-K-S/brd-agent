@@ -4,11 +4,14 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Request,
     status,
 )
 from sqlalchemy.orm import Session
 
 from app.auth.current_user import get_current_db_user
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.project_knowledge import (
@@ -30,7 +33,9 @@ router = APIRouter(
     response_model=ProjectKnowledgeResponse,
     status_code=status.HTTP_200_OK,
 )
+@limiter.limit(settings.rate_limit_consolidate)
 def consolidate_project_knowledge(
+    request: Request,
     workspace_id: UUID,
     current_user: User = Depends(
         get_current_db_user,

@@ -15,10 +15,13 @@ from app.schemas.brd_qa import (
 )
 from app.services.brd_qa_service import BRDQAService
 from app.services.brd_service import BRDService
+from app.core.config import settings
+from app.core.rate_limit import limiter
 from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Request,
     status,
 )
 from fastapi.responses import FileResponse
@@ -41,7 +44,9 @@ router = APIRouter(
     response_model=BRDResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit(settings.rate_limit_brd_generate)
 def generate_brd(
+    request: Request,
     workspace_id: UUID,
     current_user: User = Depends(
         get_current_db_user,
@@ -178,9 +183,11 @@ def update_brd(
     "/ask",
     response_model=BRDQAResponse,
 )
+@limiter.limit(settings.rate_limit_brd_ask)
 def ask_brd(
+    request: Request,
     workspace_id: UUID,
-    request: BRDQARequest,
+    qa_request: BRDQARequest,
     current_user: User = Depends(
         get_current_db_user,
     ),
@@ -191,7 +198,7 @@ def ask_brd(
     result = brd_qa_service.answer_question_for_user(
         workspace_id=workspace_id,
         user_id=current_user.id,
-        question=request.question,
+        question=qa_request.question,
     )
 
     if result is None:
@@ -207,7 +214,9 @@ def ask_brd(
 
 
 @router.get("/export/pdf")
+@limiter.limit(settings.rate_limit_brd_export)
 def export_brd_pdf(
+    request: Request,
     workspace_id: UUID,
     current_user: User = Depends(get_current_db_user),
     db: Session = Depends(get_db),
@@ -241,7 +250,9 @@ def export_brd_pdf(
 
 
 @router.get("/export/docx")
+@limiter.limit(settings.rate_limit_brd_export)
 def export_brd_docx(
+    request: Request,
     workspace_id: UUID,
     current_user: User = Depends(get_current_db_user),
     db: Session = Depends(get_db),
