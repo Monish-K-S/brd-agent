@@ -3,6 +3,10 @@ from uuid import UUID
 
 import requests
 from app.core.config import settings
+from app.core.token_crypto import (
+    decrypt_token_or_legacy,
+    encrypt_token,
+)
 from app.db.models.google_connection import GoogleConnection
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -145,8 +149,12 @@ class GmailService:
                 user_id=user_id,
                 provider="google",
                 email=email,
-                access_token=credentials.token,
-                refresh_token=credentials.refresh_token,
+                access_token=encrypt_token(credentials.token),
+                refresh_token=(
+                    encrypt_token(credentials.refresh_token)
+                    if credentials.refresh_token
+                    else None
+                ),
                 expires_at=expires_at,
             )
 
@@ -154,10 +162,12 @@ class GmailService:
 
         else:
             connection.email = email
-            connection.access_token = credentials.token
+            connection.access_token = encrypt_token(credentials.token)
 
             if credentials.refresh_token:
-                connection.refresh_token = credentials.refresh_token
+                connection.refresh_token = encrypt_token(
+                    credentials.refresh_token
+                )
 
             connection.expires_at = expires_at
 
@@ -188,9 +198,18 @@ class GmailService:
         if connection is None:
             return False
 
+        plaintext_refresh = (
+            decrypt_token_or_legacy(connection.refresh_token)[0]
+            if connection.refresh_token
+            else None
+        )
+        plaintext_access, _ = decrypt_token_or_legacy(
+            connection.access_token
+        )
+
         for token in (
-            connection.refresh_token,
-            connection.access_token,
+            plaintext_refresh,
+            plaintext_access,
         ):
             if not token:
                 continue
@@ -244,9 +263,28 @@ class GmailService:
             expires_at,
         )
 
+        access_token, access_encrypted = decrypt_token_or_legacy(
+            connection.access_token
+        )
+
+        if connection.refresh_token:
+            refresh_token, refresh_encrypted = decrypt_token_or_legacy(
+                connection.refresh_token
+            )
+        else:
+            refresh_token, refresh_encrypted = None, True
+
+        if not access_encrypted or not refresh_encrypted:
+            connection.access_token = encrypt_token(access_token)
+
+            if refresh_token:
+                connection.refresh_token = encrypt_token(refresh_token)
+
+            self.db.commit()
+
         credentials = Credentials(
-            token=connection.access_token,
-            refresh_token=connection.refresh_token,
+            token=access_token,
+            refresh_token=refresh_token,
             token_uri="https://oauth2.googleapis.com/token",
             client_id=settings.google_client_id,
             client_secret=settings.google_client_secret,
@@ -255,7 +293,7 @@ class GmailService:
         )
 
         if token_expired:
-            if not connection.refresh_token:
+            if not refresh_token:
                 raise ValueError(
                     "Google access token has expired and "
                     "no refresh token is available. "
@@ -264,7 +302,7 @@ class GmailService:
 
             credentials.refresh(Request())
 
-            connection.access_token = credentials.token
+            connection.access_token = encrypt_token(credentials.token)
 
             if credentials.expiry is not None:
                 connection.expires_at = self._normalize_expiry(

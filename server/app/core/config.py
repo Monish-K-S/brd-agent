@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     google_client_secret: str
     google_redirect_uri: str
 
+    token_encryption_key: str
+
     database_url: str
 
     max_upload_files: int = 10
@@ -41,6 +43,8 @@ class Settings(BaseSettings):
 
     allowed_hosts: list[str] = ["*"]
     expose_db_health: bool = False
+
+    cors_origins: list[str] = ["http://localhost:5173"]
 
     model_config = SettingsConfigDict(
         env_file=".env",
