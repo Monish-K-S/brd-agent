@@ -1,4 +1,5 @@
 import secrets
+import threading
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -29,6 +30,27 @@ router = APIRouter(
 
 STATE_EXPIRATION_MINUTES = 10
 
+# Single-use PKCE verifier store, keyed by state JWT ID.
+# NOTE: in-memory by design (consistent with the in-memory rate limiter);
+# entries do not survive restarts and are not shared across workers.
+_oauth_verifiers: dict[
+    str,
+    tuple[UUID, UUID, str, datetime],
+] = {}
+
+_oauth_verifiers_lock = threading.Lock()
+
+
+def _purge_expired_verifiers(now: datetime) -> None:
+    expired = [
+        jti
+        for jti, (_, _, _, expires_at) in _oauth_verifiers.items()
+        if expires_at <= now
+    ]
+
+    for jti in expired:
+        del _oauth_verifiers[jti]
+
 
 def create_oauth_state(
     user_id: UUID,
@@ -36,12 +58,13 @@ def create_oauth_state(
     code_verifier: str,
 ) -> str:
     now = datetime.now(timezone.utc)
+    jti = secrets.token_urlsafe(16)
 
     payload = {
         "sub": str(user_id),
         "workspace_id": str(workspace_id),
         "purpose": "gmail_connect",
-        "code_verifier": code_verifier,
+        "jti": jti,
         "iat": now,
         "exp": now
         + timedelta(
@@ -49,11 +72,26 @@ def create_oauth_state(
         ),
     }
 
-    return jwt.encode(
+    state = jwt.encode(
         payload,
-        settings.google_client_secret,
+        settings.oauth_state_secret,
         algorithm="HS256",
     )
+
+    with _oauth_verifiers_lock:
+        _purge_expired_verifiers(now)
+
+        _oauth_verifiers[jti] = (
+            user_id,
+            workspace_id,
+            code_verifier,
+            now
+            + timedelta(
+                minutes=STATE_EXPIRATION_MINUTES,
+            ),
+        )
+
+    return state
 
 
 def verify_oauth_state(
@@ -62,7 +100,7 @@ def verify_oauth_state(
     try:
         payload = jwt.decode(
             state,
-            settings.google_client_secret,
+            settings.oauth_state_secret,
             algorithms=["HS256"],
         )
 
@@ -80,14 +118,33 @@ def verify_oauth_state(
             payload["workspace_id"],
         )
 
-        code_verifier = payload.get(
-            "code_verifier",
-        )
+        jti = payload.get("jti")
 
-        if not code_verifier:
+        if not jti:
             raise HTTPException(
                 status_code=400,
                 detail="Invalid OAuth state.",
+            )
+
+        now = datetime.now(timezone.utc)
+
+        with _oauth_verifiers_lock:
+            entry = _oauth_verifiers.pop(jti, None)
+
+            _purge_expired_verifiers(now)
+
+        if entry is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired OAuth state.",
+            )
+
+        _, _, code_verifier, expires_at = entry
+
+        if expires_at <= now:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired OAuth state.",
             )
 
         return (
@@ -96,6 +153,8 @@ def verify_oauth_state(
             code_verifier,
         )
 
+    except HTTPException:
+        raise
     except (
         jwt.PyJWTError,
         KeyError,

@@ -1,6 +1,13 @@
+import json
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import ValidationInfo, field_validator
+from pydantic_settings import (
+    BaseSettings,
+    NoDecode,
+    SettingsConfigDict,
+)
 
 
 class Settings(BaseSettings):
@@ -20,6 +27,8 @@ class Settings(BaseSettings):
     google_redirect_uri: str
 
     token_encryption_key: str
+
+    oauth_state_secret: str
 
     database_url: str
 
@@ -41,10 +50,51 @@ class Settings(BaseSettings):
     rate_limit_gmail_connect: str = "10/hour"
     rate_limit_gmail_callback: str = "20/minute"
 
-    allowed_hosts: list[str] = ["*"]
+    allowed_hosts: Annotated[list[str], NoDecode] = ["*"]
     expose_db_health: bool = False
 
-    cors_origins: list[str] = ["http://localhost:5173"]
+    cors_origins: Annotated[list[str], NoDecode] = [
+        "http://localhost:5173"
+    ]
+
+    @field_validator("allowed_hosts", "cors_origins", mode="before")
+    @classmethod
+    def _parse_host_list(
+        cls,
+        value: object,
+        info: ValidationInfo,
+    ) -> object:
+        defaults = {
+            "allowed_hosts": ["*"],
+            "cors_origins": ["http://localhost:5173"],
+        }
+
+        if value is None or (
+            isinstance(value, str) and not value.strip()
+        ):
+            return defaults[info.field_name]
+
+        if isinstance(value, str):
+            stripped = value.strip()
+
+            if stripped.startswith("["):
+                try:
+                    parsed = json.loads(stripped)
+
+                    if isinstance(parsed, list):
+                        return parsed
+                except json.JSONDecodeError:
+                    pass
+
+            items = [
+                item.strip()
+                for item in stripped.split(",")
+                if item.strip()
+            ]
+
+            return items or defaults[info.field_name]
+
+        return value
 
     model_config = SettingsConfigDict(
         env_file=".env",
