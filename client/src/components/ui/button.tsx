@@ -7,20 +7,25 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-black text-white hover:bg-black/80",
-        brand: "bg-black text-white hover:bg-black/80",
-        ink: "bg-black text-white hover:bg-black/80",
+        default:
+          "bg-primary px-6 py-[11px] text-sm font-semibold text-white hover:bg-primary-deep active:bg-primary-deep",
+        brand:
+          "bg-primary px-6 py-[11px] text-sm font-semibold text-white hover:bg-primary-deep active:bg-primary-deep",
+        ink:
+          "bg-primary px-6 py-[11px] text-sm font-semibold text-white hover:bg-primary-deep active:bg-primary-deep",
         outline:
-          "border-black/15 bg-white text-black hover:bg-black/5 aria-expanded:bg-black/5",
+          "border-ink bg-transparent px-6 py-[11px] text-sm font-semibold text-ink hover:bg-black/5 aria-expanded:bg-black/5",
+        utility:
+          "rounded-lg border border-hairline bg-white px-3.5 py-1 text-sm font-medium text-ink hover:bg-black/5 aria-expanded:bg-black/5",
         secondary:
-          "bg-white text-black shadow-[0_2px_8px_rgba(0,0,0,0.16)] hover:bg-white/90 aria-expanded:bg-white/90",
+          "border border-hairline bg-canvas px-6 py-[11px] text-sm font-semibold text-ink hover:bg-black/5 aria-expanded:bg-black/5",
         subtle:
-          "bg-[#efefef] text-black hover:bg-[#e2e2e2] aria-expanded:bg-[#e2e2e2]",
+          "bg-surface px-6 py-[11px] text-sm font-semibold text-ink hover:bg-black/5 aria-expanded:bg-black/5",
         ghost:
-          "text-black hover:bg-black/5 aria-expanded:bg-black/5",
+          "text-ink hover:bg-black/5 aria-expanded:bg-black/5",
         destructive:
-          "bg-transparent text-black underline-offset-4 hover:underline focus-visible:border-ring focus-visible:ring-ring/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-transparent text-ink underline-offset-4 hover:underline focus-visible:border-ring focus-visible:ring-ring/50",
+        link: "text-ink underline-offset-4 hover:underline",
       },
       size: {
         default:

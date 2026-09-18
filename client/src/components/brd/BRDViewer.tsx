@@ -118,10 +118,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-black/10 py-8 first:border-t-0 first:pt-0">
+    <section className="border-t border-hairline-soft py-8 first:border-t-0 first:pt-0">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-xl leading-7 font-bold text-black">
-          <span className="mr-2 text-base font-medium text-[#afafaf]">
+        <h2 className="text-2xl leading-8 font-semibold text-ink">
+          <span className="mr-3 text-sm font-semibold text-stone">
             {String(number).padStart(2, "0")}
           </span>
           {title}
@@ -131,7 +131,7 @@ function Section({
           <button
             type="button"
             onClick={onEdit}
-            className="shrink-0 rounded-full bg-[#efefef] px-5 py-2 text-base font-medium text-black transition-colors print:hidden hover:bg-[#e2e2e2]"
+            className="shrink-0 rounded-full border border-hairline bg-canvas px-4 py-1.5 text-sm font-medium text-ink transition-colors duration-200 print:hidden hover:bg-black/5"
           >
             Edit
           </button>
@@ -141,18 +141,18 @@ function Section({
       {children}
 
       {saveFailed && !isSaving && (
-        <p className="mt-4 text-sm text-black" role="alert">
+        <p className="mt-4 text-sm text-ink" role="alert">
           Couldn&apos;t save. Try again.
         </p>
       )}
 
       {isEditing && (
-        <div className="mt-6 flex items-center justify-end gap-3 border-t border-black/10 pt-5 print:hidden">
+        <div className="mt-6 flex items-center justify-end gap-3 border-t border-hairline-soft pt-5 print:hidden">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            className="rounded-full bg-[#efefef] px-5 py-2 text-base font-medium text-black transition-colors hover:bg-[#e2e2e2] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-hairline bg-canvas px-4 py-1.5 text-sm font-medium text-ink transition-colors duration-200 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
@@ -161,7 +161,7 @@ function Section({
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="rounded-full bg-black px-6 py-2 text-base font-medium text-white transition-colors hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-primary px-5 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-deep active:bg-primary-deep disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? "Saving..." : "Save"}
           </button>
@@ -174,16 +174,16 @@ function Section({
 function BulletList({ items }: { items: string[] }) {
   if (items.length === 0) {
     return (
-      <p className="text-[15px] text-[#797979] italic">
+      <p className="text-[15px] text-steel italic">
         None specified.
       </p>
     );
   }
 
   return (
-    <ul className="space-y-3 pl-5 text-[15px] leading-7 text-black">
+    <ul className="space-y-3 pl-5 text-justify text-[15px] leading-7 text-ink">
       {items.map((item, index) => (
-        <li key={index} className="list-disc pl-1 marker:text-[#797979]">
+        <li key={index} className="list-disc pl-1 marker:text-steel">
           {item}
         </li>
       ))}
@@ -223,13 +223,13 @@ function EditableList({
             onChange={(event) => updateItem(index, event.target.value)}
             placeholder={placeholder}
             rows={2}
-            className="min-h-[72px] flex-1 resize-y rounded-lg border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
+            className="min-h-[72px] flex-1 resize-y rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm leading-6 text-ink outline-none transition-colors placeholder:text-stone focus-visible:border-ink"
           />
 
           <button
             type="button"
             onClick={() => removeItem(index)}
-            className="rounded-full border border-black/8 px-4 py-2 text-[13px] font-medium text-[#797979] transition-colors hover:bg-black/5 hover:text-black"
+            className="rounded-full border border-hairline px-4 py-2 text-[13px] font-medium text-steel transition-colors hover:bg-primary/5 hover:text-ink"
           >
             Remove
           </button>
@@ -239,7 +239,7 @@ function EditableList({
       <button
         type="button"
         onClick={addItem}
-        className="rounded-full border border-black/8 px-5 py-2 text-[13px] font-medium text-black transition-colors hover:bg-black/5"
+        className="rounded-full border border-hairline px-5 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-primary/5"
       >
         + Add item
       </button>
@@ -260,7 +260,7 @@ function EditableField({
 }) {
   return (
     <div>
-      <label className="text-sm font-medium text-black">
+      <label className="text-sm font-medium text-ink">
         {label}
       </label>
 
@@ -269,14 +269,14 @@ function EditableField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           rows={5}
-          className="mt-2 w-full resize-y rounded-lg border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
+          className="mt-2 w-full resize-y rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm leading-6 text-ink outline-none transition-colors placeholder:text-stone focus-visible:border-ink"
         />
       ) : (
         <input
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="mt-2 w-full rounded-lg border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
+          className="mt-2 w-full rounded-lg border border-hairline bg-canvas px-4 py-3 text-sm leading-6 text-ink outline-none transition-colors placeholder:text-stone focus-visible:border-ink"
         />
       )}
     </div>
@@ -391,18 +391,18 @@ export function BRDViewer({
   }
 
   return (
-    <article className="mx-auto w-full max-w-4xl print:max-w-none">
+    <article className="mx-auto w-full print:max-w-none">
       <header className="px-2 py-8 sm:px-4">
-        <h1 className="text-4xl leading-[44px] font-bold text-black">
+        <h1 className="text-[32px] leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-[40px] sm:leading-[1.2] sm:tracking-[-1px]">
           {data.project_overview.project_name}
         </h1>
 
-        <p className="mt-2 max-w-2xl text-lg leading-6 font-medium text-[#5e5e5e]">
+        <p className="mt-2 max-w-2xl text-lg leading-7 font-medium text-steel">
           {data.project_overview.description}
         </p>
 
         {(generatedOn || updatedOn || editedByUser) && (
-          <p className="mt-4 text-sm leading-5 text-[#afafaf]">
+          <p className="mt-4 text-sm leading-5 text-stone">
             {[generatedOn && `Generated ${generatedOn}`, updatedOn && updatedOn !== generatedOn && `Updated ${updatedOn}`, editedByUser && "Edited by you"]
               .filter(Boolean)
               .join(" · ")}
@@ -410,7 +410,7 @@ export function BRDViewer({
         )}
       </header>
 
-      <div className="rounded-2xl bg-white px-6 py-8 shadow-[0_4px_16px_rgba(0,0,0,0.12)] sm:px-8 print:rounded-none print:shadow-none">
+      <div className="rounded-2xl border border-hairline bg-canvas px-6 py-8 sm:px-10 print:border-0 print:rounded-none">
         {/* 01 — Executive Summary */}
         <Section
           number={1}
@@ -437,7 +437,7 @@ export function BRDViewer({
               multiline
             />
           ) : (
-            <p className="text-base leading-6 whitespace-pre-line text-black">
+            <p className="text-justify text-base leading-6 whitespace-pre-line text-ink">
               {data.executive_summary.content}
             </p>
           )}
@@ -488,21 +488,21 @@ export function BRDViewer({
           ) : (
             <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-medium text-black">
+                <h3 className="text-sm font-medium text-ink">
                   Project Name
                 </h3>
 
-                <p className="mt-2 text-base leading-6 text-black">
+                <p className="mt-2 text-justify text-base leading-6 text-ink">
                   {data.project_overview.project_name}
                 </p>
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-black">
+                <h3 className="text-sm font-medium text-ink">
                   Description
                 </h3>
 
-                <p className="mt-2 text-base leading-6 whitespace-pre-line text-black">
+                <p className="mt-2 text-justify text-base leading-6 whitespace-pre-line text-ink">
                   {data.project_overview.description}
                 </p>
               </div>
@@ -554,7 +554,7 @@ export function BRDViewer({
           {editingSection === "scope" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   In Scope
                 </h3>
 
@@ -572,7 +572,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Out of Scope
                 </h3>
 
@@ -592,7 +592,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   In Scope
                 </h3>
 
@@ -600,7 +600,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Out of Scope
                 </h3>
 
@@ -624,7 +624,7 @@ export function BRDViewer({
           {editingSection === "stakeholders" ? (
             <div className="space-y-4">
               {draft.stakeholders.stakeholders.length === 0 && (
-                <p className="text-sm text-[#797979] italic">
+                <p className="text-sm text-steel italic">
                   No stakeholders added.
                 </p>
               )}
@@ -633,7 +633,7 @@ export function BRDViewer({
                 (stakeholder, index) => (
                   <div
                     key={index}
-                    className="rounded-2xl bg-[#efefef] p-4"
+                    className="rounded-2xl border border-hairline bg-surface p-4"
                   >
                     <div className="grid gap-4 md:grid-cols-3">
                       <EditableField
@@ -679,7 +679,7 @@ export function BRDViewer({
                         onClick={() =>
                           removeStakeholder(index)
                         }
-                        className="rounded-full border border-black/8 px-4 py-2 text-[13px] font-medium text-[#797979] transition-colors hover:bg-black/5 hover:text-black"
+                        className="rounded-full border border-hairline px-4 py-2 text-[13px] font-medium text-steel transition-colors hover:bg-primary/5 hover:text-ink"
                       >
                         Remove
                       </button>
@@ -691,29 +691,29 @@ export function BRDViewer({
               <button
                 type="button"
                 onClick={addStakeholder}
-                className="rounded-full border border-black/8 px-5 py-2 text-[13px] font-medium text-black transition-colors hover:bg-black/5"
+                className="rounded-full border border-hairline px-5 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-primary/5"
               >
                 + Add stakeholder
               </button>
             </div>
           ) : data.stakeholders.stakeholders.length === 0 ? (
-            <p className="text-[15px] text-[#797979] italic">
+            <p className="text-[15px] text-steel italic">
               None specified.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-2xl">
+            <div className="overflow-x-auto rounded-lg border border-hairline">
               <table className="w-full text-left text-sm leading-5">
-                <thead className="bg-[#efefef]">
+                <thead className="bg-surface">
                   <tr>
-                    <th className="px-4 py-3 text-sm font-medium text-black">
+                    <th className="px-4 py-3 text-sm font-medium text-ink">
                       Name
                     </th>
 
-                    <th className="px-4 py-3 text-sm font-medium text-black">
+                    <th className="px-4 py-3 text-sm font-medium text-ink">
                       Role
                     </th>
 
-                    <th className="px-4 py-3 text-sm font-medium text-black">
+                    <th className="px-4 py-3 text-sm font-medium text-ink">
                       Organization
                     </th>
                   </tr>
@@ -724,17 +724,17 @@ export function BRDViewer({
                     (stakeholder, index) => (
                       <tr
                         key={index}
-                        className="border-b border-[#e2e2e2] last:border-b-0"
+                        className="border-b border-hairline-soft last:border-b-0"
                       >
-                        <td className="px-4 py-3 align-top font-medium text-black">
+                        <td className="px-4 py-3 align-top text-justify font-medium text-ink">
                           {stakeholder.name}
                         </td>
 
-                        <td className="px-4 py-3 align-top text-[#5e5e5e]">
+                        <td className="px-4 py-3 align-top text-justify text-steel">
                           {stakeholder.role || "—"}
                         </td>
 
-                        <td className="px-4 py-3 align-top text-[#5e5e5e]">
+                        <td className="px-4 py-3 align-top text-justify text-steel">
                           {stakeholder.organization || "—"}
                         </td>
                       </tr>
@@ -862,7 +862,7 @@ export function BRDViewer({
           {editingSection === "assumptions_and_constraints" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Assumptions
                 </h3>
 
@@ -882,7 +882,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Constraints
                 </h3>
 
@@ -904,7 +904,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Assumptions
                 </h3>
 
@@ -916,7 +916,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Constraints
                 </h3>
 
@@ -944,7 +944,7 @@ export function BRDViewer({
           {editingSection === "risks_and_decisions" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Risks
                 </h3>
 
@@ -962,7 +962,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Decisions
                 </h3>
 
@@ -982,7 +982,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Risks
                 </h3>
 
@@ -992,7 +992,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-black">
+                <h3 className="mb-2 text-sm font-medium text-ink">
                   Decisions
                 </h3>
 

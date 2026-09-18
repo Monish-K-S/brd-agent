@@ -5,6 +5,28 @@ from fpdf import FPDF
 from app.ai.models.artifacts.brd import BRD
 
 
+class _BRDFolioPDF(FPDF):
+    """
+    FPDF with a quiet centered page number on every page.
+    """
+
+    def footer(self) -> None:
+        self.set_y(-15)
+        self.set_font(
+            "Helvetica",
+            "",
+            9,
+        )
+        self.set_text_color(140, 140, 140)
+        self.cell(
+            0,
+            10,
+            f"{self.page_no()}",
+            align="C",
+        )
+        self.set_text_color(0, 0, 0)
+
+
 class BRDDocumentBuilder:
     """
     Builds a human-readable PDF from a BRD object.
@@ -16,7 +38,7 @@ class BRDDocumentBuilder:
     BOTTOM_MARGIN = 22
 
     BODY_FONT_SIZE = 10
-    BODY_LINE_HEIGHT = 5.5
+    BODY_LINE_HEIGHT = 6.2
 
     SECTION_FONT_SIZE = 14
     SECTION_LINE_HEIGHT = 8
@@ -32,7 +54,7 @@ class BRDDocumentBuilder:
         brd: BRD,
         output_path: str,
     ) -> str:
-        pdf = FPDF()
+        pdf = _BRDFolioPDF()
 
         pdf.set_margins(
             left=self.LEFT_MARGIN,
@@ -179,7 +201,7 @@ class BRDDocumentBuilder:
         pdf.ln(5)
 
         # Horizontal separator
-        pdf.set_draw_color(0, 0, 0)
+        pdf.set_draw_color(200, 200, 200)
         pdf.set_line_width(0.3)
 
         pdf.line(
@@ -308,7 +330,7 @@ class BRDDocumentBuilder:
 
             if stakeholder.role:
                 details += (
-                    f" -- "
+                    " -- "
                     f"{self._normalize_text(stakeholder.role)}"
                 )
 
@@ -494,7 +516,7 @@ class BRDDocumentBuilder:
         )
 
         # Subtle section separator
-        pdf.set_draw_color(0, 0, 0)
+        pdf.set_draw_color(200, 200, 200)
         pdf.set_line_width(0.2)
 
         pdf.line(
@@ -548,10 +570,11 @@ class BRDDocumentBuilder:
 
         pdf.multi_cell(
             w=width,
-            h=5.5,
+            h=6.2,
             text=BRDDocumentBuilder._normalize_text(
                 text
             ),
+            align="J",
         )
 
         pdf.ln(2)
@@ -584,7 +607,7 @@ class BRDDocumentBuilder:
         )
 
         pdf.write(
-            5.5,
+            6.2,
             f"{label}: ",
         )
 
@@ -601,8 +624,9 @@ class BRDDocumentBuilder:
 
         pdf.multi_cell(
             w=remaining_width,
-            h=5.5,
+            h=6.2,
             text=value,
+            align="J",
         )
 
         pdf.ln(2)
@@ -635,7 +659,7 @@ class BRDDocumentBuilder:
         )
 
         pdf.write(
-            5.5,
+            6.2,
             "-",
         )
 
@@ -643,8 +667,9 @@ class BRDDocumentBuilder:
 
         pdf.multi_cell(
             w=text_width,
-            h=5.5,
+            h=6.2,
             text=text,
+            align="J",
         )
 
         pdf.ln(1)
@@ -666,7 +691,7 @@ class BRDDocumentBuilder:
 
             pdf.multi_cell(
                 w=width,
-                h=5.5,
+                h=6.2,
                 text="None specified.",
             )
 

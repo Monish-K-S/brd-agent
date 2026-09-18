@@ -1,4 +1,5 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
@@ -49,24 +50,30 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#f3f3f3]">
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-4 sm:px-8">
-        <span className="text-base font-medium text-black">BRD Agent</span>
+    <main className="flex min-h-screen flex-col bg-canvas text-ink">
+      <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center px-4 sm:px-8">
+        <Link
+          to="/"
+          aria-label="Back to home"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-steel transition-colors duration-200 outline-none hover:bg-black/5 hover:text-ink focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <ArrowLeft aria-hidden="true" className="size-5" />
+        </Link>
       </div>
 
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
-          <h1 className="text-3xl leading-10 font-bold text-black">
-            Welcome back
+        <div className="w-full max-w-md rounded-2xl border border-hairline bg-canvas p-8 text-center sm:p-10">
+          <h1 className="text-[32px] leading-[1.25] font-semibold tracking-[-0.5px] text-ink">
+            Welcome
           </h1>
 
-          <p className="mt-2 text-base leading-6 text-[#5e5e5e]">
+          <p className="mt-2 text-base leading-6 text-steel">
             Sign in to continue.
           </p>
 
           {error && (
             <p
-              className="mt-6 rounded-2xl bg-[#efefef] p-3 text-sm text-black"
+              className="mt-6 rounded-lg border border-[#d45656] p-3 text-sm text-[#d45656]"
               role="alert"
             >
               {error}
@@ -77,7 +84,7 @@ export default function AuthPage() {
             type="button"
             onClick={handleGoogleAuth}
             disabled={loading}
-            className="mt-8 inline-flex h-12 w-full items-center justify-center gap-3 rounded-full bg-black px-5 text-base font-medium text-white transition-colors outline-none hover:bg-black/80 disabled:pointer-events-none disabled:opacity-50"
+            className="mt-8 inline-flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-primary px-6 py-[11px] text-sm font-semibold text-white transition-colors duration-200 outline-none hover:bg-primary-deep active:bg-primary-deep disabled:bg-hairline disabled:text-muted"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" className="size-4">
               <path
@@ -99,6 +106,15 @@ export default function AuthPage() {
             </svg>
             {loading ? "Continuing..." : "Continue with Google"}
           </button>
+
+          <div className="mt-6 space-y-1.5">
+            <p className="text-sm text-steel">
+              Google sign-in only — no password to remember.
+            </p>
+            <p className="text-sm text-steel">
+              You&apos;ll land in your workspaces right after.
+            </p>
+          </div>
         </div>
       </div>
     </main>

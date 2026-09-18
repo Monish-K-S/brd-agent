@@ -3,9 +3,38 @@ from pathlib import Path
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_SECTION
-from docx.shared import Inches, Pt
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Inches, Pt, RGBColor
 
 from app.ai.models.artifacts.brd import BRD
+
+
+def _add_page_number_footer(document: Document) -> None:
+    """
+    Centered gray page number in the default footer.
+    """
+    paragraph = document.sections[0].footer.paragraphs[0]
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    run = paragraph.add_run()
+    run.font.name = "Arial"
+    run.font.size = Pt(9)
+    run.font.color.rgb = RGBColor(0x8E, 0x8E, 0x8E)
+
+    begin = OxmlElement("w:fldChar")
+    begin.set(qn("w:fldCharType"), "begin")
+
+    instruction = OxmlElement("w:instrText")
+    instruction.set(qn("xml:space"), "preserve")
+    instruction.text = "PAGE"
+
+    end = OxmlElement("w:fldChar")
+    end.set(qn("w:fldCharType"), "end")
+
+    run._r.append(begin)
+    run._r.append(instruction)
+    run._r.append(end)
 
 
 class BRDDocxBuilder:
@@ -33,6 +62,7 @@ class BRDDocxBuilder:
 
         self._configure_document(document)
         self._configure_styles(document)
+        _add_page_number_footer(document)
 
         self._add_title(
             document,
@@ -139,7 +169,7 @@ class BRDDocxBuilder:
         )
 
         normal_style.paragraph_format.space_after = Pt(6)
-        normal_style.paragraph_format.line_spacing = 1.0
+        normal_style.paragraph_format.line_spacing = 1.15
 
     def _add_title(
         self,
@@ -281,7 +311,7 @@ class BRDDocxBuilder:
 
             if stakeholder.role:
                 details += (
-                    f" -- "
+                    " – "
                     f"{self._normalize_text(stakeholder.role)}"
                 )
 
@@ -465,8 +495,9 @@ class BRDDocxBuilder:
     ) -> None:
         paragraph = document.add_paragraph()
 
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         paragraph.paragraph_format.space_after = Pt(6)
-        paragraph.paragraph_format.line_spacing = 1.0
+        paragraph.paragraph_format.line_spacing = 1.15
 
         run = paragraph.add_run(
             BRDDocxBuilder._normalize_text(text)
@@ -485,8 +516,9 @@ class BRDDocxBuilder:
     ) -> None:
         paragraph = document.add_paragraph()
 
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         paragraph.paragraph_format.space_after = Pt(6)
-        paragraph.paragraph_format.line_spacing = 1.0
+        paragraph.paragraph_format.line_spacing = 1.15
 
         label_run = paragraph.add_run(
             f"{BRDDocxBuilder._normalize_text(label)}: "
@@ -516,8 +548,9 @@ class BRDDocxBuilder:
             style="List Bullet"
         )
 
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         paragraph.paragraph_format.space_after = Pt(3)
-        paragraph.paragraph_format.line_spacing = 1.0
+        paragraph.paragraph_format.line_spacing = 1.15
 
         run = paragraph.add_run(
             BRDDocxBuilder._normalize_text(text)
@@ -565,15 +598,15 @@ class BRDDocxBuilder:
         into characters supported consistently by the document fonts.
         """
 
+        # NOTE: Arial carries the full Unicode range, so en-dashes and
+        # bullets pass through untouched (unlike the PDF's latin-1 font).
         replacements = {
             "—": "--",
-            "–": "-",
             "’": "'",
             "‘": "'",
             "“": '"',
             "”": '"',
             "…": "...",
-            "•": "-",
         }
 
         for old, new in replacements.items():

@@ -505,15 +505,15 @@ export default function WorkspacePage() {
 
   if (isWorkspaceLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-white">
-        <p className="text-base text-[#5e5e5e]">Loading...</p>
+      <main className="flex min-h-screen items-center justify-center bg-canvas">
+        <p className="text-base text-steel">Loading...</p>
       </main>
     );
   }
 
   if (isWorkspaceError || !workspace) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-white px-4 sm:px-8">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-canvas px-4 sm:px-8">
         <StateAlert className="max-w-md">
           Something went wrong. Please try again.
         </StateAlert>
@@ -535,13 +535,23 @@ export default function WorkspacePage() {
     !sourcesOpen && !qaOpen
       ? "md:grid-cols-[56px_minmax(0,1fr)_56px]"
       : !sourcesOpen
-        ? "md:grid-cols-[56px_minmax(0,1fr)_18%]"
+        ? "md:grid-cols-[56px_minmax(0,1fr)_320px]"
         : !qaOpen
-          ? "md:grid-cols-[22%_minmax(0,1fr)_56px]"
-          : "md:grid-cols-[22%_minmax(0,1fr)_18%]";
+          ? "md:grid-cols-[300px_minmax(0,1fr)_56px]"
+          : "md:grid-cols-[300px_minmax(0,1fr)_320px]";
+
+  // Document measure follows the rails: comfortable at full chrome,
+  // roomier as rails collapse. Transition is motion-safe via the global
+  // reduced-motion kill-switch.
+  const docMeasure =
+    !sourcesOpen && !qaOpen
+      ? "max-w-[1024px]"
+      : !sourcesOpen || !qaOpen
+        ? "max-w-[880px]"
+        : "max-w-[720px]";
 
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main className="min-h-screen bg-canvas text-ink">
       <div className="print:hidden">
         <TopBar
           left={
@@ -557,12 +567,12 @@ export default function WorkspacePage() {
               </Button>
 
               <div className="min-w-0">
-                <h1 className="truncate text-base leading-6 font-medium text-black">
+                <h1 className="truncate text-base leading-6 font-semibold text-ink">
                   {workspace.name}
                 </h1>
 
                 {workspace.description && (
-                  <p className="truncate text-xs leading-5 text-[#5e5e5e]">
+                  <p className="truncate text-xs leading-5 text-steel">
                     {workspace.description}
                   </p>
                 )}
@@ -580,24 +590,24 @@ export default function WorkspacePage() {
       <div
         className={`grid min-h-[calc(100vh-65px)] grid-cols-1 md:h-[calc(100vh-65px)] md:overflow-hidden ${gridCols}`}
       >
-        <aside className="border-b border-black/10 bg-white p-4 print:hidden md:overflow-y-auto md:border-r md:border-b-0">
+        <aside className="border-b border-hairline-soft bg-canvas p-4 print:hidden md:overflow-y-auto md:border-r md:border-b-0">
           {!sourcesOpen ? (
             <button
               type="button"
               onClick={toggleSources}
               aria-label="Show sources"
               title="Show sources"
-              className="flex size-9 items-center justify-center rounded-full bg-[#efefef] text-black transition-colors hover:bg-[#e2e2e2]"
+              className="flex size-9 items-center justify-center rounded-full bg-surface text-ink transition-colors duration-200 hover:bg-black/5"
             >
               <ChevronRight />
             </button>
           ) : (
             <>
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-base font-medium text-black">
+                <h2 className="text-base font-semibold text-ink">
                   Sources
                   {(documents?.length ?? 0) > 0 && (
-                    <span className="ml-2 text-sm font-normal text-[#afafaf]">
+                    <span className="ml-2 text-sm font-normal text-stone">
                       {documents?.length}
                     </span>
                   )}
@@ -609,7 +619,7 @@ export default function WorkspacePage() {
                   aria-label="Hide sources"
                   aria-expanded="true"
                   title="Hide sources"
-                  className="flex size-9 items-center justify-center rounded-full text-black transition-colors hover:bg-black/5"
+                  className="flex size-9 items-center justify-center rounded-full text-ink transition-colors duration-200 hover:bg-black/5"
                 >
                   <ChevronLeft />
                 </button>
@@ -619,7 +629,7 @@ export default function WorkspacePage() {
             <div>
               <label
                 htmlFor="workspace-sources-upload"
-                className="inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-full bg-black px-5 text-base font-medium text-white transition-colors hover:bg-black/80"
+                className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-[11px] text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-deep active:bg-primary-deep"
               >
                 <Upload />
                 {uploadMutation.isPending ? "Uploading..." : "Add"}
@@ -636,7 +646,7 @@ export default function WorkspacePage() {
               />
             </div>
 
-            <p className="mt-2 text-xs leading-5 text-[#afafaf]">
+            <p className="mt-2 text-xs leading-5 text-stone">
               .txt, .pdf, .docx
             </p>
 
@@ -645,7 +655,7 @@ export default function WorkspacePage() {
                 {[0, 1].map((index) => (
                   <div
                     key={index}
-                    className="rounded-2xl bg-[#efefef] p-4"
+                    className="rounded-2xl border border-hairline bg-canvas p-4"
                   >
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="mt-2 h-3 w-1/3" />
@@ -655,8 +665,8 @@ export default function WorkspacePage() {
             )}
 
             {isDocumentsError && (
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-[#efefef] p-4">
-                <p className="text-sm text-black">
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4">
+                <p className="text-sm text-ink">
                   Couldn&apos;t load sources.
                 </p>
 
@@ -676,11 +686,11 @@ export default function WorkspacePage() {
               </FlashNote>
             )}
 
-            {!isDocumentsLoading &&
+              {!isDocumentsLoading &&
               !isDocumentsError &&
               uploadedDocuments.length === 0 &&
               emailDocuments.length === 0 && (
-                <p className="mt-4 text-sm leading-5 text-[#5e5e5e]">
+                <p className="mt-4 text-sm leading-5 text-steel">
                   Nothing here yet.
                 </p>
               )}
@@ -692,20 +702,20 @@ export default function WorkspacePage() {
                   {uploadedDocuments.map((document) => (
                     <div
                       key={document.id}
-                      className="rounded-2xl bg-[#efefef] p-4"
+                      className="rounded-2xl border border-hairline bg-canvas p-4"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-start gap-3">
                           <span
                             aria-hidden="true"
-                            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-black"
+                            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink"
                           >
                             <FileText />
                           </span>
 
                           <div className="min-w-0">
                             <p
-                              className="line-clamp-2 text-sm leading-5 font-medium text-black"
+                              className="line-clamp-2 text-sm leading-5 font-medium text-ink"
                               title={document.title || "Untitled source"}
                             >
                               {document.title || "Untitled source"}
@@ -752,8 +762,8 @@ export default function WorkspacePage() {
           </section>
 
           {/* Gmail */}
-          <section className="mt-8 border-t border-black/10 pt-6">
-            <h2 className="text-base font-medium text-black">Gmail</h2>
+          <section className="mt-8 border-t border-hairline-soft pt-6">
+            <h2 className="text-base font-semibold text-ink">Gmail</h2>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {!isGmailStatusLoading &&
@@ -798,12 +808,12 @@ export default function WorkspacePage() {
             </div>
 
             {isGmailStatusLoading && (
-              <p className="mt-3 text-xs text-[#5e5e5e]">Checking...</p>
+              <p className="mt-3 text-xs text-steel">Checking...</p>
             )}
 
             {!isGmailStatusLoading && isGmailStatusError && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-[#efefef] p-3">
-                <p className="text-sm text-black">
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-3">
+                <p className="text-sm text-ink">
                   Couldn&apos;t check Gmail.
                 </p>
 
@@ -821,7 +831,7 @@ export default function WorkspacePage() {
               !isGmailStatusError &&
               gmailStatus?.connected && (
                 <>
-                  <p className="mt-3 truncate text-xs text-[#afafaf]">
+                  <p className="mt-3 truncate text-xs text-stone">
                     {gmailStatus.email}
                   </p>
 
@@ -830,20 +840,20 @@ export default function WorkspacePage() {
                       {emailDocuments.map((document) => (
                         <div
                           key={document.id}
-                          className="rounded-2xl bg-[#efefef] p-4"
+                          className="rounded-2xl border border-hairline bg-canvas p-4"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-start gap-3">
                               <span
                                 aria-hidden="true"
-                                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white text-black"
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink"
                               >
                                 <Mail />
                               </span>
 
                               <div className="min-w-0">
                                 <p
-                                  className="line-clamp-2 text-sm leading-5 font-medium text-black"
+                                  className="line-clamp-2 text-sm leading-5 font-medium text-ink"
                                   title={document.title || "No subject"}
                                 >
                                   {document.title || "No subject"}
@@ -851,7 +861,7 @@ export default function WorkspacePage() {
 
                                 {document.author && (
                                   <p
-                                    className="mt-1 truncate text-xs text-[#5e5e5e]"
+                                    className="mt-1 truncate text-xs text-steel"
                                     title={document.author}
                                   >
                                     {document.author}
@@ -909,10 +919,12 @@ export default function WorkspacePage() {
           )}
         </aside>
 
-        <section className="min-h-0 min-w-0 overflow-y-auto bg-white p-6 print:p-0 sm:p-8">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <section className="min-h-0 min-w-0 overflow-y-auto bg-surface p-4 print:bg-canvas print:p-0 sm:p-8">
+          <div
+            className={`mx-auto mb-6 flex w-full ${docMeasure} flex-wrap items-center justify-between gap-3 transition-[max-width] duration-200 print:hidden`}
+          >
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl leading-8 font-bold text-black">BRD</h2>
+              <h2 className="text-2xl leading-[1.3] font-semibold text-ink">BRD</h2>
 
               {brdStateLabel && (
                 <StatusBadge tone="neutral">{brdStateLabel}</StatusBadge>
@@ -944,7 +956,9 @@ export default function WorkspacePage() {
           </div>
 
           {generationStep !== "idle" && (
-            <div className="rounded-2xl bg-[#efefef] p-6 print:hidden">
+            <div
+              className={`mx-auto w-full ${docMeasure} rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 print:hidden`}
+            >
               <ol className="space-y-3">
                 {(
                   [
@@ -971,15 +985,15 @@ export default function WorkspacePage() {
                       {isActive ? (
                         <Loader2
                           aria-hidden="true"
-                          className="size-4 animate-spin text-black"
+                          className="size-4 animate-spin text-ink"
                         />
                       ) : (
                         <span
                           aria-hidden="true"
                           className={
                             isDone
-                              ? "size-2 rounded-full bg-black"
-                              : "size-2 rounded-full border border-black/20"
+                              ? "size-2 rounded-full bg-primary"
+                              : "size-2 rounded-full border border-ink/20"
                           }
                         />
                       )}
@@ -987,8 +1001,8 @@ export default function WorkspacePage() {
                       <span
                         className={
                           isActive || isDone
-                            ? "text-base font-medium text-black"
-                            : "text-base text-[#5e5e5e]"
+                            ? "text-base font-medium text-ink"
+                            : "text-base text-steel"
                         }
                       >
                         {label}
@@ -1008,14 +1022,18 @@ export default function WorkspacePage() {
           )}
 
           {generationStep === "idle" && isBRDStatusLoading && (
-            <div className="rounded-2xl bg-[#efefef] p-6 print:hidden">
-              <p className="text-base text-[#5e5e5e]">Loading...</p>
+            <div
+              className={`mx-auto w-full ${docMeasure} rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 print:hidden`}
+            >
+              <p className="text-base text-steel">Loading...</p>
             </div>
           )}
 
           {generationStep === "idle" && isBRDStatusError && (
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#efefef] p-4 print:hidden">
-              <p className="text-sm text-black">Something went wrong.</p>
+            <div
+              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4 transition-[max-width] duration-200 print:hidden`}
+            >
+              <p className="text-sm text-ink">Something went wrong.</p>
 
               <Button
                 variant="ghost"
@@ -1044,7 +1062,7 @@ export default function WorkspacePage() {
                     <Button onClick={handleGenerateBRD}>Generate</Button>
                   ) : undefined
                 }
-                className="print:hidden"
+                className={`mx-auto w-full ${docMeasure} border border-hairline bg-canvas transition-[max-width] duration-200 print:hidden`}
               />
             )}
 
@@ -1052,15 +1070,17 @@ export default function WorkspacePage() {
           {generationStep === "idle" &&
             brdStatus?.has_brd &&
             brdStatus.regeneration_required && (
-              <div className="mb-6 rounded-2xl bg-[#efefef] p-6 print:hidden">
+              <div
+                className={`mx-auto mb-6 w-full ${docMeasure} rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 print:hidden`}
+              >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-base font-medium text-black">
+                    <p className="text-base font-medium text-ink">
                       New sources available.
                     </p>
 
                     {brdStatus.has_user_edits && (
-                      <p className="mt-1 text-sm leading-5 text-[#5e5e5e]">
+                      <p className="mt-1 text-sm leading-5 text-steel">
                         Regenerating may overwrite your edits. Export a copy
                         first if you need it.
                       </p>
@@ -1079,7 +1099,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && brdStatus?.has_brd && isBRDLoading && (
             <div
-              className="rounded-2xl bg-[#efefef] p-6 sm:p-8"
+              className={`mx-auto w-full ${docMeasure} rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 sm:p-8`}
               aria-label="Loading BRD"
             >
               <Skeleton className="h-3 w-1/3" />
@@ -1087,7 +1107,7 @@ export default function WorkspacePage() {
               <Skeleton className="mt-4 h-4 w-full" />
               <Skeleton className="mt-2 h-4 w-5/6" />
 
-              <div className="mt-8 border-t border-black/10 pt-8">
+              <div className="mt-8 border-t border-hairline-soft pt-8">
                 <Skeleton className="h-5 w-1/4" />
                 <Skeleton className="mt-3 h-4 w-full" />
                 <Skeleton className="mt-2 h-4 w-4/6" />
@@ -1096,8 +1116,10 @@ export default function WorkspacePage() {
           )}
 
           {generationStep === "idle" && brdStatus?.has_brd && isBRDError && (
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#efefef] p-4 print:hidden">
-              <p className="text-sm text-black">Something went wrong.</p>
+            <div
+              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4 transition-[max-width] duration-200 print:hidden`}
+            >
+              <p className="text-sm text-ink">Something went wrong.</p>
 
               <Button variant="ghost" size="sm" onClick={() => refetchBRD()}>
                 Retry
@@ -1106,7 +1128,9 @@ export default function WorkspacePage() {
           )}
 
           {exportFailed && (
-            <StateAlert className="mb-6 print:hidden">
+            <StateAlert
+              className={`mx-auto w-full ${docMeasure} mb-6 transition-[max-width] duration-200 print:hidden`}
+            >
               Export failed. Try again.
             </StateAlert>
           )}
@@ -1128,17 +1152,21 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             brd &&
             !isBRDError && (
-              <BRDViewer
-                data={brd.brd_data}
-                meta={{
-                  createdAt: brd.created_at,
-                  updatedAt: brd.updated_at,
-                  userEditedAt: brd.user_edited_at,
-                }}
-                onSave={handleSaveBRD}
-                isSaving={updateBRDMutation.isPending}
-                saveFailed={updateBRDMutation.isError}
-              />
+              <div
+                className={`mx-auto w-full ${docMeasure} transition-[max-width] duration-200`}
+              >
+                <BRDViewer
+                  data={brd.brd_data}
+                  meta={{
+                    createdAt: brd.created_at,
+                    updatedAt: brd.updated_at,
+                    userEditedAt: brd.user_edited_at,
+                  }}
+                  onSave={handleSaveBRD}
+                  isSaving={updateBRDMutation.isPending}
+                  saveFailed={updateBRDMutation.isError}
+                />
+              </div>
             )}
         </section>
 
@@ -1146,13 +1174,13 @@ export default function WorkspacePage() {
           (qaOpen ? (
             <BRDQAPanel workspaceId={id} onCollapse={toggleQa} />
           ) : (
-            <div className="border-t border-black/10 bg-white p-4 print:hidden md:border-t-0 md:border-l">
+            <div className="border-t border-hairline-soft bg-canvas p-4 print:hidden md:border-t-0 md:border-l">
               <button
                 type="button"
                 onClick={toggleQa}
                 aria-label="Show Q&A"
                 title="Show Q&A"
-                className="flex size-9 items-center justify-center rounded-full bg-[#efefef] text-black transition-colors hover:bg-[#e2e2e2]"
+                className="flex size-9 items-center justify-center rounded-full bg-surface text-ink transition-colors duration-200 hover:bg-black/5"
               >
                 <ChevronLeft />
               </button>

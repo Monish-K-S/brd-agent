@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "cn";
 
 /* Shared status primitives: quiet labels, pills, empty states, alerts.
-   Black-and-white only, sentence case, no accent color. */
+   Monochrome only, sentence case, product colors never appear here. */
 
 export function Eyebrow({
   children,
@@ -14,7 +14,7 @@ export function Eyebrow({
   return (
     <p
       className={cn(
-        "text-xs font-medium tracking-normal text-[#5e5e5e] uppercase",
+        "text-xs font-semibold tracking-normal text-steel",
         className,
       )}
     >
@@ -26,8 +26,8 @@ export function Eyebrow({
 type BadgeTone = "neutral" | "filled";
 
 const badgeTones: Record<BadgeTone, string> = {
-  neutral: "bg-[#efefef] text-black",
-  filled: "bg-black text-white",
+  neutral: "border border-hairline bg-canvas text-ink",
+  filled: "bg-primary text-white",
 };
 
 export function StatusBadge({
@@ -66,13 +66,13 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "rounded-2xl bg-[#efefef] p-8 text-center sm:p-12",
+        "rounded-2xl bg-surface p-8 text-center sm:p-12",
         className,
       )}
     >
-      <h2 className="text-2xl leading-8 font-bold text-black">{title}</h2>
+      <h2 className="text-2xl leading-[1.3] font-semibold text-ink">{title}</h2>
 
-      <p className="mx-auto mt-2 max-w-sm text-base leading-6 text-[#5e5e5e]">
+      <p className="mx-auto mt-2 max-w-sm text-base leading-6 text-steel">
         {description}
       </p>
 
@@ -104,7 +104,7 @@ export function FlashNote({
     <p
       role="status"
       className={cn(
-        "inline-flex items-center rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white",
+        "inline-flex items-center rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-white",
         className,
       )}
     >
@@ -124,7 +124,7 @@ export function StateAlert({
     <div
       role="alert"
       className={cn(
-        "rounded-2xl bg-[#efefef] p-4 text-base leading-6 text-black",
+        "rounded-2xl border border-hairline bg-canvas p-4 text-base leading-6 text-ink",
         className,
       )}
     >

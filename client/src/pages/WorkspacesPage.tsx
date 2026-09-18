@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ export default function WorkspacesPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"recent" | "az">("recent");
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const {
@@ -107,26 +109,56 @@ export default function WorkspacesPage() {
   }
 
   const trimmedSearch = search.trim().toLowerCase();
-  const visibleWorkspaces = (workspaces ?? []).filter((workspace) => {
-    if (!trimmedSearch) {
-      return true;
-    }
+  const visibleWorkspaces = (workspaces ?? [])
+    .filter((workspace) => {
+      if (!trimmedSearch) {
+        return true;
+      }
 
-    return (
-      workspace.name.toLowerCase().includes(trimmedSearch) ||
-      (workspace.description ?? "").toLowerCase().includes(trimmedSearch)
-    );
-  });
+      return (
+        workspace.name.toLowerCase().includes(trimmedSearch) ||
+        (workspace.description ?? "").toLowerCase().includes(trimmedSearch)
+      );
+    })
+    .sort((a, b) => {
+      if (sort === "az") {
+        return a.name.localeCompare(b.name);
+      }
+
+      const aTime = new Date(a.updated_at).getTime();
+      const bTime = new Date(b.updated_at).getTime();
+
+      if (Number.isNaN(aTime) || Number.isNaN(bTime)) {
+        return 0;
+      }
+
+      return bTime - aTime;
+    });
+
+  const totalCount = (workspaces ?? []).length;
+  const latestUpdated = (workspaces ?? [])
+    .map((workspace) => new Date(workspace.updated_at).getTime())
+    .filter((time) => !Number.isNaN(time));
+  const latestUpdatedText =
+    latestUpdated.length > 0
+      ? formatUpdatedAt(new Date(Math.max(...latestUpdated)).toISOString())
+      : "";
+  const countText =
+    totalCount === 0
+      ? ""
+      : `${totalCount} project${totalCount === 1 ? "" : "s"}${
+          latestUpdatedText ? ` · Updated ${latestUpdatedText}` : ""
+        }`;
 
   const pendingDeleteWorkspace = (workspaces ?? []).find(
     (workspace) => workspace.id === pendingDeleteId,
   );
 
   return (
-    <main className="min-h-screen bg-white text-black">
+    <main className="min-h-screen bg-canvas text-ink">
       <TopBar
         left={
-          <span className="text-base font-medium text-black">BRD Agent</span>
+          <span className="text-base font-semibold text-ink">BRD Agent</span>
         }
         right={
           <Button variant="subtle" size="sm" onClick={handleSignOut}>
@@ -135,36 +167,75 @@ export default function WorkspacesPage() {
         }
       />
 
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-8">
+      <div className="mx-auto w-full max-w-[1280px] px-4 pt-8 sm:px-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-4xl leading-[44px] font-bold text-black">
-            Workspaces
-          </h1>
+          <div>
+            <h1 className="text-[40px] leading-[1.2] font-semibold tracking-[-1px] text-ink">
+              Workspaces
+            </h1>
+
+            {!isLoading && !isError && countText && (
+              <p className="mt-2 text-base text-steel">{countText}</p>
+            )}
+          </div>
 
           <Button onClick={() => setDialogOpen(true)}>New workspace</Button>
         </div>
 
         {(workspaces ?? []).length > 0 && (
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
             <input
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search"
               aria-label="Search workspaces"
-              className="h-11 w-full max-w-xs rounded-lg bg-[#efefef] px-4 text-base text-black outline-none placeholder:text-[#afafaf] focus:bg-[#e2e2e2]"
+              className="h-9 w-full max-w-xs rounded-lg border border-hairline bg-surface px-4 text-sm text-ink outline-none placeholder:text-steel focus-visible:border-ink"
             />
+
+            <div
+              role="group"
+              aria-label="Sort workspaces"
+              className="flex items-center gap-2"
+            >
+              {(
+                [
+                  { value: "recent", label: "Recent" },
+                  { value: "az", label: "A–Z" },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  aria-pressed={sort === option.value}
+                  onClick={() => setSort(option.value)}
+                  className={
+                    sort === option.value
+                      ? "inline-flex min-h-9 items-center rounded-full border border-primary bg-primary px-4 text-sm font-medium text-white transition-colors duration-200"
+                      : "inline-flex min-h-9 items-center rounded-full border border-hairline bg-canvas px-4 text-sm font-medium text-steel transition-colors duration-200 hover:text-ink"
+                  }
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
+      </div>
 
-        <section className="mt-6">
+      <div className="mt-6 bg-surface">
+        <div className="mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-8">
+          <section aria-label="Workspaces">
           {isLoading && (
             <div
               className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
               aria-label="Loading workspaces"
             >
               {[0, 1, 2].map((index) => (
-                <div key={index} className="rounded-2xl bg-[#efefef] p-6">
+                <div
+                  key={index}
+                  className="rounded-2xl border border-hairline bg-canvas p-6"
+                >
                   <Skeleton className="h-5 w-2/3" />
                   <Skeleton className="mt-3 h-4 w-full" />
                   <Skeleton className="mt-2 h-4 w-1/2" />
@@ -174,8 +245,8 @@ export default function WorkspacesPage() {
           )}
 
           {isError && (
-            <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#efefef] p-4">
-              <p className="text-sm text-black">Something went wrong.</p>
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4">
+              <p className="text-sm text-ink">Something went wrong.</p>
 
               <Button
                 variant="ghost"
@@ -191,6 +262,7 @@ export default function WorkspacesPage() {
             <EmptyState
               title="Create your first workspace"
               description="Add project files and generate a BRD from them."
+              className="border border-hairline bg-canvas"
               action={
                 <Button onClick={() => setDialogOpen(true)}>
                   New workspace
@@ -204,44 +276,56 @@ export default function WorkspacesPage() {
             workspaces &&
             workspaces.length > 0 &&
             visibleWorkspaces.length === 0 && (
-              <p className="rounded-2xl bg-[#efefef] p-6 text-center text-base text-[#5e5e5e]">
+              <p className="rounded-2xl border border-hairline bg-canvas p-6 text-center text-base text-steel">
                 No matches.
               </p>
             )}
 
           {!isLoading && !isError && visibleWorkspaces.length > 0 && (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {visibleWorkspaces.map((workspace) => {
+              <button
+                type="button"
+                onClick={() => setDialogOpen(true)}
+                className="animate-rise flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-canvas p-6 text-steel transition-colors duration-200 hover:border-ink hover:text-ink"
+              >
+                <Plus aria-hidden="true" className="size-5" />
+                <span className="text-base font-medium">New workspace</span>
+              </button>
+
+              {visibleWorkspaces.map((workspace, index) => {
                 const updatedAt = formatUpdatedAt(workspace.updated_at);
 
                 return (
                   <div
                     key={workspace.id}
-                    className="flex flex-col rounded-2xl bg-[#efefef] p-6"
+                    style={{
+                      animationDelay: `${Math.min(index, 8) * 60}ms`,
+                    }}
+                    className="animate-rise flex flex-col rounded-2xl border border-hairline bg-canvas p-6 transition-shadow duration-200 hover:shadow-level-1"
                   >
                     <button
                       type="button"
                       onClick={() => navigate(`/workspaces/${workspace.id}`)}
                       className="w-full flex-1 text-left"
                     >
-                      <h2 className="text-xl leading-7 font-bold text-black">
+                      <h2 className="text-xl leading-7 font-semibold text-ink">
                         {workspace.name}
                       </h2>
 
                       {workspace.description && (
-                        <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#5e5e5e]">
+                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-steel">
                           {workspace.description}
                         </p>
                       )}
 
                       {updatedAt && (
-                        <p className="mt-3 text-xs leading-5 text-[#afafaf]">
+                        <p className="mt-4 text-xs leading-5 text-stone">
                           Updated {updatedAt}
                         </p>
                       )}
                     </button>
 
-                    <div className="mt-4 flex justify-end">
+                    <div className="mt-2 flex justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -255,7 +339,9 @@ export default function WorkspacesPage() {
               })}
             </div>
           )}
-        </section>
+          </section>
+        </div>
+      </div>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
@@ -373,7 +459,6 @@ export default function WorkspacesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
     </main>
   );
 }
