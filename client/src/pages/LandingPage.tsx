@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "@/auth/AuthProvider";
 
 const STEPS = ["Add sources", "Generate the BRD", "Review and export"];
 
@@ -37,6 +38,14 @@ const OUTLINE_CTA =
   "inline-flex min-h-11 items-center rounded-full border border-ink bg-transparent px-6 py-[11px] text-sm font-semibold text-ink transition-colors duration-200 hover:bg-black/5";
 
 export default function LandingPage() {
+  const { user, loading } = useAuth();
+
+  // Signed-in visitors belong in the app, not on the marketing page.
+  // Render landing while the session resolves to avoid a flash/loop.
+  if (!loading && user) {
+    return <Navigate to="/workspaces" replace />;
+  }
+
   return (
     <main className="flex min-h-screen flex-col bg-canvas text-ink">
       <header className="sticky top-0 border-b border-hairline-soft bg-canvas">

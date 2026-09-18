@@ -35,6 +35,8 @@ export function GmailSourceBrowser({
     queryFn: () => searchGmailMessages(activeSearch),
     enabled: activeSearch !== "",
     retry: false,
+    // One cache entry per distinct term — evict quickly.
+    gcTime: 90_000,
   });
 
   const messages: GmailMessageSummary[] =

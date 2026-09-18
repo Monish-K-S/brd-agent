@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthProvider";
@@ -130,6 +130,9 @@ export default function WorkspacePage() {
     queryFn: () => getBRD(id!),
     enabled: Boolean(id) && Boolean(workspace) && Boolean(brdStatus?.has_brd),
     retry: false,
+    // BRD content only changes via generate/edit, both of which invalidate
+    // this key — remount refetches within 5 min are pure waste.
+    staleTime: 5 * 60_000,
   });
 
   type GenerationStep =
@@ -149,13 +152,14 @@ export default function WorkspacePage() {
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => uploadDocuments(id!, files),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["documents", id],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["brd-status", id],
-      });
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["documents", id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["brd-status", id],
+        }),
+      ]);
 
       flashSources("Added");
     },
@@ -164,13 +168,14 @@ export default function WorkspacePage() {
   const deleteMutation = useMutation({
     mutationFn: (documentId: string) => deleteDocument(id!, documentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["documents", id],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["brd-status", id],
-      });
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["documents", id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["brd-status", id],
+        }),
+      ]);
 
       flashSources("Deleted");
     },
@@ -195,13 +200,14 @@ export default function WorkspacePage() {
   const importGmailMutation = useMutation({
     mutationFn: (messageIds: string[]) => importGmailMessages(id!, messageIds),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["documents", id],
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: ["brd-status", id],
-      });
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["documents", id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["brd-status", id],
+        }),
+      ]);
 
       setIsGmailBrowserOpen(false);
       flashSources("Added");
@@ -363,6 +369,7 @@ export default function WorkspacePage() {
   const [uploadValidationError, setUploadValidationError] = useState<
     string | null
   >(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
@@ -627,15 +634,20 @@ export default function WorkspacePage() {
 
           <section className="mt-4">
             <div>
-              <label
-                htmlFor="workspace-sources-upload"
-                className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-[11px] text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-deep active:bg-primary-deep"
+              {/* Real button (keyboard-operable) driving the hidden file
+                  input — a label pill alone is not focusable. */}
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadMutation.isPending}
               >
                 <Upload />
                 {uploadMutation.isPending ? "Uploading..." : "Add"}
-              </label>
+              </Button>
 
               <input
+                ref={fileInputRef}
                 id="workspace-sources-upload"
                 type="file"
                 multiple
@@ -643,6 +655,8 @@ export default function WorkspacePage() {
                 className="sr-only"
                 onChange={handleFileChange}
                 disabled={uploadMutation.isPending}
+                tabIndex={-1}
+                aria-hidden="true"
               />
             </div>
 

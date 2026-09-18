@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,7 +14,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createWorkspace, deleteWorkspace, getWorkspaces } from "@/api/workspaces";
+import {
+  createWorkspace,
+  deleteWorkspace,
+  getWorkspaces,
+  type Workspace,
+} from "@/api/workspaces";
 import { TopBar } from "@/components/layout/TopBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, StateAlert } from "@/components/ui/status";
@@ -32,6 +37,66 @@ function formatUpdatedAt(value: string): string {
     year: "numeric",
   });
 }
+
+type WorkspaceCardProps = {
+  workspace: Workspace;
+  index: number;
+  onOpen: (id: string) => void;
+  onAskDelete: (id: string) => void;
+};
+
+// Memoized so keystrokes in search, dialog open/close, and other cards'
+// pending states don't re-render every card — element refs from the query
+// cache are stable, so unchanged cards bail out.
+const WorkspaceCard = memo(function WorkspaceCard({
+  workspace,
+  index,
+  onOpen,
+  onAskDelete,
+}: WorkspaceCardProps) {
+  const updatedAt = formatUpdatedAt(workspace.updated_at);
+
+  return (
+    <div
+      style={{
+        animationDelay: `${Math.min(index, 8) * 60}ms`,
+      }}
+      className="animate-rise flex flex-col rounded-2xl border border-hairline bg-canvas p-6 transition-shadow duration-200 hover:shadow-level-1"
+    >
+      <button
+        type="button"
+        onClick={() => onOpen(workspace.id)}
+        className="w-full flex-1 text-left"
+      >
+        <h2 className="text-xl leading-7 font-semibold text-ink">
+          {workspace.name}
+        </h2>
+
+        {workspace.description && (
+          <p className="mt-1 line-clamp-2 text-sm leading-6 text-steel">
+            {workspace.description}
+          </p>
+        )}
+
+        {updatedAt && (
+          <p className="mt-4 text-xs leading-5 text-stone">
+            Updated {updatedAt}
+          </p>
+        )}
+      </button>
+
+      <div className="mt-2 flex justify-end">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onAskDelete(workspace.id)}
+        >
+          Delete
+        </Button>
+      </div>
+    </div>
+  );
+});
 
 export default function WorkspacesPage() {
   const navigate = useNavigate();
@@ -53,6 +118,8 @@ export default function WorkspacesPage() {
   } = useQuery({
     queryKey: ["workspaces"],
     queryFn: getWorkspaces,
+    // List only changes via create/delete, both of which invalidate.
+    staleTime: 60_000,
   });
 
   const createMutation = useMutation({
@@ -109,46 +176,65 @@ export default function WorkspacesPage() {
   }
 
   const trimmedSearch = search.trim().toLowerCase();
-  const visibleWorkspaces = (workspaces ?? [])
-    .filter((workspace) => {
-      if (!trimmedSearch) {
-        return true;
-      }
+  const visibleWorkspaces = useMemo(
+    () =>
+      (workspaces ?? [])
+        .filter((workspace) => {
+          if (!trimmedSearch) {
+            return true;
+          }
 
-      return (
-        workspace.name.toLowerCase().includes(trimmedSearch) ||
-        (workspace.description ?? "").toLowerCase().includes(trimmedSearch)
-      );
-    })
-    .sort((a, b) => {
-      if (sort === "az") {
-        return a.name.localeCompare(b.name);
-      }
+          return (
+            workspace.name.toLowerCase().includes(trimmedSearch) ||
+            (workspace.description ?? "")
+              .toLowerCase()
+              .includes(trimmedSearch)
+          );
+        })
+        .sort((a, b) => {
+          if (sort === "az") {
+            return a.name.localeCompare(b.name);
+          }
 
-      const aTime = new Date(a.updated_at).getTime();
-      const bTime = new Date(b.updated_at).getTime();
+          const aTime = new Date(a.updated_at).getTime();
+          const bTime = new Date(b.updated_at).getTime();
 
-      if (Number.isNaN(aTime) || Number.isNaN(bTime)) {
-        return 0;
-      }
+          if (Number.isNaN(aTime) || Number.isNaN(bTime)) {
+            return 0;
+          }
 
-      return bTime - aTime;
-    });
+          return bTime - aTime;
+        }),
+    [workspaces, trimmedSearch, sort],
+  );
 
-  const totalCount = (workspaces ?? []).length;
-  const latestUpdated = (workspaces ?? [])
-    .map((workspace) => new Date(workspace.updated_at).getTime())
-    .filter((time) => !Number.isNaN(time));
-  const latestUpdatedText =
-    latestUpdated.length > 0
-      ? formatUpdatedAt(new Date(Math.max(...latestUpdated)).toISOString())
-      : "";
-  const countText =
-    totalCount === 0
+  const countText = useMemo(() => {
+    const totalCount = (workspaces ?? []).length;
+    const latestUpdated = (workspaces ?? [])
+      .map((workspace) => new Date(workspace.updated_at).getTime())
+      .filter((time) => !Number.isNaN(time));
+    const latestUpdatedText =
+      latestUpdated.length > 0
+        ? formatUpdatedAt(new Date(Math.max(...latestUpdated)).toISOString())
+        : "";
+
+    return totalCount === 0
       ? ""
       : `${totalCount} project${totalCount === 1 ? "" : "s"}${
           latestUpdatedText ? ` · Updated ${latestUpdatedText}` : ""
         }`;
+  }, [workspaces]);
+
+  const handleOpenWorkspace = useCallback(
+    (workspaceId: string) => {
+      navigate(`/workspaces/${workspaceId}`);
+    },
+    [navigate],
+  );
+
+  const handleAskDelete = useCallback((workspaceId: string) => {
+    setPendingDeleteId(workspaceId);
+  }, []);
 
   const pendingDeleteWorkspace = (workspaces ?? []).find(
     (workspace) => workspace.id === pendingDeleteId,
@@ -292,51 +378,15 @@ export default function WorkspacesPage() {
                 <span className="text-base font-medium">New workspace</span>
               </button>
 
-              {visibleWorkspaces.map((workspace, index) => {
-                const updatedAt = formatUpdatedAt(workspace.updated_at);
-
-                return (
-                  <div
-                    key={workspace.id}
-                    style={{
-                      animationDelay: `${Math.min(index, 8) * 60}ms`,
-                    }}
-                    className="animate-rise flex flex-col rounded-2xl border border-hairline bg-canvas p-6 transition-shadow duration-200 hover:shadow-level-1"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/workspaces/${workspace.id}`)}
-                      className="w-full flex-1 text-left"
-                    >
-                      <h2 className="text-xl leading-7 font-semibold text-ink">
-                        {workspace.name}
-                      </h2>
-
-                      {workspace.description && (
-                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-steel">
-                          {workspace.description}
-                        </p>
-                      )}
-
-                      {updatedAt && (
-                        <p className="mt-4 text-xs leading-5 text-stone">
-                          Updated {updatedAt}
-                        </p>
-                      )}
-                    </button>
-
-                    <div className="mt-2 flex justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPendingDeleteId(workspace.id)}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+              {visibleWorkspaces.map((workspace, index) => (
+                <WorkspaceCard
+                  key={workspace.id}
+                  workspace={workspace}
+                  index={index}
+                  onOpen={handleOpenWorkspace}
+                  onAskDelete={handleAskDelete}
+                />
+              ))}
             </div>
           )}
           </section>

@@ -35,3 +35,7 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+
+#AGENTS
+.pi
+PLAN.md
