@@ -104,7 +104,7 @@ Remaining: none committed — next is user-directed (product depth or hygiene ga
 
 ## Closed 2026‑09‑18 (robustness pass)
 - `*` 404 route → `pages/NotFoundPage.tsx` (MiniMax-matched, smart home CTA per auth state).
-- Authed `/` → `/workspaces` redirect inside `LandingPage.tsx` (renders landing while session loads).
+- Landing stays viewable when signed in; auth-entry CTAs (`Sign in`, both `Create your first BRD`) route to `/workspaces` when authed, `/auth` otherwise (`LandingPage.tsx` `entry`). `AuthPage.tsx` already forwards authed visitors onward.
 - `components/ErrorBoundary.tsx` wraps route tree + `WorkspacePage` route; themed fallback with retry.
 - Upload input is a real `Button` driving a hidden input via ref (`WorkspacePage.tsx`).
 - `RequireAuth` loading state is a minimal centered spinner (`role=status`).

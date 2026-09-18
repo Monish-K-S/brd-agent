@@ -1,4 +1,4 @@
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
 
 const STEPS = ["Add sources", "Generate the BRD", "Review and export"];
@@ -40,11 +40,10 @@ const OUTLINE_CTA =
 export default function LandingPage() {
   const { user, loading } = useAuth();
 
-  // Signed-in visitors belong in the app, not on the marketing page.
-  // Render landing while the session resolves to avoid a flash/loop.
-  if (!loading && user) {
-    return <Navigate to="/workspaces" replace />;
-  }
+  // Landing stays viewable for everyone. Auth-entry CTAs ("Sign in",
+  // "Create your first BRD") route signed-in users straight to the app;
+  // AuthPage forwards them onward if they land there mid-resolve.
+  const entry = !loading && user ? "/workspaces" : "/auth";
 
   return (
     <main className="flex min-h-screen flex-col bg-canvas text-ink">
@@ -52,7 +51,7 @@ export default function LandingPage() {
         <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center justify-between px-4 sm:px-8">
           <span className="text-base font-semibold text-ink">BRD Agent</span>
 
-          <Link to="/auth" className={OUTLINE_CTA}>
+          <Link to={entry} className={OUTLINE_CTA}>
             Sign in
           </Link>
         </div>
@@ -77,7 +76,7 @@ export default function LandingPage() {
             style={{ animationDelay: "180ms" }}
             className="animate-rise mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row"
           >
-            <Link to="/auth" className={PRIMARY_CTA}>
+            <Link to={entry} className={PRIMARY_CTA}>
               Create your first BRD
             </Link>
 
@@ -202,7 +201,7 @@ export default function LandingPage() {
 
             <div className="mt-8">
               <Link
-                to="/auth"
+                to={entry}
                 className="inline-flex min-h-11 items-center rounded-full border border-white/40 bg-white px-6 py-[11px] text-sm font-semibold text-ink transition-colors duration-200 hover:bg-white/90"
               >
                 Create your first BRD
