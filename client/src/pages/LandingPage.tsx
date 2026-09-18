@@ -1,129 +1,86 @@
 import { Link } from "react-router-dom";
 
-const MONO_FONT = "ui-monospace,SFMono-Regular,Menlo,monospace";
-
-function LandingRibbon() {
-  return (
-    <svg
-      viewBox="0 0 560 440"
-      role="img"
-      aria-label="BRD Agent brand ribbon"
-      className="h-auto w-full"
-    >
-      <defs>
-        <linearGradient
-          id="brd-ribbon"
-          x1="0"
-          y1="0"
-          x2="560"
-          y2="440"
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0" stopColor="#fc4c02" />
-          <stop offset="0.5" stopColor="#ef2cc1" />
-          <stop offset="1" stopColor="#bdbbff" />
-        </linearGradient>
-      </defs>
-
-      <g fill="none" stroke="url(#brd-ribbon)" strokeLinecap="round">
-        <path
-          d="M40 360 C 140 340, 180 220, 300 200 S 480 140, 520 60"
-          strokeWidth="26"
-          opacity="0.9"
-        />
-        <path
-          d="M40 400 C 160 380, 220 260, 340 240 S 480 190, 520 130"
-          strokeWidth="14"
-          opacity="0.55"
-        />
-        <path
-          d="M60 320 C 150 300, 190 200, 290 185 S 450 130, 490 70"
-          strokeWidth="6"
-          opacity="0.35"
-        />
-        <circle cx="470" cy="330" r="46" strokeWidth="10" opacity="0.7" />
-        <circle cx="470" cy="330" r="22" strokeWidth="5" opacity="0.4" />
-        <circle cx="110" cy="110" r="12" strokeWidth="0" fill="#bdbbff" opacity="0.8" />
-        <circle cx="380" cy="90" r="7" strokeWidth="0" fill="#ef2cc1" opacity="0.8" />
-        <circle cx="200" cy="360" r="6" strokeWidth="0" fill="#fc4c02" opacity="0.9" />
-      </g>
-    </svg>
-  );
-}
-
-const LANDING_STEPS = ["Upload sources", "Generate BRD", "Download & share"];
+const STEPS = ["Add sources", "Generate the BRD", "Review and export"];
 
 export default function LandingPage() {
   return (
     <main className="flex min-h-screen flex-col bg-white text-black">
-      {/* Mini nav */}
-      <header className="border-b border-black/8 bg-white">
-        <div className="mx-auto flex w-full max-w-[1280px] items-center justify-between px-4 py-4 sm:px-8">
-          <span className="text-[22px] leading-6 font-medium tracking-[-0.22px] text-black">
-            BRD Agent
-          </span>
+      <header className="bg-white">
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between px-4 py-4 sm:px-8">
+          <span className="text-base font-medium text-black">BRD Agent</span>
 
           <Link
             to="/auth"
-            className="text-base font-normal tracking-[-0.16px] text-black transition-opacity hover:opacity-60"
+            className="inline-flex h-11 items-center rounded-full bg-black px-5 text-base font-medium text-white transition-colors hover:bg-black/80"
           >
             Sign in
           </Link>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="flex flex-1 items-center bg-white">
-        <div className="mx-auto grid w-full max-w-[1280px] grid-cols-1 items-center gap-10 px-4 py-10 sm:px-8 lg:grid-cols-2 lg:py-0">
+      {/* Hero + how it works */}
+      <section className="flex flex-1 items-center">
+        <div className="mx-auto grid w-full max-w-[1200px] grid-cols-1 items-center gap-8 px-4 py-12 sm:px-8 lg:grid-cols-2">
           <div>
-            <p
-              className="text-[11px] leading-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase"
-              style={{ fontFamily: MONO_FONT }}
-            >
-              From sources to spec
-            </p>
-
-            <h1 className="mt-4 text-[40px] leading-[48px] font-medium tracking-[-0.8px] text-black sm:text-[64px] sm:leading-[70.4px] sm:tracking-[-1.92px]">
-              Turn project sources into a structured BRD.
+            <h1 className="text-[52px] leading-[64px] font-bold text-black">
+              Turn project files into a BRD.
             </h1>
 
-            <p className="mt-4 max-w-lg text-[18px] leading-[23.4px] font-normal tracking-[-0.18px] text-[#999999]">
-              Create a workspace, add documents and Gmail threads, and
-              generate a requirements document you can read, edit, and
-              export.
+            <p className="mt-2 max-w-md text-lg leading-6 font-medium text-[#5e5e5e]">
+              Upload documents and emails. Get a structured requirements
+              document you can edit and export.
             </p>
 
-            <div className="mt-8">
+            <div className="mt-6">
               <Link
                 to="/auth"
-                className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-black px-6 py-3 text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-opacity hover:opacity-80"
-                style={{ fontFamily: MONO_FONT }}
+                className="inline-flex h-11 items-center rounded-full bg-black px-5 text-base font-medium text-white transition-colors hover:bg-black/80"
               >
-                Get started
+                Create your first BRD
               </Link>
             </div>
+          </div>
 
-            <ol className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">
-              {LANDING_STEPS.map((step, index) => (
-                <li
-                  key={step}
-                  className="inline-flex items-center gap-2 text-[11px] leading-[11px] font-medium tracking-[0.55px] text-black uppercase"
-                  style={{ fontFamily: MONO_FONT }}
-                >
-                  <span className="text-[#999999]">
-                    {String(index + 1).padStart(2, "0")}
+          <div className="rounded-2xl bg-[#efefef] p-6 text-black sm:p-8">
+            <h2 className="text-2xl leading-8 font-bold">How it works</h2>
+
+            <ol className="mt-4 space-y-3">
+              {STEPS.map((step, index) => (
+                <li key={step} className="flex items-center gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-black text-base font-medium text-white"
+                  >
+                    {index + 1}
                   </span>
-                  {step}
+
+                  <span className="text-base font-medium">{step}</span>
                 </li>
               ))}
             </ol>
-          </div>
 
-          <div className="mx-auto w-full max-w-[320px] sm:max-w-[420px] lg:max-w-[520px]">
-            <LandingRibbon />
+            <Link
+              to="/auth"
+              className="mt-6 inline-flex h-11 items-center rounded-full bg-black px-5 text-base font-medium text-white transition-colors hover:bg-black/80"
+            >
+              Get started
+            </Link>
           </div>
         </div>
       </section>
+
+      <footer className="border-t border-black/10 bg-white px-4 py-8 sm:px-8">
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between">
+          <p className="text-sm font-medium text-black">BRD Agent</p>
+
+          <Link
+            to="/auth"
+            className="text-sm font-medium text-[#5e5e5e] transition-colors hover:text-black"
+          >
+            Sign in
+          </Link>
+        </div>
+      </footer>
     </main>
   );
 }

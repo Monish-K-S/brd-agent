@@ -54,11 +54,33 @@ export type BRDData = {
   };
 };
 
+type BRDMeta = {
+  createdAt: string;
+  updatedAt: string;
+  userEditedAt: string | null;
+};
+
 type BRDViewerProps = {
   data: BRDData;
+  meta?: BRDMeta;
   onSave: (data: BRDData) => Promise<void>;
   isSaving: boolean;
+  saveFailed?: boolean;
 };
+
+function formatDocDate(value: string): string {
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 type EditingSection =
   | "executive_summary"
@@ -82,6 +104,7 @@ function Section({
   onCancel,
   onSave,
   isSaving,
+  saveFailed,
   children,
 }: {
   number: number;
@@ -91,26 +114,24 @@ function Section({
   onCancel: () => void;
   onSave: () => void;
   isSaving: boolean;
+  saveFailed: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-t border-black/8 py-8 first:border-t-0 first:pt-0">
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div className="flex items-baseline gap-3">
-          <span className="font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999]">
+    <section className="border-t border-black/10 py-8 first:border-t-0 first:pt-0">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="text-xl leading-7 font-bold text-black">
+          <span className="mr-2 text-base font-medium text-[#afafaf]">
             {String(number).padStart(2, "0")}
           </span>
-
-          <h2 className="text-[22px] leading-[25.3px] font-medium tracking-[-0.22px] text-black">
-            {title}
-          </h2>
-        </div>
+          {title}
+        </h2>
 
         {!isEditing && (
           <button
             type="button"
             onClick={onEdit}
-            className="rounded-full border border-black/8 px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors print:hidden hover:bg-black/5"
+            className="shrink-0 rounded-full bg-[#efefef] px-5 py-2 text-base font-medium text-black transition-colors print:hidden hover:bg-[#e2e2e2]"
           >
             Edit
           </button>
@@ -119,13 +140,19 @@ function Section({
 
       {children}
 
+      {saveFailed && !isSaving && (
+        <p className="mt-4 text-sm text-black" role="alert">
+          Couldn&apos;t save. Try again.
+        </p>
+      )}
+
       {isEditing && (
-        <div className="mt-6 flex items-center justify-end gap-3 border-t border-black/8 pt-5 print:hidden">
+        <div className="mt-6 flex items-center justify-end gap-3 border-t border-black/10 pt-5 print:hidden">
           <button
             type="button"
             onClick={onCancel}
             disabled={isSaving}
-            className="rounded-full border border-black/8 px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-[#efefef] px-5 py-2 text-base font-medium text-black transition-colors hover:bg-[#e2e2e2] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
@@ -134,7 +161,7 @@ function Section({
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="rounded-full bg-black px-6 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-white uppercase transition-colors hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-black px-6 py-2 text-base font-medium text-white transition-colors hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSaving ? "Saving..." : "Save"}
           </button>
@@ -147,16 +174,16 @@ function Section({
 function BulletList({ items }: { items: string[] }) {
   if (items.length === 0) {
     return (
-      <p className="text-sm text-[#999999] italic">
+      <p className="text-[15px] text-[#797979] italic">
         None specified.
       </p>
     );
   }
 
   return (
-    <ul className="space-y-3 pl-5 text-base leading-6 text-black">
+    <ul className="space-y-3 pl-5 text-[15px] leading-7 text-black">
       {items.map((item, index) => (
-        <li key={index} className="list-disc pl-1">
+        <li key={index} className="list-disc pl-1 marker:text-[#797979]">
           {item}
         </li>
       ))}
@@ -196,13 +223,13 @@ function EditableList({
             onChange={(event) => updateItem(index, event.target.value)}
             placeholder={placeholder}
             rows={2}
-            className="min-h-[72px] flex-1 resize-y rounded-[4px] border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
+            className="min-h-[72px] flex-1 resize-y rounded-lg border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
           />
 
           <button
             type="button"
             onClick={() => removeItem(index)}
-            className="rounded-full border border-black/8 px-4 py-2 font-mono text-[11px] font-medium tracking-[0.055px] text-[#999999] uppercase transition-colors hover:bg-black/5 hover:text-black"
+            className="rounded-full border border-black/8 px-4 py-2 text-[13px] font-medium text-[#797979] transition-colors hover:bg-black/5 hover:text-black"
           >
             Remove
           </button>
@@ -212,7 +239,7 @@ function EditableList({
       <button
         type="button"
         onClick={addItem}
-        className="rounded-full border border-black/8 px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5"
+        className="rounded-full border border-black/8 px-5 py-2 text-[13px] font-medium text-black transition-colors hover:bg-black/5"
       >
         + Add item
       </button>
@@ -233,7 +260,7 @@ function EditableField({
 }) {
   return (
     <div>
-      <label className="font-mono text-[11px] leading-[15.4px] font-medium tracking-[0.055px] text-black uppercase">
+      <label className="text-sm font-medium text-black">
         {label}
       </label>
 
@@ -242,14 +269,14 @@ function EditableField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           rows={5}
-          className="mt-2 w-full resize-y rounded-[4px] border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
+          className="mt-2 w-full resize-y rounded-lg border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
         />
       ) : (
         <input
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="mt-2 w-full rounded-[4px] border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
+          className="mt-2 w-full rounded-lg border border-black/8 bg-white px-4 py-3 text-sm leading-6 text-black outline-none transition-colors placeholder:text-[#999999] focus:border-black"
         />
       )}
     </div>
@@ -258,9 +285,14 @@ function EditableField({
 
 export function BRDViewer({
   data,
+  meta,
   onSave,
   isSaving,
+  saveFailed = false,
 }: BRDViewerProps) {
+  const generatedOn = meta ? formatDocDate(meta.createdAt) : "";
+  const updatedOn = meta ? formatDocDate(meta.updatedAt) : "";
+  const editedByUser = Boolean(meta?.userEditedAt);
   const [draft, setDraft] = useState<BRDData>(data);
 
   const [editingSection, setEditingSection] =
@@ -359,24 +391,26 @@ export function BRDViewer({
   }
 
   return (
-    <article className="mx-auto w-full max-w-4xl rounded-[4px] border border-black/8 bg-white print:max-w-none print:rounded-none print:border-0 print:shadow-none">
-      {/* Document Header */}
-      <header className="rounded-t-[4px] border-b border-black/8 bg-white px-6 py-12 sm:px-12 sm:py-20">
-        <p className="font-mono text-[11px] leading-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
-          Business Requirements Document
-        </p>
-
-        <h1 className="mt-4 text-[40px] leading-[48px] font-medium tracking-[-0.8px] text-black">
+    <article className="mx-auto w-full max-w-4xl print:max-w-none">
+      <header className="px-2 py-8 sm:px-4">
+        <h1 className="text-4xl leading-[44px] font-bold text-black">
           {data.project_overview.project_name}
         </h1>
 
-        <p className="mt-4 max-w-2xl text-[18px] leading-[23.4px] font-normal tracking-[-0.18px] text-[#999999]">
+        <p className="mt-2 max-w-2xl text-lg leading-6 font-medium text-[#5e5e5e]">
           {data.project_overview.description}
         </p>
+
+        {(generatedOn || updatedOn || editedByUser) && (
+          <p className="mt-4 text-sm leading-5 text-[#afafaf]">
+            {[generatedOn && `Generated ${generatedOn}`, updatedOn && updatedOn !== generatedOn && `Updated ${updatedOn}`, editedByUser && "Edited by you"]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
       </header>
 
-      {/* Document Content */}
-      <div className="px-6 py-8 sm:px-12 sm:py-10">
+      <div className="rounded-2xl bg-white px-6 py-8 shadow-[0_4px_16px_rgba(0,0,0,0.12)] sm:px-8 print:rounded-none print:shadow-none">
         {/* 01 — Executive Summary */}
         <Section
           number={1}
@@ -386,6 +420,7 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "executive_summary" ? (
             <EditableField
@@ -417,6 +452,7 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "project_overview" ? (
             <div className="space-y-6">
@@ -452,7 +488,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-6">
               <div>
-                <h3 className="font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="text-sm font-medium text-black">
                   Project Name
                 </h3>
 
@@ -462,7 +498,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="text-sm font-medium text-black">
                   Description
                 </h3>
 
@@ -483,6 +519,7 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "business_objectives" ? (
             <EditableList
@@ -512,11 +549,12 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "scope" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   In Scope
                 </h3>
 
@@ -534,7 +572,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Out of Scope
                 </h3>
 
@@ -554,7 +592,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   In Scope
                 </h3>
 
@@ -562,7 +600,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Out of Scope
                 </h3>
 
@@ -581,11 +619,12 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "stakeholders" ? (
             <div className="space-y-4">
               {draft.stakeholders.stakeholders.length === 0 && (
-                <p className="text-sm text-[#999999] italic">
+                <p className="text-sm text-[#797979] italic">
                   No stakeholders added.
                 </p>
               )}
@@ -594,7 +633,7 @@ export function BRDViewer({
                 (stakeholder, index) => (
                   <div
                     key={index}
-                    className="rounded-[4px] border border-black/8 p-4"
+                    className="rounded-2xl bg-[#efefef] p-4"
                   >
                     <div className="grid gap-4 md:grid-cols-3">
                       <EditableField
@@ -640,7 +679,7 @@ export function BRDViewer({
                         onClick={() =>
                           removeStakeholder(index)
                         }
-                        className="rounded-full border border-black/8 px-4 py-2 font-mono text-[11px] font-medium tracking-[0.055px] text-[#999999] uppercase transition-colors hover:bg-black/5 hover:text-black"
+                        className="rounded-full border border-black/8 px-4 py-2 text-[13px] font-medium text-[#797979] transition-colors hover:bg-black/5 hover:text-black"
                       >
                         Remove
                       </button>
@@ -652,29 +691,29 @@ export function BRDViewer({
               <button
                 type="button"
                 onClick={addStakeholder}
-                className="rounded-full border border-black/8 px-5 py-2 font-mono text-[16px] leading-4 font-medium tracking-[0.08px] text-black uppercase transition-colors hover:bg-black/5"
+                className="rounded-full border border-black/8 px-5 py-2 text-[13px] font-medium text-black transition-colors hover:bg-black/5"
               >
                 + Add stakeholder
               </button>
             </div>
           ) : data.stakeholders.stakeholders.length === 0 ? (
-            <p className="text-sm text-[#999999] italic">
+            <p className="text-[15px] text-[#797979] italic">
               None specified.
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-[4px] border border-black/8">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-black/8">
+            <div className="overflow-x-auto rounded-2xl">
+              <table className="w-full text-left text-sm leading-5">
+                <thead className="bg-[#efefef]">
                   <tr>
-                    <th className="px-4 py-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                    <th className="px-4 py-3 text-sm font-medium text-black">
                       Name
                     </th>
 
-                    <th className="px-4 py-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                    <th className="px-4 py-3 text-sm font-medium text-black">
                       Role
                     </th>
 
-                    <th className="px-4 py-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                    <th className="px-4 py-3 text-sm font-medium text-black">
                       Organization
                     </th>
                   </tr>
@@ -685,17 +724,17 @@ export function BRDViewer({
                     (stakeholder, index) => (
                       <tr
                         key={index}
-                        className="border-b border-black/8 last:border-b-0"
+                        className="border-b border-[#e2e2e2] last:border-b-0"
                       >
                         <td className="px-4 py-3 align-top font-medium text-black">
                           {stakeholder.name}
                         </td>
 
-                        <td className="px-4 py-3 align-top text-[#999999]">
+                        <td className="px-4 py-3 align-top text-[#5e5e5e]">
                           {stakeholder.role || "—"}
                         </td>
 
-                        <td className="px-4 py-3 align-top text-[#999999]">
+                        <td className="px-4 py-3 align-top text-[#5e5e5e]">
                           {stakeholder.organization || "—"}
                         </td>
                       </tr>
@@ -716,6 +755,7 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "business_requirements" ? (
             <EditableList
@@ -745,6 +785,7 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "functional_requirements" ? (
             <EditableList
@@ -778,6 +819,7 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "non_functional_requirements" ? (
             <EditableList
@@ -815,11 +857,12 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "assumptions_and_constraints" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Assumptions
                 </h3>
 
@@ -839,7 +882,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Constraints
                 </h3>
 
@@ -861,7 +904,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Assumptions
                 </h3>
 
@@ -873,7 +916,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Constraints
                 </h3>
 
@@ -896,11 +939,12 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "risks_and_decisions" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Risks
                 </h3>
 
@@ -918,7 +962,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Decisions
                 </h3>
 
@@ -938,7 +982,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Risks
                 </h3>
 
@@ -948,7 +992,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
+                <h3 className="mb-2 text-sm font-medium text-black">
                   Decisions
                 </h3>
 
@@ -969,6 +1013,7 @@ export function BRDViewer({
           onCancel={cancelEditing}
           onSave={saveEditing}
           isSaving={isSaving}
+          saveFailed={saveFailed}
         >
           {editingSection === "open_questions" ? (
             <EditableList

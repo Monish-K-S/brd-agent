@@ -87,24 +87,14 @@ export function GmailSourceBrowser({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden">
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-[4px] border border-black/8 bg-white">
-        <div className="flex items-center justify-between border-b border-black/8 p-8">
-          <div>
-            <p className="font-mono text-[11px] leading-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
-              Gmail
-            </p>
-
-            <h2 className="mt-2 text-[22px] leading-[25.3px] font-medium tracking-[-0.22px] text-black">
-              Add Gmail sources
-            </h2>
-
-            <p className="mt-2 text-[16px] leading-[20.8px] font-normal tracking-[-0.16px] text-[#999999]">
-              Select emails to add to this workspace.
-            </p>
-          </div>
+      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white text-black shadow-[0_4px_16px_rgba(0,0,0,0.16)]">
+        <div className="flex items-center justify-between gap-4 p-6">
+          <h2 className="text-2xl leading-8 font-bold text-black">
+            Add emails
+          </h2>
 
           <Button
-            variant="secondary"
+            variant="subtle"
             size="sm"
             onClick={onClose}
             disabled={isImporting}
@@ -113,18 +103,18 @@ export function GmailSourceBrowser({
           </Button>
         </div>
 
-        <div className="border-b border-black/8 p-4">
+        <div className="px-6 pb-4">
           <form onSubmit={handleSearch} className="flex gap-3">
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search Gmail..."
-              className="h-11 min-w-0 flex-1 rounded-[4px] border border-black/8 bg-white px-4 text-base tracking-[-0.16px] text-black outline-none placeholder:text-[#999999] focus:border-black"
+              placeholder="Search emails..."
+              className="h-11 min-w-0 flex-1 rounded-lg bg-[#efefef] px-4 text-base text-black outline-none placeholder:text-[#afafaf] focus:bg-[#e2e2e2]"
               disabled={isImporting}
             />
 
-            <Button type="submit" variant="secondary" disabled={isImporting}>
+            <Button type="submit" variant="subtle" disabled={isImporting}>
               Search
             </Button>
 
@@ -141,26 +131,11 @@ export function GmailSourceBrowser({
           </form>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-4">
-          {activeSearch === "" && (
-            <p className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
-              Recent emails
-            </p>
-          )}
-
-          {activeSearch !== "" && (
-            <p className="mb-3 font-mono text-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase">
-              Search results for "{activeSearch}"
-            </p>
-          )}
-
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
           {isLoading && (
             <div className="space-y-2" aria-label="Loading emails">
               {[0, 1, 2].map((index) => (
-                <div
-                  key={index}
-                  className="rounded-[4px] border border-black/8 bg-white p-4"
-                >
+                <div key={index} className="rounded-2xl bg-[#efefef] p-4">
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="mt-2 h-3 w-1/3" />
                 </div>
@@ -169,13 +144,27 @@ export function GmailSourceBrowser({
           )}
 
           {isError && (
-            <p className="py-8 text-center text-sm font-medium text-black">
-              Failed to load Gmail messages.
-            </p>
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#efefef] p-4">
+              <p className="text-sm text-black">Couldn&apos;t load emails.</p>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (activeSearch === "") {
+                    recentQuery.refetch();
+                  } else {
+                    searchQuery.refetch();
+                  }
+                }}
+              >
+                Retry
+              </Button>
+            </div>
           )}
 
           {!isLoading && !isError && messages.length === 0 && (
-            <p className="py-8 text-center text-[14px] leading-[19.6px] font-normal text-[#999999]">
+            <p className="py-8 text-center text-sm leading-5 text-[#5e5e5e]">
               No emails found.
             </p>
           )}
@@ -188,7 +177,11 @@ export function GmailSourceBrowser({
                 return (
                   <label
                     key={message.id}
-                    className="flex cursor-pointer gap-3 rounded-[4px] border border-black/8 bg-white p-4 transition-colors hover:border-black"
+                    className={
+                      selected
+                        ? "flex cursor-pointer gap-3 rounded-2xl border-2 border-black bg-[#efefef] p-4 transition-colors"
+                        : "flex cursor-pointer gap-3 rounded-2xl bg-[#efefef] p-4 transition-colors hover:bg-[#e2e2e2]"
+                    }
                   >
                     <input
                       type="checkbox"
@@ -200,21 +193,21 @@ export function GmailSourceBrowser({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="truncate text-[16px] leading-[20.8px] font-medium tracking-[-0.16px] text-black">
+                        <p className="truncate text-base leading-6 font-medium text-black">
                           {message.subject || "No subject"}
                         </p>
 
-                        <span className="shrink-0 font-mono text-[11px] tracking-[0.055px] text-[#999999]">
+                        <span className="shrink-0 text-xs text-[#afafaf]">
                           {formatDate(message.date)}
                         </span>
                       </div>
 
-                      <p className="mt-1 truncate text-[14px] leading-[19.6px] font-normal text-[#999999]">
+                      <p className="mt-1 truncate text-sm leading-5 text-[#5e5e5e]">
                         {message.sender || "Unknown sender"}
                       </p>
 
                       {message.snippet && (
-                        <p className="mt-1 line-clamp-2 text-[14px] leading-[19.6px] font-normal text-[#999999]">
+                        <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#5e5e5e]">
                           {message.snippet}
                         </p>
                       )}
@@ -226,18 +219,16 @@ export function GmailSourceBrowser({
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-black/8 p-4">
-          <p className="text-[14px] leading-[19.6px] font-normal text-[#999999]">
+        <div className="flex items-center justify-between gap-3 border-t border-black/10 p-4">
+          <p className="text-sm text-[#5e5e5e]">
             {selectedIds.length === 0
-              ? "No emails selected"
-              : `${selectedIds.length} email${
-                  selectedIds.length === 1 ? "" : "s"
-                } selected`}
+              ? "None selected"
+              : `${selectedIds.length} selected`}
           </p>
 
           <div className="flex gap-3">
             <Button
-              variant="secondary"
+              variant="subtle"
               onClick={onClose}
               disabled={isImporting}
             >
@@ -248,11 +239,7 @@ export function GmailSourceBrowser({
               onClick={() => onImport(selectedIds)}
               disabled={selectedIds.length === 0 || isImporting}
             >
-              {isImporting
-                ? "Adding..."
-                : `Add ${
-                    selectedIds.length > 0 ? selectedIds.length : ""
-                  } selected`}
+              {isImporting ? "Adding..." : "Add"}
             </Button>
           </div>
         </div>

@@ -10,13 +10,27 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createWorkspace, deleteWorkspace, getWorkspaces } from "@/api/workspaces";
 import { TopBar } from "@/components/layout/TopBar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState, StateAlert } from "@/components/ui/status";
+
+function formatUpdatedAt(value: string): string {
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export default function WorkspacesPage() {
   const navigate = useNavigate();
@@ -26,11 +40,14 @@ export default function WorkspacesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [search, setSearch] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const {
     data: workspaces,
     isLoading,
     isError,
+    refetch,
   } = useQuery({
     queryKey: ["workspaces"],
     queryFn: getWorkspaces,
@@ -55,6 +72,8 @@ export default function WorkspacesPage() {
       queryClient.invalidateQueries({
         queryKey: ["workspaces"],
       });
+
+      setPendingDeleteId(null);
     },
   });
 
@@ -79,147 +98,185 @@ export default function WorkspacesPage() {
     });
   }
 
-  function handleDeleteWorkspace(id: string) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this workspace?",
-    );
-
-    if (!confirmed) {
+  function handleConfirmDelete() {
+    if (!pendingDeleteId || deleteMutation.isPending) {
       return;
     }
 
-    deleteMutation.mutate(id);
+    deleteMutation.mutate(pendingDeleteId);
   }
 
+  const trimmedSearch = search.trim().toLowerCase();
+  const visibleWorkspaces = (workspaces ?? []).filter((workspace) => {
+    if (!trimmedSearch) {
+      return true;
+    }
+
+    return (
+      workspace.name.toLowerCase().includes(trimmedSearch) ||
+      (workspace.description ?? "").toLowerCase().includes(trimmedSearch)
+    );
+  });
+
+  const pendingDeleteWorkspace = (workspaces ?? []).find(
+    (workspace) => workspace.id === pendingDeleteId,
+  );
+
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-white text-black">
       <TopBar
         left={
-          <h1 className="text-[28px] leading-[32.2px] font-medium tracking-[-0.42px] text-black">
-            Workspaces
-          </h1>
+          <span className="text-base font-medium text-black">BRD Agent</span>
         }
         right={
-          <Button variant="secondary" onClick={handleSignOut}>
+          <Button variant="subtle" size="sm" onClick={handleSignOut}>
             Sign out
           </Button>
         }
       />
 
-      <div className="mx-auto w-full max-w-[1280px] px-4 py-12 sm:px-8 sm:py-20">
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h1 className="text-4xl leading-[44px] font-bold text-black">
+            Workspaces
+          </h1>
 
-      <section>
-        {isLoading && (
-          <div
-            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
-            aria-label="Loading workspaces"
-          >
-            {[0, 1, 2].map((index) => (
-              <div
-                key={index}
-                className="rounded-[4px] border border-black/8 bg-white p-6"
-              >
-                <Skeleton className="h-5 w-2/3" />
-                <Skeleton className="mt-3 h-4 w-full" />
-                <Skeleton className="mt-2 h-4 w-1/2" />
-              </div>
-            ))}
+          <Button onClick={() => setDialogOpen(true)}>New workspace</Button>
+        </div>
+
+        {(workspaces ?? []).length > 0 && (
+          <div className="mt-6">
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search"
+              aria-label="Search workspaces"
+              className="h-11 w-full max-w-xs rounded-lg bg-[#efefef] px-4 text-base text-black outline-none placeholder:text-[#afafaf] focus:bg-[#e2e2e2]"
+            />
           </div>
         )}
 
-        {isError && (
-          <p className="text-sm font-medium text-black">
-            Failed to load workspaces.
-          </p>
-        )}
-
-        {!isLoading && !isError && workspaces?.length === 0 && (
-          <div className="rounded-[4px] border border-black/8 bg-white p-8 text-center sm:p-12">
-            <p
-              className="font-mono text-[11px] leading-[11px] font-medium tracking-[0.55px] text-[#999999] uppercase"
+        <section className="mt-6">
+          {isLoading && (
+            <div
+              className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+              aria-label="Loading workspaces"
             >
-              Getting started
-            </p>
-
-            <h2 className="mt-4 text-[22px] leading-[25.3px] font-medium tracking-[-0.22px] text-black">
-              No workspaces yet
-            </h2>
-
-            <p className="mx-auto mt-2 max-w-sm text-[16px] leading-[20.8px] font-normal tracking-[-0.16px] text-[#999999]">
-              Create your first workspace to get started.
-            </p>
-          </div>
-        )}
-
-        {!isLoading && !isError && workspaces && workspaces.length > 0 && (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {workspaces.map((workspace) => (
-              <div
-                key={workspace.id}
-                className="rounded-[4px] border border-black/8 bg-white p-6 transition-opacity hover:opacity-80"
-              >
-                <button
-                  type="button"
-                  onClick={() => navigate(`/workspaces/${workspace.id}`)}
-                  className="w-full text-left"
-                >
-                  <h2 className="text-[16px] leading-[20.8px] font-medium tracking-[-0.16px] text-black">
-                    {workspace.name}
-                  </h2>
-
-                  {workspace.description && (
-                    <p className="mt-2 line-clamp-2 text-[14px] leading-[19.6px] font-normal text-[#999999]">
-                      {workspace.description}
-                    </p>
-                  )}
-                </button>
-
-                <div className="mt-4 flex justify-end">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleDeleteWorkspace(workspace.id)}
-                    disabled={
-                      deleteMutation.isPending &&
-                      deleteMutation.variables === workspace.id
-                    }
-                  >
-                    {deleteMutation.isPending &&
-                    deleteMutation.variables === workspace.id
-                      ? "Deleting..."
-                      : "Delete"}
-                  </Button>
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="rounded-2xl bg-[#efefef] p-6">
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="mt-3 h-4 w-full" />
+                  <Skeleton className="mt-2 h-4 w-1/2" />
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+              ))}
+            </div>
+          )}
 
-      <div className="mt-6">
+          {isError && (
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#efefef] p-4">
+              <p className="text-sm text-black">Something went wrong.</p>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => refetch()}
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {!isLoading && !isError && workspaces?.length === 0 && (
+            <EmptyState
+              title="Create your first workspace"
+              description="Add project files and generate a BRD from them."
+              action={
+                <Button onClick={() => setDialogOpen(true)}>
+                  New workspace
+                </Button>
+              }
+            />
+          )}
+
+          {!isLoading &&
+            !isError &&
+            workspaces &&
+            workspaces.length > 0 &&
+            visibleWorkspaces.length === 0 && (
+              <p className="rounded-2xl bg-[#efefef] p-6 text-center text-base text-[#5e5e5e]">
+                No matches.
+              </p>
+            )}
+
+          {!isLoading && !isError && visibleWorkspaces.length > 0 && (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleWorkspaces.map((workspace) => {
+                const updatedAt = formatUpdatedAt(workspace.updated_at);
+
+                return (
+                  <div
+                    key={workspace.id}
+                    className="flex flex-col rounded-2xl bg-[#efefef] p-6"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/workspaces/${workspace.id}`)}
+                      className="w-full flex-1 text-left"
+                    >
+                      <h2 className="text-xl leading-7 font-bold text-black">
+                        {workspace.name}
+                      </h2>
+
+                      {workspace.description && (
+                        <p className="mt-1 line-clamp-2 text-sm leading-5 text-[#5e5e5e]">
+                          {workspace.description}
+                        </p>
+                      )}
+
+                      {updatedAt && (
+                        <p className="mt-3 text-xs leading-5 text-[#afafaf]">
+                          Updated {updatedAt}
+                        </p>
+                      )}
+                    </button>
+
+                    <div className="mt-4 flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPendingDeleteId(workspace.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger render={<Button>Create Workspace</Button>} />
-
           <DialogContent>
             <form onSubmit={handleCreateWorkspace}>
               <DialogHeader>
-                <DialogTitle>Create Workspace</DialogTitle>
+                <DialogTitle>New workspace</DialogTitle>
 
                 <DialogDescription>
-                  Create a workspace for your project and add sources to it
-                  later.
+                  Name the project you want a BRD for.
                 </DialogDescription>
               </DialogHeader>
 
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="workspace-name">Project name</Label>
+                  <Label htmlFor="workspace-name">Name</Label>
 
                   <Input
                     id="workspace-name"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
-                    placeholder="My Project"
+                    placeholder="My project"
                     autoFocus
                   />
                 </div>
@@ -231,27 +288,27 @@ export default function WorkspacesPage() {
                     id="workspace-description"
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
-                    placeholder="Optional project description"
+                    placeholder="Optional"
                   />
                 </div>
 
                 {createMutation.isError && (
-                  <p className="text-sm font-medium text-black" role="alert">
-                    Failed to create workspace. Please try again.
-                  </p>
+                  <StateAlert>
+                    Couldn&apos;t create it. Please try again.
+                  </StateAlert>
                 )}
 
                 {deleteMutation.isError && (
-                  <p className="text-sm font-medium text-black" role="alert">
-                    Failed to delete workspace. Please try again.
-                  </p>
+                  <StateAlert>
+                    Couldn&apos;t delete it. Please try again.
+                  </StateAlert>
                 )}
               </div>
 
               <DialogFooter>
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="subtle"
                   onClick={() => setDialogOpen(false)}
                   disabled={createMutation.isPending}
                 >
@@ -268,7 +325,54 @@ export default function WorkspacesPage() {
             </form>
           </DialogContent>
         </Dialog>
-      </div>
+
+        <Dialog
+          open={pendingDeleteId !== null}
+          onOpenChange={(open) => {
+            if (!open && !deleteMutation.isPending) {
+              setPendingDeleteId(null);
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete this workspace?</DialogTitle>
+
+              <DialogDescription>
+                {pendingDeleteWorkspace
+                  ? `“${pendingDeleteWorkspace.name}” and everything in it will be removed. `
+                  : ""}
+                This can&apos;t be undone.
+              </DialogDescription>
+            </DialogHeader>
+
+            {deleteMutation.isError && (
+              <StateAlert>
+                Couldn&apos;t delete it. Please try again.
+              </StateAlert>
+            )}
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="subtle"
+                onClick={() => setPendingDeleteId(null)}
+                disabled={deleteMutation.isPending}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleConfirmDelete}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </main>
   );

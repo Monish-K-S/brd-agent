@@ -3,19 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding font-mono text-base font-medium tracking-[0.08px] whitespace-nowrap uppercase transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding font-sans text-base font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:opacity-80",
+        default: "bg-black text-white hover:bg-black/80",
+        brand: "bg-black text-white hover:bg-black/80",
+        ink: "bg-black text-white hover:bg-black/80",
         outline:
-          "border-black/8 bg-background hover:bg-black/5 hover:text-foreground aria-expanded:bg-black/5 aria-expanded:text-foreground",
+          "border-black/15 bg-white text-black hover:bg-black/5 aria-expanded:bg-black/5",
         secondary:
-          "bg-black/5 text-secondary-foreground hover:bg-black/10 aria-expanded:bg-black/10 aria-expanded:text-secondary-foreground",
+          "bg-white text-black shadow-[0_2px_8px_rgba(0,0,0,0.16)] hover:bg-white/90 aria-expanded:bg-white/90",
+        subtle:
+          "bg-[#efefef] text-black hover:bg-[#e2e2e2] aria-expanded:bg-[#e2e2e2]",
         ghost:
-          "hover:bg-black/5 hover:text-foreground aria-expanded:bg-black/5 aria-expanded:text-foreground",
+          "text-black hover:bg-black/5 aria-expanded:bg-black/5",
         destructive:
-          "border-black/8 bg-background text-foreground hover:bg-black/5 focus-visible:border-ring focus-visible:ring-ring/50",
+          "bg-transparent text-black underline-offset-4 hover:underline focus-visible:border-ring focus-visible:ring-ring/50",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
