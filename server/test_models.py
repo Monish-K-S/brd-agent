@@ -22,7 +22,6 @@ models = [
 ]
 
 
-for model in models:
-    inspect(model)
-
-print("All models and relationships loaded successfully.")
+def test_models_and_relationships_load():
+    for model in models:
+        inspect(model)

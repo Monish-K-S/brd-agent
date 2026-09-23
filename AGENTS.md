@@ -12,7 +12,7 @@
 - Export builders (`server/app/ai/builders/`): `brd_document_builder.py` (fpdf2 2.8.8) and `brd_docx_builder.py` (python-docx 1.2.0), called only from `brd_service.py` (`export_brd_pdf_for_user` / `export_brd_docx_for_user`, fresh temp file per export — no caching). Signatures `(brd, output_path)` — do not change.
 - **PDF font constraint (latin-1):** fpdf2 core Helvetica supports U+0000–U+00FF only. `•` (U+2022) and `–`/`—` crash generation — the `_normalize_text` mappings exist for this reason (verified by a real crash 2026-09-18). PDF keeps `-` / `--` fallbacks; DOCX (Arial, full Unicode) keeps real `•` / `–`. Never add non-latin-1 literals to the PDF builder.
 - **Restart the backend after any `server/` change.** Python imports builders at startup; a stale uvicorn process serves old code (no `--reload` assumed). Telltale: missing page folios in exports.
-- `server/.venv` has no pytest/test tooling and `requirements.txt` lists none — verify via direct scripts + `compileall`, not `pytest`.
+- Tests: `server/requirements-dev.txt` (pytest, installed into `server/.venv` via `uv pip install --python .venv/bin/python -r requirements-dev.txt` — the venv has no pip module). Run from `server/`: `.venv/bin/python -m pytest` (10 tests: parser factory, format parsers over `datasets/`, model loading, export-builder regressions). Keep test-only deps out of `requirements.txt`.
 
 ## Frontend Stack (locked)
 - **Core**: React, Vite, TypeScript.
@@ -99,8 +99,11 @@ Remaining: none committed — next is user-directed (product depth or hygiene ga
 - Ensure accessibility (WCAG 2.1 AA) and responsive design.
 
 ## Known Gaps – Still Open
-- **Deps cleanup**: `cn` npm package used instead of local `@/lib/utils`; `shadcn` CLI listed as runtime dep — remove; `lucide-react` at `^1.43.0`.
-- **Polish**: none committed — next is user-directed.
+- **Polish**: none committed — next is user-directed (product depth or hygiene).
+
+## Closed 2026‑09‑18 (test tooling + deps)
+- pytest 8.3.5 in `server/.venv` (via `requirements-dev.txt`, uv-installed — no pip in venv); `tests/test_parser_factory.py` + `tests/test_parsers.py` + `test_models.py` converted from print-scripts to collected tests (dataset paths file-relative); new `tests/test_export_builders.py` (latin-1 crash regression, folios, DOCX justify/PAGE, empty states) — 10 passed. No CI in repo: run `.venv/bin/python -m pytest` from `server/` manually.
+- `shadcn` CLI moved to `devDependencies` (runtime tree −252 packages, vendor chunks byte-identical). Deliberate keeps: `cn` npm package stays (local `@/lib/utils` would add `clsx`+`tailwind-merge` for zero gain); `lucide-react` stays pinned at `^1.43.0`.
 
 ## Closed 2026‑09‑18 (robustness pass)
 - `*` 404 route → `pages/NotFoundPage.tsx` (MiniMax-matched, smart home CTA per auth state).

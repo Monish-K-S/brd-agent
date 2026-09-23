@@ -1,0 +1,5 @@
+# Test-only dependencies. Install into the project venv:
+#   .venv/bin/pip install -r requirements-dev.txt
+# Run from server/:
+#   .venv/bin/python -m pytest
+pytest==8.3.5
