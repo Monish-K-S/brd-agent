@@ -102,6 +102,44 @@ def _validate_file_magic(path: Path, suffix: str) -> bool:
     return False
 
 
+def upload_file_key(
+    file_name: str | None,
+    extension: str | None,
+    size_bytes: int | None,
+) -> tuple:
+    """Dedup triple: exact file name (case-sensitive), lowercase
+    dot-extension, and exact byte size."""
+
+    return (file_name, extension, size_bytes)
+
+
+def stored_document_key(metadata: dict | None) -> tuple:
+    metadata = metadata or {}
+
+    return upload_file_key(
+        metadata.get("file_name"),
+        metadata.get("extension"),
+        metadata.get("size_bytes"),
+    )
+
+
+def find_duplicate_upload(
+    incoming_keys: list[tuple],
+    existing_keys: set[tuple],
+) -> tuple | None:
+    """First incoming triple already stored or repeated in-batch."""
+
+    seen = set()
+
+    for key in incoming_keys:
+        if key in existing_keys or key in seen:
+            return key
+
+        seen.add(key)
+
+    return None
+
+
 @router.post(
     "/upload",
     response_model=list[StandardDocumentResponse],
@@ -135,6 +173,25 @@ def upload_documents(
             ),
         )
 
+    existing_documents = (
+        document_service.get_workspace_documents_for_user(
+            workspace_id=workspace_id,
+            user_id=current_user.id,
+        )
+    )
+
+    if existing_documents is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Workspace not found",
+        )
+
+    existing_keys = {
+        stored_document_key(document.metadata_)
+        for document in existing_documents
+    }
+    seen_keys = set()
+
     try:
         for file in files:
             if not file.filename:
@@ -164,7 +221,9 @@ def upload_documents(
                     temp_path = Path(temp_file.name)
 
                 try:
-                    _copy_upload_with_limit(file, str(temp_path))
+                    size_bytes = _copy_upload_with_limit(
+                        file, str(temp_path)
+                    )
                 except _FileTooLargeError as exc:
                     raise HTTPException(
                         status_code=413,
@@ -179,6 +238,27 @@ def upload_documents(
                             "File content does not match its extension"
                         ),
                     )
+
+                incoming_key = upload_file_key(
+                    file.filename,
+                    suffix,
+                    size_bytes,
+                )
+
+                if (
+                    incoming_key in existing_keys
+                    or incoming_key in seen_keys
+                ):
+                    raise HTTPException(
+                        status_code=409,
+                        detail=(
+                            f"Duplicate file: {file.filename}. "
+                            "A file with the same name, type, and size "
+                            "already exists in this workspace"
+                        ),
+                    )
+
+                seen_keys.add(incoming_key)
 
                 try:
                     documents = ingestion_service.ingest(

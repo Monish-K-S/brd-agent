@@ -1,9 +1,14 @@
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.models.workspace import Workspace
 from app.repositories.workspace_repository import WorkspaceRepository
+
+
+class DuplicateWorkspaceError(ValueError):
+    """Raised when the user already has a workspace with the same name."""
 
 
 class WorkspaceService:
@@ -18,6 +23,16 @@ class WorkspaceService:
         name: str,
         description: str | None = None,
     ) -> Workspace:
+        existing = self.workspace_repository.get_by_user_id_and_name(
+            user_id,
+            name,
+        )
+
+        if existing is not None:
+            raise DuplicateWorkspaceError(
+                "A workspace with this name already exists"
+            )
+
         workspace = Workspace(
             user_id=user_id,
             name=name,
@@ -33,6 +48,12 @@ class WorkspaceService:
 
             return created_workspace
 
+        except IntegrityError as exc:
+            self.db.rollback()
+
+            raise DuplicateWorkspaceError(
+                "A workspace with this name already exists"
+            ) from exc
         except Exception:
             self.db.rollback()
             raise

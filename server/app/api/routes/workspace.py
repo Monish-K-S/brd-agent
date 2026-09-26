@@ -6,7 +6,10 @@ from app.schemas.workspace import (
     WorkspaceCreate,
     WorkspaceResponse,
 )
-from app.services.workspace_service import WorkspaceService
+from app.services.workspace_service import (
+    DuplicateWorkspaceError,
+    WorkspaceService,
+)
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -32,11 +35,17 @@ def create_workspace(
 ) -> WorkspaceResponse:
     workspace_service = WorkspaceService(db)
 
-    workspace = workspace_service.create_workspace(
-        user_id=current_user.id,
-        name=workspace_data.name,
-        description=workspace_data.description,
-    )
+    try:
+        workspace = workspace_service.create_workspace(
+            user_id=current_user.id,
+            name=workspace_data.name,
+            description=workspace_data.description,
+        )
+    except DuplicateWorkspaceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        )
 
     return WorkspaceResponse(
         id=workspace.id,

@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models.workspace import Workspace
@@ -16,6 +17,20 @@ class WorkspaceRepository:
         return self.db.get(
             Workspace,
             workspace_id,
+        )
+
+    def get_by_user_id_and_name(
+        self,
+        user_id: UUID,
+        name: str,
+    ) -> Workspace | None:
+        return (
+            self.db.query(Workspace)
+            .filter(
+                Workspace.user_id == user_id,
+                func.lower(Workspace.name) == name.lower(),
+            )
+            .first()
         )
 
 
