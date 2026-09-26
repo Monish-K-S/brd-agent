@@ -40,6 +40,27 @@ function formatUpdatedAt(value: string): string {
   });
 }
 
+function mutationDetail(error: unknown): string | null {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (error as { response?: unknown }).response;
+
+    if (typeof response === "object" && response !== null && "data" in response) {
+      const detail = (response as { data?: unknown }).data;
+
+      if (
+        typeof detail === "object" &&
+        detail !== null &&
+        "detail" in detail &&
+        typeof (detail as { detail?: unknown }).detail === "string"
+      ) {
+        return (detail as { detail: string }).detail;
+      }
+    }
+  }
+
+  return null;
+}
+
 type WorkspaceCardProps = {
   workspace: Workspace;
   index: number;
@@ -163,7 +184,7 @@ export default function WorkspacesPage() {
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
 
-    if (!trimmedName) {
+    if (!trimmedName || isDuplicateName(trimmedName)) {
       return;
     }
 
@@ -172,6 +193,16 @@ export default function WorkspacesPage() {
       description: trimmedDescription || undefined,
     });
   }
+
+  function isDuplicateName(trimmedName: string): boolean {
+    return (workspaces ?? []).some(
+      (workspace) =>
+        workspace.name.toLowerCase() === trimmedName.toLowerCase(),
+    );
+  }
+
+  const duplicateNameEntered =
+    name.trim().length > 0 && isDuplicateName(name.trim());
 
   function handleConfirmDelete() {
     if (!pendingDeleteId || deleteMutation.isPending) {
@@ -440,6 +471,12 @@ export default function WorkspacesPage() {
                     placeholder="My project"
                     autoFocus
                   />
+
+                  {duplicateNameEntered && (
+                    <p className="text-sm text-ink" role="alert">
+                      A workspace with this name already exists.
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -455,7 +492,8 @@ export default function WorkspacesPage() {
 
                 {createMutation.isError && (
                   <StateAlert>
-                    Couldn&apos;t create it. Please try again.
+                    {mutationDetail(createMutation.error) ??
+                      "Couldn't create it. Please try again."}
                   </StateAlert>
                 )}
 
@@ -478,7 +516,11 @@ export default function WorkspacesPage() {
 
                 <Button
                   type="submit"
-                  disabled={!name.trim() || createMutation.isPending}
+                  disabled={
+                    !name.trim() ||
+                    duplicateNameEntered ||
+                    createMutation.isPending
+                  }
                 >
                   {createMutation.isPending ? "Creating..." : "Create"}
                 </Button>

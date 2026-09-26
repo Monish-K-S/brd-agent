@@ -602,7 +602,49 @@ export default function WorkspacePage() {
       }
     }
 
+    const duplicate = findDuplicateUpload(files);
+
+    if (duplicate) {
+      setUploadValidationError(
+        `Duplicate file: ${duplicate}. A file with the same name, type, and size already exists in this workspace`,
+      );
+      return;
+    }
+
     uploadMutation.mutate(files);
+  }
+
+  // Hard-block client-side mirror of the server triple check
+  // (file name + extension + byte size). The server re-validates.
+  function findDuplicateUpload(files: File[]): string | null {
+    const seen = new Set<string>();
+
+    for (const file of files) {
+      const suffix = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
+      const key = `${file.name}|${suffix}|${file.size}`;
+
+      if (seen.has(key)) {
+        return file.name;
+      }
+
+      seen.add(key);
+
+      const alreadyStored = (documents ?? []).some((document) => {
+        const metadata = document.metadata ?? {};
+
+        return (
+          metadata.file_name === file.name &&
+          metadata.extension === suffix &&
+          metadata.size_bytes === file.size
+        );
+      });
+
+      if (alreadyStored) {
+        return file.name;
+      }
+    }
+
+    return null;
   }
 
   const [pendingDeleteDocumentId, setPendingDeleteDocumentId] = useState<
