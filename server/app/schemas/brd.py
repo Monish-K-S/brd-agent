@@ -106,3 +106,12 @@ class BRDStatusResponse(BaseModel):
     has_new_sources: bool
     regeneration_required: bool
     has_user_edits: bool
+    active_job: "GenerationJobResponse | None" = None
+    last_job: "GenerationJobResponse | None" = None
+
+
+class GenerationJobResponse(BaseModel):
+    job_id: UUID
+    status: str
+    phase: str | None = None
+    error: str | None = None

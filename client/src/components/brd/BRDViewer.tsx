@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type BRDData = {
   executive_summary: {
@@ -93,8 +93,11 @@ type EditingSection =
   | "non_functional_requirements"
   | "assumptions_and_constraints"
   | "risks_and_decisions"
-  | "open_questions"
-  | null;
+   | "open_questions"
+   | null;
+
+// Idle time after the last keystroke before the draft autosaves.
+const AUTOSAVE_DELAY_MS = 750;
 
 function Section({
   number,
@@ -105,6 +108,7 @@ function Section({
   onSave,
   isSaving,
   saveFailed,
+  autosaveText = null,
   children,
 }: {
   number: number;
@@ -115,6 +119,7 @@ function Section({
   onSave: () => void;
   isSaving: boolean;
   saveFailed: boolean;
+  autosaveText?: string | null;
   children: React.ReactNode;
 }) {
   return (
@@ -147,24 +152,30 @@ function Section({
       )}
 
       {isEditing && (
-        <div className="mt-6 flex items-center justify-end gap-3 border-t border-hairline-soft pt-5 print:hidden">
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isSaving}
-            className="rounded-full border border-hairline bg-canvas px-4 py-1.5 text-sm font-medium text-ink transition-colors duration-200 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Cancel
-          </button>
+        <div className="mt-6 flex items-center justify-between gap-3 border-t border-hairline-soft pt-5 print:hidden">
+          <span aria-live="polite" className="text-xs leading-5 text-stone">
+            {autosaveText ?? ""}
+          </span>
 
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={isSaving}
-            className="rounded-full bg-primary px-5 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-deep active:bg-primary-deep disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isSaving}
+              className="rounded-full border border-hairline bg-canvas px-4 py-1.5 text-sm font-medium text-ink transition-colors duration-200 hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={isSaving}
+              className="rounded-full bg-primary px-5 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-deep active:bg-primary-deep disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+          </div>
         </div>
       )}
     </section>
@@ -298,19 +309,150 @@ export function BRDViewer({
   const [editingSection, setEditingSection] =
     useState<EditingSection>(null);
 
+  // Autosave (additive): persists the draft through the same onSave path
+  // as the Save button, without closing the editor. Manual Save/Cancel
+  // semantics are unchanged.
+  const [autosavedAt, setAutosavedAt] = useState<string | null>(null);
+  // State mirror of the last persisted draft, for render-safe dirty
+  // checks (draft !== savedDraft means the user typed since the save).
+  const [savedDraft, setSavedDraft] = useState<BRDData>(data);
+  const draftRef = useRef(draft);
+  const editingSectionRef = useRef(editingSection);
+  const onSaveRef = useRef(onSave);
+  const isSavingRef = useRef(isSaving);
+  // Reference-equality base: the exact draft object last persisted
+  // (or the server data when editing starts). Any new object means
+  // the user typed since the last save.
+  const lastSavedRef = useRef<BRDData>(data);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const saveSeqRef = useRef(0);
+
+  function cancelPendingAutosave() {
+    if (autosaveTimerRef.current !== null) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
+    saveSeqRef.current += 1;
+  }
+
+  // Saves the current draft if dirty. Never closes the editor.
+  // Returns true when there was nothing to save or the save succeeded.
+  const flushAutosave = useCallback(async (): Promise<boolean> => {
+    if (autosaveTimerRef.current !== null) {
+      clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+
+    const seq = saveSeqRef.current + 1;
+    saveSeqRef.current = seq;
+
+    if (
+      editingSectionRef.current === null ||
+      draftRef.current === lastSavedRef.current
+    ) {
+      return true;
+    }
+
+    if (isSavingRef.current) {
+      return false;
+    }
+
+    try {
+      await onSaveRef.current(draftRef.current);
+
+      if (seq === saveSeqRef.current) {
+        lastSavedRef.current = draftRef.current;
+        setSavedDraft(draftRef.current);
+        setAutosavedAt(
+          new Date().toLocaleTimeString(undefined, {
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+        );
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Mirror latest values for timer/event-handler use. Declared before
+  // the debounce effect so refs are fresh whenever it schedules.
+  useEffect(() => {
+    draftRef.current = draft;
+    editingSectionRef.current = editingSection;
+    onSaveRef.current = onSave;
+    isSavingRef.current = isSaving;
+  });
+
+  // Debounce: schedule a save AUTOSAVE_DELAY_MS after the user stops
+  // typing. Pristine drafts (draft === last saved) never schedule.
+  // No setState here — dirtiness is derived at render from savedDraft.
+  useEffect(() => {
+    if (editingSection === null || draft === savedDraft) {
+      return;
+    }
+
+    const seq = saveSeqRef.current + 1;
+    saveSeqRef.current = seq;
+
+    autosaveTimerRef.current = setTimeout(() => {
+      autosaveTimerRef.current = null;
+
+      if (seq !== saveSeqRef.current || isSavingRef.current) {
+        return;
+      }
+
+      void flushAutosave();
+    }, AUTOSAVE_DELAY_MS);
+
+    return () => {
+      if (autosaveTimerRef.current !== null) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, [draft, editingSection, savedDraft, flushAutosave]);
+
   useEffect(() => {
     if (editingSection === null) {
       setDraft(data);
     }
   }, [data, editingSection]);
 
-  function startEditing(section: EditingSection) {
+  // Flush-then-switch: persist pending edits before moving to another
+  // section. Stays put only when the flush itself failed, so no typed
+  // content is ever silently discarded.
+  async function startEditing(section: EditingSection) {
+    if (
+      editingSection !== null &&
+      section !== editingSection &&
+      draftRef.current !== lastSavedRef.current
+    ) {
+      const saved = await flushAutosave();
+
+      if (!saved) {
+        return;
+      }
+    }
+
+    cancelPendingAutosave();
     setDraft(data);
+    lastSavedRef.current = data;
+    setSavedDraft(data);
+    setAutosavedAt(null);
     setEditingSection(section);
   }
 
   function cancelEditing() {
+    cancelPendingAutosave();
     setDraft(data);
+    setSavedDraft(data);
+    setAutosavedAt(null);
     setEditingSection(null);
   }
 
@@ -319,9 +461,25 @@ export function BRDViewer({
       return;
     }
 
+    cancelPendingAutosave();
     await onSave(draft);
     setEditingSection(null);
   }
+
+  // Render-safe dirtiness: a new draft object means the user typed
+  // since the last persisted save, so the stamp hides itself.
+  const isAutosaveDirty = draft !== savedDraft;
+
+  const autosaveStatusText =
+    editingSection === null
+      ? null
+      : isSaving
+        ? "Saving…"
+        : saveFailed
+          ? null
+          : autosavedAt && !isAutosaveDirty
+            ? `Saved ${autosavedAt}`
+            : null;
 
   function updateListItem(
     section: keyof BRDData,
@@ -391,7 +549,20 @@ export function BRDViewer({
   }
 
   return (
-    <article className="mx-auto w-full print:max-w-none">
+    <article
+      className="mx-auto w-full print:max-w-none"
+      onBlur={(event) => {
+        // Focus left the document entirely (e.g. into the Q&A rail):
+        // flush any pending autosave. Moves within the article
+        // (Save/Cancel/another section's Edit) are handled by their
+        // own paths.
+        if (
+          !event.currentTarget.contains(event.relatedTarget as Node | null)
+        ) {
+          void flushAutosave();
+        }
+      }}
+    >
       <header className="px-2 py-8 sm:px-4">
         <h1 className="text-[32px] leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-[40px] sm:leading-[1.2] sm:tracking-[-1px]">
           {data.project_overview.project_name}
@@ -421,6 +592,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "executive_summary" ? (
             <EditableField
@@ -453,6 +625,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "project_overview" ? (
             <div className="space-y-6">
@@ -520,6 +693,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "business_objectives" ? (
             <EditableList
@@ -550,6 +724,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "scope" ? (
             <div className="space-y-8">
@@ -620,6 +795,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "stakeholders" ? (
             <div className="space-y-4">
@@ -756,6 +932,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "business_requirements" ? (
             <EditableList
@@ -786,6 +963,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "functional_requirements" ? (
             <EditableList
@@ -820,6 +998,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "non_functional_requirements" ? (
             <EditableList
@@ -858,6 +1037,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "assumptions_and_constraints" ? (
             <div className="space-y-8">
@@ -940,6 +1120,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "risks_and_decisions" ? (
             <div className="space-y-8">
@@ -1014,6 +1195,7 @@ export function BRDViewer({
           onSave={saveEditing}
           isSaving={isSaving}
           saveFailed={saveFailed}
+          autosaveText={autosaveStatusText}
         >
           {editingSection === "open_questions" ? (
             <EditableList

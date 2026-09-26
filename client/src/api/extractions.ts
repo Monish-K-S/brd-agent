@@ -10,9 +10,12 @@ export type DocumentExtraction = {
 
 export async function extractDocuments(
   workspaceId: string,
+  timeoutMs?: number,
 ): Promise<DocumentExtraction> {
   const response = await apiClient.post<DocumentExtraction>(
     `/workspaces/${workspaceId}/extractions`,
+    undefined,
+    timeoutMs === undefined ? undefined : { timeout: timeoutMs },
   )
 
   return response.data

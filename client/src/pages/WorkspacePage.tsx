@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/auth/AuthProvider";
@@ -19,8 +19,6 @@ import {
   exportBRDPdf,
   exportBRDDocx,
 } from "@/api/brd";
-import { consolidateProjectKnowledge } from "@/api/projectKnowledge";
-import { extractDocuments } from "@/api/extractions";
 import {
   connectGmail,
   disconnectGmail,
@@ -64,11 +62,34 @@ const GmailSourceBrowser = lazy(() =>
   })),
 );
 
+// Server job phases (processing_sources | preparing_knowledge |
+// generating_brd | null while queued) mapped onto the UI step order.
+function mapJobPhaseToStep(
+  phase: string | null,
+): "processing-sources" | "preparing-knowledge" | "generating-brd" {
+  switch (phase) {
+    case "preparing_knowledge":
+      return "preparing-knowledge";
+    case "generating_brd":
+      return "generating-brd";
+    default:
+      return "processing-sources";
+  }
+}
+
 export default function WorkspacePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id } = useParams();
   const { signOut } = useAuth();
+
+  // Job tracking for async generation (Phase 2b): the job created (or
+  // adopted) by this page. Non-null while a run is in flight — drives
+  // status polling, the progress card, and reload resume.
+  const [trackedJobId, setTrackedJobId] = useState<string | null>(null);
+  const [generationServerError, setGenerationServerError] = useState<
+    string | null
+  >(null);
 
   const [isGmailBrowserOpen, setIsGmailBrowserOpen] = useState(false);
 
@@ -118,6 +139,9 @@ export default function WorkspacePage() {
     queryFn: () => getBRDStatus(id!),
     enabled: Boolean(id),
     retry: false,
+    // Poll only while tracking a job; idle pages make zero extra
+    // requests. Stops automatically when tracking clears on completion.
+    refetchInterval: trackedJobId !== null ? 2000 : false,
   });
 
   const {
@@ -142,6 +166,15 @@ export default function WorkspacePage() {
 
   const [generationError, setGenerationError] = useState(false);
   const [skippedExtraction, setSkippedExtraction] = useState(false);
+
+  // Synchronous double-run guard: ref (not state) so two clicks in the
+  // same tick can't both pass the idle check before re-render.
+  const generatingRef = useRef(false);
+  // Per-step elapsed clock for the progress card. Timestamps are set
+  // alongside each step advance; the 1s ticker below re-renders only
+  // while generation is in flight.
+  const [stepStartedAt, setStepStartedAt] = useState<number | null>(null);
+  const [generationNow, setGenerationNow] = useState(0);
 
   const canGenerateBRD = Boolean(
     brdStatus &&
@@ -303,26 +336,25 @@ export default function WorkspacePage() {
     }
   }
 
-  async function handleGenerateBRD() {
-    if (!id || !canGenerateBRD || generationStep !== "idle") {
-      return;
-    }
+  function beginStep(step: Exclude<GenerationStep, "idle">) {
+    const now = Date.now();
+    setStepStartedAt(now);
+    setGenerationNow(now);
+    setGenerationStep(step);
+  }
 
-    try {
-      setGenerationError(false);
-      setSkippedExtraction(!brdStatus?.has_new_sources);
+  function endGeneration() {
+    generatingRef.current = false;
+    setStepStartedAt(null);
+    setGenerationStep("idle");
+    setTrackedJobId(null);
+  }
 
-      if (brdStatus?.has_new_sources) {
-        setGenerationStep("processing-sources");
-        await extractDocuments(id);
-      }
-
-      setGenerationStep("preparing-knowledge");
-      await consolidateProjectKnowledge(id);
-
-      setGenerationStep("generating-brd");
-      await generateBRD(id);
-
+  async function finishTrackedJob(
+    outcome: "succeeded" | "failed",
+    serverError: string | null,
+  ) {
+    if (outcome === "succeeded") {
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["brd-status", id],
@@ -332,10 +364,51 @@ export default function WorkspacePage() {
         }),
       ]);
 
-      setGenerationStep("idle");
+      endGeneration();
       showGeneratedNote();
+    } else {
+      endGeneration();
+      setGenerationError(true);
+      setGenerationServerError(serverError);
+
+      await queryClient.invalidateQueries({
+        queryKey: ["brd-status", id],
+      });
+    }
+  }
+
+  async function handleGenerateBRD() {
+    if (
+      !id ||
+      !canGenerateBRD ||
+      generationStep !== "idle" ||
+      generatingRef.current
+    ) {
+      return;
+    }
+
+    generatingRef.current = true;
+
+    try {
+      setGenerationError(false);
+      setGenerationServerError(null);
+      setSkippedExtraction(!brdStatus?.has_new_sources);
+
+      // 202: job created (or the already-running job, per the
+      // server-side concurrent guard). Work happens in-process; the
+      // progress card follows via status polling below.
+      const job = await generateBRD(id);
+
+      if (job.status === "succeeded") {
+        await finishTrackedJob("succeeded", null);
+      } else if (job.status === "failed") {
+        await finishTrackedJob("failed", job.error);
+      } else {
+        setTrackedJobId(job.job_id);
+        beginStep(mapJobPhaseToStep(job.phase));
+      }
     } catch {
-      setGenerationStep("idle");
+      endGeneration();
       setGenerationError(true);
 
       await queryClient.invalidateQueries({
@@ -343,6 +416,127 @@ export default function WorkspacePage() {
       });
     }
   }
+
+  // Follow the server-reported phase while tracking a job. The local
+  // step (and its elapsed stamp) advances only on real phase changes.
+  // Updates are deferred to a timer: repo lint forbids synchronous
+  // setState in effects; timer callbacks are the accepted pattern
+  // (cf. the progress ticker below).
+  useEffect(() => {
+    if (trackedJobId === null) {
+      return;
+    }
+
+    const activeJob = brdStatus?.active_job;
+
+    if (activeJob?.job_id !== trackedJobId) {
+      return;
+    }
+
+    const step = mapJobPhaseToStep(activeJob.phase);
+
+    if (step === generationStep) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      beginStep(step);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+    // beginStep intentionally excluded: stable setState wrappers that
+    // would resubscribe pointlessly; phase/step/job drive scheduling.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackedJobId, brdStatus?.active_job?.job_id, brdStatus?.active_job?.phase, generationStep]);
+
+  // Completion: the tracked job left the active slot. last_job names
+  // the outcome definitively (no flag heuristics).
+  useEffect(() => {
+    if (trackedJobId === null || id === undefined) {
+      return;
+    }
+
+    if (brdStatus?.active_job?.job_id === trackedJobId) {
+      return;
+    }
+
+    const lastJob = brdStatus?.last_job;
+
+    if (lastJob?.job_id !== trackedJobId) {
+      return;
+    }
+
+    const outcome =
+      lastJob.status === "succeeded" || lastJob.status === "failed"
+        ? lastJob.status
+        : null;
+
+    if (outcome === null) {
+      return;
+    }
+
+    const serverError = lastJob.error;
+
+    const timer = window.setTimeout(() => {
+      void finishTrackedJob(outcome, serverError);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+    // finishTrackedJob intentionally excluded: async completion handler;
+    // job identity drives scheduling.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackedJobId, id, brdStatus?.active_job?.job_id, brdStatus?.last_job]);
+
+  // Reload resume: adopt a server-side active job this page isn't
+  // tracking yet, so progress survives a refresh mid-run.
+  useEffect(() => {
+    const activeJob = brdStatus?.active_job;
+    const hasNewSources = brdStatus?.has_new_sources === true;
+
+    if (
+      trackedJobId !== null ||
+      generationStep !== "idle" ||
+      activeJob === undefined ||
+      activeJob === null
+    ) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      generatingRef.current = true;
+      setGenerationError(false);
+      setGenerationServerError(null);
+      setSkippedExtraction(!hasNewSources);
+      setTrackedJobId(activeJob.job_id);
+      beginStep(mapJobPhaseToStep(activeJob.phase));
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+    // beginStep intentionally excluded (see above).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trackedJobId, generationStep, brdStatus?.active_job?.job_id, brdStatus?.has_new_sources]);
+
+  // 1s ticker driving the per-step elapsed display. Runs only while a
+  // generation is in flight; cleanup stops it on idle or unmount.
+  useEffect(() => {
+    if (generationStep === "idle") {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setGenerationNow(Date.now());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [generationStep]);
 
   async function handleSaveBRD(brdData: Parameters<typeof updateBRD>[1]) {
     if (!id) {
@@ -512,8 +706,16 @@ export default function WorkspacePage() {
 
   if (isWorkspaceLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-canvas">
-        <p className="text-base text-steel">Loading...</p>
+      <main className="flex min-h-screen items-center justify-center bg-canvas px-4">
+        <div
+          aria-label="Loading workspace"
+          className="w-full max-w-2xl space-y-4"
+        >
+          <Skeleton className="h-8 w-2/5" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
       </main>
     );
   }
@@ -994,6 +1196,14 @@ export default function WorkspacePage() {
                     order.indexOf(generationStep as (typeof order)[number]) >
                       order.indexOf(step);
 
+                  const activeElapsedSeconds =
+                    isActive && stepStartedAt !== null
+                      ? Math.max(
+                          0,
+                          Math.round((generationNow - stepStartedAt) / 1000),
+                        )
+                      : 0;
+
                   return (
                     <li key={step} className="flex items-center gap-3">
                       {isActive ? (
@@ -1020,26 +1230,33 @@ export default function WorkspacePage() {
                         }
                       >
                         {label}
-                        {isActive ? "..." : ""}
+                        {isActive ? `... ${activeElapsedSeconds}s` : ""}
                       </span>
                     </li>
                   );
                 })}
               </ol>
+
+              <p className="mt-4 text-xs leading-5 text-stone">
+                Large workspaces can take a couple of minutes.
+              </p>
             </div>
           )}
 
           {generationStep === "idle" && generationError && (
             <StateAlert className="mb-6 print:hidden">
-              Generation failed. Try again.
+              Generation failed.{" "}
+              {generationServerError ?? "Try again."}
             </StateAlert>
           )}
 
           {generationStep === "idle" && isBRDStatusLoading && (
             <div
-              className={`mx-auto w-full ${docMeasure} rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 print:hidden`}
+              aria-label="Loading BRD status"
+              className={`mx-auto w-full ${docMeasure} space-y-3 rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 print:hidden`}
             >
-              <p className="text-base text-steel">Loading...</p>
+              <Skeleton className="h-5 w-1/3" />
+              <Skeleton className="h-4 w-full" />
             </div>
           )}
 
@@ -1073,7 +1290,12 @@ export default function WorkspacePage() {
                 }
                 action={
                   brdStatus.has_sources ? (
-                    <Button onClick={handleGenerateBRD}>Generate</Button>
+                    <Button
+                      onClick={handleGenerateBRD}
+                      disabled={generationStep !== "idle"}
+                    >
+                      {generationStep !== "idle" ? "Generating..." : "Generate"}
+                    </Button>
                   ) : undefined
                 }
                 className={`mx-auto w-full ${docMeasure} border border-hairline bg-canvas transition-[max-width] duration-200 print:hidden`}

@@ -16,6 +16,15 @@ export type BRDStatus = {
   has_new_sources: boolean;
   regeneration_required: boolean;
   has_user_edits: boolean;
+  active_job: GenerationJob | null;
+  last_job: GenerationJob | null;
+};
+
+export type GenerationJob = {
+  job_id: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  phase: string | null;
+  error: string | null;
 };
 
 export type BRDQASource = {
@@ -29,9 +38,14 @@ export type BRDQAResponse = {
   sources: BRDQASource[];
 };
 
-export async function generateBRD(workspaceId: string): Promise<BRD> {
-  const response = await apiClient.post<BRD>(
+export async function generateBRD(
+  workspaceId: string,
+  timeoutMs?: number,
+): Promise<GenerationJob> {
+  const response = await apiClient.post<GenerationJob>(
     `/workspaces/${workspaceId}/brd/generate`,
+    undefined,
+    timeoutMs === undefined ? undefined : { timeout: timeoutMs },
   );
 
   return response.data;

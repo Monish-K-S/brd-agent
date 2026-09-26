@@ -17,6 +17,9 @@ from app.ai.mappers.project_knowledge_mapper import (
 )
 from app.db.models.brd import BRD
 from app.repositories.brd_repository import BRDRepository
+from app.repositories.generation_job_repository import (
+    GenerationJobRepository,
+)
 from app.repositories.standard_document_repository import (
     StandardDocumentRepository,
 )
@@ -32,6 +35,8 @@ class BRDService:
 
         self.brd_repository = BRDRepository(db)
         self.standard_document_repository = StandardDocumentRepository(db)
+
+        self.generation_job_repository = GenerationJobRepository(db)
 
         self.workspace_service = WorkspaceService(db)
 
@@ -330,10 +335,40 @@ class BRDService:
             and brd.user_edited_at is not None
         )
 
+        active_job = (
+            self.generation_job_repository.get_active_by_workspace_id(
+                workspace_id,
+            )
+        )
+
+        latest_job = (
+            self.generation_job_repository.get_latest_by_workspace_id(
+                workspace_id,
+            )
+        )
+
+        def serialize_job(job):
+            return {
+                "job_id": job.id,
+                "status": job.status,
+                "phase": job.phase,
+                "error": job.error,
+            }
+
         return {
             "has_brd": has_brd,
             "has_sources": has_sources,
             "has_new_sources": has_new_sources,
             "regeneration_required": regeneration_required,
             "has_user_edits": has_user_edits,
+            "active_job": (
+                serialize_job(active_job)
+                if active_job is not None
+                else None
+            ),
+            "last_job": (
+                serialize_job(latest_job)
+                if latest_job is not None
+                else None
+            ),
         }

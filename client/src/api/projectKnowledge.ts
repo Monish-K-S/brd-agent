@@ -10,9 +10,12 @@ export type ProjectKnowledge = {
 
 export async function consolidateProjectKnowledge(
   workspaceId: string,
+  timeoutMs?: number,
 ): Promise<ProjectKnowledge> {
   const response = await apiClient.post<ProjectKnowledge>(
     `/workspaces/${workspaceId}/project-knowledge/consolidate`,
+    undefined,
+    timeoutMs === undefined ? undefined : { timeout: timeoutMs },
   )
 
   return response.data

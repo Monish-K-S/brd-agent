@@ -77,3 +77,8 @@ class Workspace(Base):
         cascade="all, delete-orphan",
         uselist=False,
     )
+
+    generation_jobs: Mapped[list["GenerationJob"]] = relationship(
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )

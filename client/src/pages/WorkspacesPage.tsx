@@ -17,9 +17,11 @@ import { Label } from "@/components/ui/label";
 import {
   createWorkspace,
   deleteWorkspace,
+  getWorkspace,
   getWorkspaces,
   type Workspace,
 } from "@/api/workspaces";
+import { getBRDStatus } from "@/api/brd";
 import { TopBar } from "@/components/layout/TopBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, StateAlert } from "@/components/ui/status";
@@ -43,6 +45,7 @@ type WorkspaceCardProps = {
   index: number;
   onOpen: (id: string) => void;
   onAskDelete: (id: string) => void;
+  onPrefetch: (id: string) => void;
 };
 
 // Memoized so keystrokes in search, dialog open/close, and other cards'
@@ -53,6 +56,7 @@ const WorkspaceCard = memo(function WorkspaceCard({
   index,
   onOpen,
   onAskDelete,
+  onPrefetch,
 }: WorkspaceCardProps) {
   const updatedAt = formatUpdatedAt(workspace.updated_at);
 
@@ -66,6 +70,8 @@ const WorkspaceCard = memo(function WorkspaceCard({
       <button
         type="button"
         onClick={() => onOpen(workspace.id)}
+        onMouseEnter={() => onPrefetch(workspace.id)}
+        onFocus={() => onPrefetch(workspace.id)}
         className="w-full flex-1 text-left"
       >
         <h2 className="text-xl leading-7 font-semibold text-ink">
@@ -236,6 +242,24 @@ export default function WorkspacesPage() {
     setPendingDeleteId(workspaceId);
   }, []);
 
+  // Warm the detail-page queries on hover/focus so open feels instant.
+  // Only workspace + brd-status: ["brd", id] is enabled solely when
+  // brdStatus.has_brd, so prefetching it blind could 404. staleTime on
+  // the detail queries makes repeat hovers free.
+  const handlePrefetchWorkspace = useCallback(
+    (workspaceId: string) => {
+      void queryClient.prefetchQuery({
+        queryKey: ["workspace", workspaceId],
+        queryFn: () => getWorkspace(workspaceId),
+      });
+      void queryClient.prefetchQuery({
+        queryKey: ["brd-status", workspaceId],
+        queryFn: () => getBRDStatus(workspaceId),
+      });
+    },
+    [queryClient],
+  );
+
   const pendingDeleteWorkspace = (workspaces ?? []).find(
     (workspace) => workspace.id === pendingDeleteId,
   );
@@ -385,6 +409,7 @@ export default function WorkspacesPage() {
                   index={index}
                   onOpen={handleOpenWorkspace}
                   onAskDelete={handleAskDelete}
+                  onPrefetch={handlePrefetchWorkspace}
                 />
               ))}
             </div>

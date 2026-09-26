@@ -10,6 +10,7 @@ from app.schemas.brd import (
     BRDResponse,
     BRDStatusResponse,
     BRDUpdateRequest,
+    GenerationJobResponse,
     validate_brd_data,
 )
 from app.schemas.brd_qa import (
@@ -18,11 +19,16 @@ from app.schemas.brd_qa import (
 )
 from app.services.brd_qa_service import BRDQAService
 from app.services.brd_service import BRDService
+from app.services.generation_job_service import (
+    GenerationJobService,
+    run_generation_job,
+)
 from app.core.audit import audit
 from app.core.config import settings
 from app.core.rate_limit import limiter
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
     Request,
@@ -35,6 +41,18 @@ from starlette.background import BackgroundTask
 
 def _cleanup_export_file(path: str) -> None:
     Path(path).unlink(missing_ok=True)
+
+
+def _to_job_response(job_dict: dict | None) -> "GenerationJobResponse | None":
+    if job_dict is None:
+        return None
+
+    return GenerationJobResponse(
+        job_id=job_dict["job_id"],
+        status=job_dict["status"],
+        phase=job_dict["phase"],
+        error=job_dict["error"],
+    )
 
 
 MAX_EXPORT_NAME_CHARS = 80
@@ -65,38 +83,43 @@ router = APIRouter(
 
 @router.post(
     "/generate",
-    response_model=BRDResponse,
-    status_code=status.HTTP_201_CREATED,
+    response_model=GenerationJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
 )
 @limiter.limit(settings.rate_limit_brd_generate)
 def generate_brd(
     request: Request,
     workspace_id: UUID,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(
         get_current_db_user,
     ),
     db: Session = Depends(get_db),
-) -> BRDResponse:
-    brd_service = BRDService(db)
+) -> GenerationJobResponse:
+    job_service = GenerationJobService(db)
 
-    brd = brd_service.generate_brd_for_user(
+    job = job_service.create_job_for_user(
         workspace_id=workspace_id,
         user_id=current_user.id,
     )
 
-    if brd is None:
+    if job is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=("Workspace not found or project knowledge not available"),
+            detail="Workspace not found",
         )
 
-    return BRDResponse(
-        id=brd.id,
-        workspace_id=brd.workspace_id,
-        brd_data=brd.brd_data,
-        created_at=brd.created_at,
-        updated_at=brd.updated_at,
-        user_edited_at=brd.user_edited_at,
+    if job.status == "queued":
+        background_tasks.add_task(
+            run_generation_job,
+            job.id,
+        )
+
+    return GenerationJobResponse(
+        job_id=job.id,
+        status=job.status,
+        phase=job.phase,
+        error=job.error,
     )
 
 
@@ -130,6 +153,8 @@ def get_brd_status(
         has_new_sources=brd_status["has_new_sources"],
         regeneration_required=brd_status["regeneration_required"],
         has_user_edits=brd_status["has_user_edits"],
+        active_job=_to_job_response(brd_status["active_job"]),
+        last_job=_to_job_response(brd_status["last_job"]),
     )
 
 

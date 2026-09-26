@@ -9,7 +9,7 @@ export function Skeleton({ className }: SkeletonProps) {
     <div
       aria-hidden="true"
       data-slot="skeleton"
-      className={cn("rounded-lg bg-black/8", className)}
+      className={cn("animate-pulse rounded-lg bg-black/8", className)}
     />
   );
 }
