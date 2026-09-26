@@ -2,22 +2,37 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "cn";
 
 /* Shared status primitives: quiet labels, pills, empty states, alerts.
-   Monochrome only, sentence case, product colors never appear here. */
+   Monochrome only, sentence case — except the single brand-coral accent
+   (CoralDot / Eyebrow dot), the app's one signature moment. Product
+   colors never appear anywhere else here. */
+
+export function CoralDot({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn("inline-block size-2 shrink-0 rounded-full bg-brand-coral", className)}
+    />
+  );
+}
 
 export function Eyebrow({
   children,
   className,
+  dot = false,
 }: {
   children: ReactNode;
   className?: string;
+  dot?: boolean;
 }) {
   return (
     <p
       className={cn(
         "text-xs font-semibold tracking-normal text-steel",
+        dot && "flex items-center gap-1.5",
         className,
       )}
     >
+      {dot && <CoralDot />}
       {children}
     </p>
   );

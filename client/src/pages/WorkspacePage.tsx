@@ -1,7 +1,9 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 import { useAuth } from "@/auth/AuthProvider";
+import NotFoundPage, { ErrorHero } from "@/pages/NotFoundPage";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -41,7 +43,9 @@ import { BRDQAPanel } from "@/components/brd/BRDQAPanel";
 import { TopBar } from "@/components/layout/TopBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  CoralDot,
   EmptyState,
+  Eyebrow,
   FlashNote,
   StateAlert,
   StatusBadge,
@@ -97,6 +101,7 @@ export default function WorkspacePage() {
     data: workspace,
     isLoading: isWorkspaceLoading,
     isError: isWorkspaceError,
+    error: workspaceError,
     refetch: refetchWorkspace,
   } = useQuery({
     queryKey: ["workspace", id],
@@ -763,21 +768,38 @@ export default function WorkspacePage() {
   }
 
   if (isWorkspaceError || !workspace) {
+    // Unknown workspace id (or deleted workspace): render the same
+    // themed 404 page as unknown routes. It already routes signed-in
+    // users back to /workspaces. Other failures keep retry UI.
+    const isNotFound =
+      !isWorkspaceError ||
+      (isAxiosError(workspaceError) &&
+        workspaceError.response?.status === 404);
+
+    if (isNotFound) {
+      return (
+        <NotFoundPage
+          title="This workspace doesn't exist."
+          body="It may have been deleted, or the link you followed is wrong."
+        />
+      );
+    }
+
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-canvas px-4 sm:px-8">
-        <StateAlert className="max-w-md">
-          Something went wrong. Please try again.
-        </StateAlert>
+      <main className="flex min-h-screen flex-col bg-canvas text-ink">
+        <section className="flex flex-1 items-center px-4 py-24 sm:px-8">
+          <ErrorHero
+            overline="Error"
+            title="Something went wrong."
+            body="Please try again."
+          >
+            <Button onClick={() => refetchWorkspace()}>Retry</Button>
 
-        <div className="flex gap-3">
-          <Button variant="subtle" onClick={() => refetchWorkspace()}>
-            Retry
-          </Button>
-
-          <Button variant="subtle" onClick={() => navigate("/workspaces")}>
-            Back to Workspaces
-          </Button>
-        </div>
+            <Button variant="outline" onClick={() => navigate("/workspaces")}>
+              Back to Workspaces
+            </Button>
+          </ErrorHero>
+        </section>
       </main>
     );
   }
@@ -818,7 +840,8 @@ export default function WorkspacePage() {
               </Button>
 
               <div className="min-w-0">
-                <h1 className="truncate text-base leading-6 font-semibold text-ink">
+                <h1 className="flex items-center gap-2 truncate text-lg leading-6 font-semibold text-ink">
+                  <CoralDot />
                   {workspace.name}
                 </h1>
 
@@ -841,21 +864,22 @@ export default function WorkspacePage() {
       <div
         className={`grid min-h-[calc(100vh-65px)] grid-cols-1 md:h-[calc(100vh-65px)] md:overflow-hidden ${gridCols}`}
       >
-        <aside className="border-b border-hairline-soft bg-canvas p-4 print:hidden md:overflow-y-auto md:border-r md:border-b-0">
+        <aside className="border-b border-hairline-soft bg-surface p-4 print:hidden md:overflow-y-auto md:border-r md:border-b-0">
           {!sourcesOpen ? (
             <button
               type="button"
               onClick={toggleSources}
               aria-label="Show sources"
               title="Show sources"
-              className="flex size-9 items-center justify-center rounded-full bg-surface text-ink transition-colors duration-200 hover:bg-black/5"
+              className="flex size-9 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1 transition-colors duration-200 hover:bg-black/5"
             >
               <ChevronRight />
             </button>
           ) : (
             <>
               <div className="flex items-center justify-between gap-2">
-                <h2 className="text-base font-semibold text-ink">
+                <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
+                  <CoralDot />
                   Sources
                   {(documents?.length ?? 0) > 0 && (
                     <span className="ml-2 text-sm font-normal text-stone">
@@ -948,25 +972,28 @@ export default function WorkspacePage() {
               !isDocumentsError &&
               uploadedDocuments.length === 0 &&
               emailDocuments.length === 0 && (
-                <p className="mt-4 text-sm leading-5 text-steel">
+                <div className="mt-4 flex min-h-[92px] items-center justify-center rounded-2xl border border-dashed border-hairline bg-canvas/60 px-4 py-6 text-center text-sm leading-5 text-steel transition-colors duration-200 hover:border-ink/30">
                   Nothing here yet.
-                </p>
+                </div>
               )}
 
             {!isDocumentsLoading &&
               !isDocumentsError &&
               uploadedDocuments.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  {uploadedDocuments.map((document) => (
+                  {uploadedDocuments.map((document, index) => (
                     <div
                       key={document.id}
-                      className="rounded-2xl border border-hairline bg-canvas p-4"
+                      style={{
+                        animationDelay: `${Math.min(index, 8) * 60}ms`,
+                      }}
+                      className="animate-rise rounded-2xl border border-hairline bg-canvas p-4 transition-shadow duration-200 hover:shadow-level-1"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-start gap-3">
                           <span
                             aria-hidden="true"
-                            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink"
+                            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-level-1"
                           >
                             <FileText />
                           </span>
@@ -1021,14 +1048,17 @@ export default function WorkspacePage() {
 
           {/* Gmail */}
           <section className="mt-8 border-t border-hairline-soft pt-6">
-            <h2 className="text-base font-semibold text-ink">Gmail</h2>
+            <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
+              <CoralDot />
+              Gmail
+            </h2>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {!isGmailStatusLoading &&
                 !isGmailStatusError &&
                 !gmailStatus?.connected && (
                   <Button
-                    variant="subtle"
+                    variant="outline"
                     size="sm"
                     onClick={handleConnectGmail}
                     disabled={connectGmailMutation.isPending}
@@ -1044,7 +1074,7 @@ export default function WorkspacePage() {
                 gmailStatus?.connected && (
                   <>
                     <Button
-                      variant="subtle"
+                      variant="outline"
                       size="sm"
                       onClick={() => setIsGmailBrowserOpen(true)}
                     >
@@ -1095,16 +1125,19 @@ export default function WorkspacePage() {
 
                   {emailDocuments.length > 0 && (
                     <div className="mt-4 space-y-2">
-                      {emailDocuments.map((document) => (
+                      {emailDocuments.map((document, index) => (
                         <div
                           key={document.id}
-                          className="rounded-2xl border border-hairline bg-canvas p-4"
+                          style={{
+                            animationDelay: `${Math.min(index, 8) * 60}ms`,
+                          }}
+                          className="animate-rise rounded-2xl border border-hairline bg-canvas p-4 transition-shadow duration-200 hover:shadow-level-1"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-start gap-3">
                               <span
                                 aria-hidden="true"
-                                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink"
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-level-1"
                               >
                                 <Mail />
                               </span>
@@ -1182,10 +1215,13 @@ export default function WorkspacePage() {
             className={`mx-auto mb-6 flex w-full ${docMeasure} flex-wrap items-center justify-between gap-3 transition-[max-width] duration-200 print:hidden`}
           >
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl leading-[1.3] font-semibold text-ink">BRD</h2>
+              <div className="min-w-0">
+                <Eyebrow dot>Business requirements</Eyebrow>
+                <h2 className="text-2xl leading-[1.3] font-semibold text-ink">BRD</h2>
+              </div>
 
               {brdStateLabel && (
-                <StatusBadge tone="neutral">{brdStateLabel}</StatusBadge>
+                <StatusBadge tone="filled">{brdStateLabel}</StatusBadge>
               )}
             </div>
 
@@ -1193,7 +1229,7 @@ export default function WorkspacePage() {
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
-                    <Button variant="subtle">
+                    <Button variant="outline">
                       <Download />
                       Export
                     </Button>
@@ -1251,14 +1287,14 @@ export default function WorkspacePage() {
                       {isActive ? (
                         <Loader2
                           aria-hidden="true"
-                          className="size-4 animate-spin text-ink"
+                          className="size-4 animate-spin text-brand-coral"
                         />
                       ) : (
                         <span
                           aria-hidden="true"
                           className={
                             isDone
-                              ? "size-2 rounded-full bg-primary"
+                              ? "size-2 rounded-full bg-brand-coral"
                               : "size-2 rounded-full border border-ink/20"
                           }
                         />
@@ -1340,7 +1376,7 @@ export default function WorkspacePage() {
                     </Button>
                   ) : undefined
                 }
-                className={`mx-auto w-full ${docMeasure} border border-hairline bg-canvas transition-[max-width] duration-200 print:hidden`}
+                className={`mx-auto w-full ${docMeasure} border border-hairline bg-canvas shadow-level-1 transition-[max-width] duration-200 print:hidden`}
               />
             )}
 
@@ -1349,11 +1385,12 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             brdStatus.regeneration_required && (
               <div
-                className={`mx-auto mb-6 w-full ${docMeasure} rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 print:hidden`}
+                className={`mx-auto mb-6 w-full ${docMeasure} rounded-2xl border border-brand-coral/40 bg-canvas p-6 shadow-level-1 transition-[max-width] duration-200 print:hidden`}
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-base font-medium text-ink">
+                    <Eyebrow dot>Needs attention</Eyebrow>
+                    <p className="mt-1 text-base font-medium text-ink">
                       New sources available.
                     </p>
 
@@ -1452,13 +1489,13 @@ export default function WorkspacePage() {
           (qaOpen ? (
             <BRDQAPanel workspaceId={id} onCollapse={toggleQa} />
           ) : (
-            <div className="border-t border-hairline-soft bg-canvas p-4 print:hidden md:border-t-0 md:border-l">
+            <div className="border-t border-hairline-soft bg-surface p-4 print:hidden md:border-t-0 md:border-l">
               <button
                 type="button"
                 onClick={toggleQa}
                 aria-label="Show Q&A"
                 title="Show Q&A"
-                className="flex size-9 items-center justify-center rounded-full bg-surface text-ink transition-colors duration-200 hover:bg-black/5"
+                className="flex size-9 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1 transition-colors duration-200 hover:bg-black/5"
               >
                 <ChevronLeft />
               </button>

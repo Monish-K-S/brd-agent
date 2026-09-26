@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "@/auth/AuthProvider";
 import { supabase } from "@/lib/supabase";
+import { CoralDot } from "@/components/ui/status";
 import { useEffect, useState } from "react";
 
 export default function AuthPage() {
@@ -62,8 +63,18 @@ export default function AuthPage() {
       </div>
 
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-hairline bg-canvas p-8 text-center sm:p-10">
-          <h1 className="text-[32px] leading-[1.25] font-semibold tracking-[-0.5px] text-ink">
+        <div className="w-full max-w-md overflow-hidden rounded-2xl border border-hairline bg-canvas text-center">
+          <div
+            aria-hidden="true"
+            className="h-1 bg-brand-coral"
+          />
+
+          <div className="p-8 sm:p-10">
+          <div className="flex justify-center">
+            <CoralDot />
+          </div>
+
+          <h1 className="mt-3 text-[32px] leading-[1.25] font-semibold tracking-[-0.5px] text-ink">
             Welcome
           </h1>
 
@@ -114,6 +125,7 @@ export default function AuthPage() {
             <p className="text-sm text-steel">
               You&apos;ll land in your workspaces right after.
             </p>
+          </div>
           </div>
         </div>
       </div>

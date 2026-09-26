@@ -100,6 +100,11 @@ Remaining: none committed — next is user-directed (product depth or hygiene ga
 
 ## Known Gaps – Still Open
 - **Polish**: none committed — next is user-directed (product depth or hygiene).
+- **Docs (stale, for future completion)**:
+  - Test count: guide says "10 tests" (`Backend Context`, `Closed 2026‑09‑18`) — suite is 31 (`pytest`: parsers, models, export builders, generation jobs, dedup). Update both mentions when convenient.
+  - "No pytest available" (`Verification Commands`) is outdated — pytest 8.3.5 runs from `server/` via `.venv/bin/python -m pytest`.
+  - `Implementation Status` predates: Phase 1 (skeletons, prefetch, autosave), Phase 2a (generation hardening), Phase 2b (`generation_jobs` table, `202 + poll`, reload resume), workspace/upload hard-block dedup (409s, migrations `d4e5f6a7b8c9`, `e5f6a7b8c9d0`).
+  - `client/DESIGN.md` shows as user-modified (spec updates) — never edit unprompted (existing rule, restated for continuity).
 
 ## Closed 2026‑09‑18 (test tooling + deps)
 - pytest 8.3.5 in `server/.venv` (via `requirements-dev.txt`, uv-installed — no pip in venv); `tests/test_parser_factory.py` + `tests/test_parsers.py` + `test_models.py` converted from print-scripts to collected tests (dataset paths file-relative); new `tests/test_export_builders.py` (latin-1 crash regression, folios, DOCX justify/PAGE, empty states) — 10 passed. No CI in repo: run `.venv/bin/python -m pytest` from `server/` manually.

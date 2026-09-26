@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { askBRD, type BRDQAResponse } from "@/api/brd";
 import { Button } from "@/components/ui/button";
+import { CoralDot } from "@/components/ui/status";
 import { Bot, ChevronRight, Loader2, Send, Trash2 } from "lucide-react";
 
 type Message = {
@@ -86,17 +87,20 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
   }
 
   return (
-    <aside className="flex min-h-0 flex-col border-t border-hairline-soft bg-canvas print:hidden md:h-[calc(100vh-65px)] md:border-t-0 md:border-l">
+    <aside className="flex min-h-0 flex-col border-t border-hairline-soft bg-surface shadow-level-1 print:hidden md:h-[calc(100vh-65px)] md:border-t-0 md:border-l">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-hairline-soft px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <span
             aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface text-ink"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1"
           >
             <Bot />
           </span>
 
-          <h2 className="truncate text-base font-semibold text-ink">Q&A</h2>
+          <h2 className="flex items-center gap-2 truncate text-base font-semibold text-ink">
+            <CoralDot />
+            Q&A
+          </h2>
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
@@ -144,8 +148,8 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
                 key={message.id}
                 className={
                   message.role === "user"
-                    ? "flex justify-end"
-                    : "flex justify-start"
+                    ? "flex animate-rise justify-end"
+                    : "flex animate-rise justify-start"
                 }
               >
                 <div
@@ -183,7 +187,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
                           {message.sources.map((source) => (
                             <div
                               key={source.id}
-                              className="rounded-2xl border border-hairline bg-surface px-3 py-2"
+                              className="rounded-2xl border border-hairline bg-canvas px-3 py-2"
                             >
                               <p
                                 className="truncate text-xs font-medium text-ink"

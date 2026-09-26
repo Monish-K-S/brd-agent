@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
+import { CoralDot, Eyebrow } from "@/components/ui/status";
 
 const STEPS = ["Add sources", "Generate the BRD", "Review and export"];
 
@@ -49,7 +50,10 @@ export default function LandingPage() {
     <main className="flex min-h-screen flex-col bg-canvas text-ink">
       <header className="sticky top-0 border-b border-hairline-soft bg-canvas">
         <div className="mx-auto flex h-16 w-full max-w-[1280px] items-center justify-between px-4 sm:px-8">
-          <span className="text-base font-semibold text-ink">BRD Agent</span>
+          <span className="flex items-center gap-2 text-base font-semibold text-ink">
+            <CoralDot />
+            BRD Agent
+          </span>
 
           <Link to={entry} className={OUTLINE_CTA}>
             Sign in
@@ -60,7 +64,14 @@ export default function LandingPage() {
       {/* Centered hero */}
       <section className="px-4 pt-24 pb-16 sm:px-8 lg:pt-24 lg:pb-20">
         <div className="mx-auto w-full max-w-[1280px] text-center">
-          <h1 className="animate-rise mx-auto max-w-4xl text-[40px] leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-[56px] sm:tracking-[-1.5px] lg:text-[80px] lg:tracking-[-2px]">
+          <Eyebrow
+            dot
+            className="animate-rise justify-center uppercase"
+          >
+            AI-powered requirements
+          </Eyebrow>
+
+          <h1 className="animate-rise mx-auto mt-4 max-w-4xl text-[40px] leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-[56px] sm:tracking-[-1.5px] lg:text-[80px] lg:tracking-[-2px]">
             Turn project files into a BRD.
           </h1>
 
@@ -126,11 +137,17 @@ export default function LandingPage() {
               ))}
             </div>
 
-            <div className="h-8 w-px bg-ink/30" />
+            <div className="h-8 w-px bg-brand-coral/40" />
 
-            <div className="w-full max-w-sm rounded-2xl border border-hairline bg-canvas p-5 text-left">
+            <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-hairline bg-canvas text-left">
+              <div
+                aria-hidden="true"
+                className="h-1 bg-brand-coral"
+              />
+
+              <div className="p-5">
               <div className="flex items-center gap-2">
-                <span className="size-2.5 rounded-full bg-ink" />
+                <span className="size-2.5 rounded-full bg-brand-coral" />
                 <p className="text-base font-semibold text-ink">Product BRD</p>
                 <p className="ml-auto text-xs text-steel">Draft</p>
               </div>
@@ -149,6 +166,7 @@ export default function LandingPage() {
               <p className="mt-4 text-xs text-steel">
                 + 6 more sections, generated from your sources
               </p>
+              </div>
             </div>
           </div>
         </div>
@@ -173,7 +191,7 @@ export default function LandingPage() {
               >
                 <span
                   aria-hidden="true"
-                  className="text-2xl font-semibold text-ink"
+                  className="text-2xl font-semibold text-brand-coral"
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
@@ -213,7 +231,10 @@ export default function LandingPage() {
 
       <footer className="bg-primary px-4 py-16 sm:px-8">
         <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-          <p className="text-sm font-semibold text-white">BRD Agent</p>
+          <p className="flex items-center gap-2 text-sm font-semibold text-white">
+            <CoralDot />
+            BRD Agent
+          </p>
 
           <p className="text-sm text-muted">
             From scattered files to a structured BRD.

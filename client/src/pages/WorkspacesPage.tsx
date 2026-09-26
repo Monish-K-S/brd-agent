@@ -24,7 +24,7 @@ import {
 import { getBRDStatus } from "@/api/brd";
 import { TopBar } from "@/components/layout/TopBar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EmptyState, StateAlert } from "@/components/ui/status";
+import { EmptyState, Eyebrow, StateAlert } from "@/components/ui/status";
 
 function formatUpdatedAt(value: string): string {
   const parsed = new Date(value);
@@ -86,7 +86,7 @@ const WorkspaceCard = memo(function WorkspaceCard({
       style={{
         animationDelay: `${Math.min(index, 8) * 60}ms`,
       }}
-      className="animate-rise flex flex-col rounded-2xl border border-hairline bg-canvas p-6 transition-shadow duration-200 hover:shadow-level-1"
+      className="animate-rise flex flex-col rounded-2xl border border-hairline bg-canvas p-6 transition-all duration-200 hover:border-brand-coral/40 hover:shadow-level-1"
     >
       <button
         type="button"
@@ -311,7 +311,8 @@ export default function WorkspacesPage() {
       <div className="mx-auto w-full max-w-[1280px] px-4 pt-8 sm:px-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h1 className="text-[40px] leading-[1.2] font-semibold tracking-[-1px] text-ink">
+            <Eyebrow dot>Your projects</Eyebrow>
+            <h1 className="mt-1 text-[40px] leading-[1.2] font-semibold tracking-[-1px] text-ink">
               Workspaces
             </h1>
 
@@ -427,9 +428,9 @@ export default function WorkspacesPage() {
               <button
                 type="button"
                 onClick={() => setDialogOpen(true)}
-                className="animate-rise flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-canvas p-6 text-steel transition-colors duration-200 hover:border-ink hover:text-ink"
+                className="animate-rise group flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-canvas p-6 text-steel transition-colors duration-200 hover:border-brand-coral hover:text-ink"
               >
-                <Plus aria-hidden="true" className="size-5" />
+                <Plus aria-hidden="true" className="size-5 transition-colors duration-200 group-hover:text-brand-coral" />
                 <span className="text-base font-medium">New workspace</span>
               </button>
 

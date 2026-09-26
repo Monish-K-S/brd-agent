@@ -581,7 +581,9 @@ export function BRDViewer({
         )}
       </header>
 
-      <div className="rounded-2xl border border-hairline bg-canvas px-6 py-8 sm:px-10 print:border-0 print:rounded-none">
+      <div className="overflow-hidden rounded-2xl border border-hairline bg-canvas shadow-level-2 print:border-0 print:rounded-none print:shadow-none">
+        <div aria-hidden="true" className="h-1 bg-brand-coral print:hidden" />
+        <div className="px-6 py-8 sm:px-10">
         {/* 01 — Executive Summary */}
         <Section
           number={1}
@@ -1215,6 +1217,7 @@ export function BRDViewer({
             />
           )}
         </Section>
+        </div>
       </div>
     </article>
   );
