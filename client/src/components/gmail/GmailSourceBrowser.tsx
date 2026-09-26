@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getRecentGmailMessages,
@@ -88,12 +93,22 @@ export function GmailSourceBrowser({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 print:hidden">
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl border border-hairline bg-canvas text-ink shadow-level-3">
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !isImporting) {
+          onClose();
+        }
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        className="flex max-h-[85vh] max-w-2xl flex-col gap-0 p-0 print:hidden sm:max-w-2xl"
+      >
         <div className="flex items-center justify-between gap-4 p-6">
-          <h2 className="text-2xl leading-[1.3] font-semibold text-ink">
+          <DialogTitle className="text-h3 leading-[1.3] font-semibold text-ink">
             Add emails
-          </h2>
+          </DialogTitle>
 
           <Button
             variant="subtle"
@@ -202,7 +217,7 @@ export function GmailSourceBrowser({
                           {message.subject || "No subject"}
                         </p>
 
-                        <span className="shrink-0 text-xs text-stone">
+                        <span className="shrink-0 text-xs text-steel">
                           {formatDate(message.date)}
                         </span>
                       </div>
@@ -248,7 +263,7 @@ export function GmailSourceBrowser({
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

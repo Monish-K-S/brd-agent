@@ -124,7 +124,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
               aria-label="Hide Q&A"
               aria-expanded="true"
               title="Hide Q&A"
-              className="flex size-9 items-center justify-center rounded-full text-ink transition-colors duration-200 hover:bg-black/5"
+              className="flex size-9 items-center justify-center rounded-full text-ink transition-colors duration-200 max-md:size-11 hover:bg-black/5"
             >
               <ChevronRight />
             </button>
@@ -148,8 +148,8 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
                 key={message.id}
                 className={
                   message.role === "user"
-                    ? "flex animate-rise justify-end"
-                    : "flex animate-rise justify-start"
+                    ? "flex justify-end"
+                    : "flex justify-start"
                 }
               >
                 <div

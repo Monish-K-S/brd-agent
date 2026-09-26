@@ -26,11 +26,39 @@
     --color-hairline-soft: #eaecf0;
     --color-input-border: #e5e7eb;
 
+    /* DESIGN.md semantic tokens. */
+    --color-success-bg: #e8ffea;
+    --color-success-text: #1ba673;
+
     /* Product-identity colors: signature moments only, never structure. */
     --color-brand-coral: #ff5530;
     --color-brand-magenta: #ea5ec1;
     --color-brand-blue: #1456f0;
+    --color-brand-blue-deep: #1d4ed8;
+    --color-brand-blue-200: #bfdbfe;
     --color-brand-purple: #a855f7;
+
+    /* DESIGN.md type scale: display sizes step hero -> display ->
+       heading-lg (h1) -> heading-md (h2) -> heading-sm (h3). */
+    --text-hero: 80px;
+    --text-hero--line-height: 1.1;
+    --text-hero--letter-spacing: -2px;
+    --text-display: 56px;
+    --text-display--line-height: 1.1;
+    --text-display--letter-spacing: -1.5px;
+    --text-h1: 40px;
+    --text-h1--line-height: 1.2;
+    --text-h1--letter-spacing: -1px;
+    --text-h2: 32px;
+    --text-h2--line-height: 1.25;
+    --text-h2--letter-spacing: -0.5px;
+    --text-h3: 24px;
+    --text-h3--line-height: 1.3;
+
+    /* DESIGN.md radius contrast: 32px product/feature moments vs
+       16px quiet white cards. */
+    --radius-card: 1rem;
+    --radius-tile: 2rem;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -216,8 +244,14 @@
   }
 }
 
-/* Respect reduced-motion: kill enter animations and transitions */
-@media (prefers-reduced-motion: reduce) {
+/* Dialogs never print (the overlay would wash the page). */
+@media print {
+  [data-slot="dialog-overlay"] {
+    display: none;
+  }
+}
+
+/* Respect reduced-motion: kill enter animations and transitions */@media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {

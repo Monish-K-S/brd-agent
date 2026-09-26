@@ -26,11 +26,11 @@ export function ErrorHero({
         className="mx-auto h-1 w-12 rounded-full bg-brand-coral"
       />
 
-      <p className="mt-4 text-sm font-semibold tracking-[0.2em] text-stone uppercase">
+      <p className="mt-4 text-sm font-semibold tracking-normal text-steel">
         {overline}
       </p>
 
-      <h1 className="animate-rise mx-auto mt-4 max-w-2xl text-[40px] leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-[56px] sm:tracking-[-1.5px]">
+      <h1 className="animate-rise mx-auto mt-4 max-w-2xl text-h1 leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-display sm:tracking-[-1.5px]">
         {title}
       </h1>
 
@@ -95,7 +95,7 @@ export default function NotFoundPage({
             <CoralDot />
             BRD Agent
           </span>
-          <p className="text-sm text-stone">
+          <p className="text-sm text-steel">
             From scattered files to a structured BRD.
           </p>
         </div>

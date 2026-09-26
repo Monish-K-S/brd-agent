@@ -63,7 +63,6 @@ function mutationDetail(error: unknown): string | null {
 
 type WorkspaceCardProps = {
   workspace: Workspace;
-  index: number;
   onOpen: (id: string) => void;
   onAskDelete: (id: string) => void;
   onPrefetch: (id: string) => void;
@@ -74,7 +73,6 @@ type WorkspaceCardProps = {
 // cache are stable, so unchanged cards bail out.
 const WorkspaceCard = memo(function WorkspaceCard({
   workspace,
-  index,
   onOpen,
   onAskDelete,
   onPrefetch,
@@ -83,10 +81,7 @@ const WorkspaceCard = memo(function WorkspaceCard({
 
   return (
     <div
-      style={{
-        animationDelay: `${Math.min(index, 8) * 60}ms`,
-      }}
-      className="animate-rise flex flex-col rounded-2xl border border-hairline bg-canvas p-6 transition-all duration-200 hover:border-brand-coral/40 hover:shadow-level-1"
+      className="flex flex-col rounded-2xl border border-hairline bg-canvas p-6 transition-all duration-200 hover:border-brand-coral/40 hover:shadow-level-1"
     >
       <button
         type="button"
@@ -106,7 +101,7 @@ const WorkspaceCard = memo(function WorkspaceCard({
         )}
 
         {updatedAt && (
-          <p className="mt-4 text-xs leading-5 text-stone">
+          <p className="mt-4 text-xs leading-5 text-steel">
             Updated {updatedAt}
           </p>
         )}
@@ -312,7 +307,7 @@ export default function WorkspacesPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <Eyebrow dot>Your projects</Eyebrow>
-            <h1 className="mt-1 text-[40px] leading-[1.2] font-semibold tracking-[-1px] text-ink">
+            <h1 className="mt-1 text-h1 leading-[1.2] font-semibold tracking-[-1px] text-ink">
               Workspaces
             </h1>
 
@@ -428,17 +423,16 @@ export default function WorkspacesPage() {
               <button
                 type="button"
                 onClick={() => setDialogOpen(true)}
-                className="animate-rise group flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-canvas p-6 text-steel transition-colors duration-200 hover:border-brand-coral hover:text-ink"
+                className="group flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-canvas p-6 text-steel transition-colors duration-200 hover:border-brand-coral hover:text-ink"
               >
                 <Plus aria-hidden="true" className="size-5 transition-colors duration-200 group-hover:text-brand-coral" />
                 <span className="text-base font-medium">New workspace</span>
               </button>
 
-              {visibleWorkspaces.map((workspace, index) => (
+              {visibleWorkspaces.map((workspace) => (
                 <WorkspaceCard
                   key={workspace.id}
                   workspace={workspace}
-                  index={index}
                   onOpen={handleOpenWorkspace}
                   onAskDelete={handleAskDelete}
                   onPrefetch={handlePrefetchWorkspace}

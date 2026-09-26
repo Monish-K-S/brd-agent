@@ -38,11 +38,14 @@ export function Eyebrow({
   );
 }
 
-type BadgeTone = "neutral" | "filled";
+type BadgeTone = "neutral" | "filled" | "success" | "beta" | "code";
 
 const badgeTones: Record<BadgeTone, string> = {
   neutral: "border border-hairline bg-canvas text-ink",
   filled: "bg-primary text-white",
+  success: "bg-success-bg text-success-text",
+  beta: "bg-brand-blue-200 text-brand-blue-deep",
+  code: "rounded-md bg-brand-blue-200 px-1.5 py-0.5 text-brand-blue-deep",
 };
 
 export function StatusBadge({

@@ -871,7 +871,7 @@ export default function WorkspacePage() {
               onClick={toggleSources}
               aria-label="Show sources"
               title="Show sources"
-              className="flex size-9 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1 transition-colors duration-200 hover:bg-black/5"
+              className="flex size-9 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1 transition-colors duration-200 max-md:size-11 hover:bg-black/5"
             >
               <ChevronRight />
             </button>
@@ -882,7 +882,7 @@ export default function WorkspacePage() {
                   <CoralDot />
                   Sources
                   {(documents?.length ?? 0) > 0 && (
-                    <span className="ml-2 text-sm font-normal text-stone">
+                    <span className="ml-2 text-sm font-normal text-steel">
                       {documents?.length}
                     </span>
                   )}
@@ -894,7 +894,7 @@ export default function WorkspacePage() {
                   aria-label="Hide sources"
                   aria-expanded="true"
                   title="Hide sources"
-                  className="flex size-9 items-center justify-center rounded-full text-ink transition-colors duration-200 hover:bg-black/5"
+                  className="flex size-9 items-center justify-center rounded-full text-ink transition-colors duration-200 max-md:size-11 hover:bg-black/5"
                 >
                   <ChevronLeft />
                 </button>
@@ -928,7 +928,7 @@ export default function WorkspacePage() {
               />
             </div>
 
-            <p className="mt-2 text-xs leading-5 text-stone">
+            <p className="mt-2 text-xs leading-5 text-steel">
               .txt, .pdf, .docx
             </p>
 
@@ -981,13 +981,10 @@ export default function WorkspacePage() {
               !isDocumentsError &&
               uploadedDocuments.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  {uploadedDocuments.map((document, index) => (
+                  {uploadedDocuments.map((document) => (
                     <div
                       key={document.id}
-                      style={{
-                        animationDelay: `${Math.min(index, 8) * 60}ms`,
-                      }}
-                      className="animate-rise rounded-2xl border border-hairline bg-canvas p-4 transition-shadow duration-200 hover:shadow-level-1"
+                      className="rounded-2xl border border-hairline bg-canvas p-4 transition-shadow duration-200 hover:shadow-level-1"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-start gap-3">
@@ -1007,7 +1004,13 @@ export default function WorkspacePage() {
                             </p>
 
                             <div className="mt-2">
-                              <StatusBadge tone="neutral">
+                              <StatusBadge
+                                tone={
+                                  document.source_type === "email"
+                                    ? "beta"
+                                    : "code"
+                                }
+                              >
                                 {document.source_type}
                               </StatusBadge>
                             </div>
@@ -1119,19 +1122,16 @@ export default function WorkspacePage() {
               !isGmailStatusError &&
               gmailStatus?.connected && (
                 <>
-                  <p className="mt-3 truncate text-xs text-stone">
+                  <p className="mt-3 truncate text-xs text-steel">
                     {gmailStatus.email}
                   </p>
 
                   {emailDocuments.length > 0 && (
                     <div className="mt-4 space-y-2">
-                      {emailDocuments.map((document, index) => (
+                      {emailDocuments.map((document) => (
                         <div
                           key={document.id}
-                          style={{
-                            animationDelay: `${Math.min(index, 8) * 60}ms`,
-                          }}
-                          className="animate-rise rounded-2xl border border-hairline bg-canvas p-4 transition-shadow duration-200 hover:shadow-level-1"
+                          className="rounded-2xl border border-hairline bg-canvas p-4 transition-shadow duration-200 hover:shadow-level-1"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex min-w-0 items-start gap-3">
@@ -1315,7 +1315,7 @@ export default function WorkspacePage() {
                 })}
               </ol>
 
-              <p className="mt-4 text-xs leading-5 text-stone">
+              <p className="mt-4 text-xs leading-5 text-steel">
                 Large workspaces can take a couple of minutes.
               </p>
             </div>
@@ -1495,7 +1495,7 @@ export default function WorkspacePage() {
                 onClick={toggleQa}
                 aria-label="Show Q&A"
                 title="Show Q&A"
-                className="flex size-9 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1 transition-colors duration-200 hover:bg-black/5"
+                className="flex size-9 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1 transition-colors duration-200 max-md:size-11 hover:bg-black/5"
               >
                 <ChevronLeft />
               </button>

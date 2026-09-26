@@ -74,7 +74,7 @@ export default function AuthPage() {
             <CoralDot />
           </div>
 
-          <h1 className="mt-3 text-[32px] leading-[1.25] font-semibold tracking-[-0.5px] text-ink">
+          <h1 className="mt-3 text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink">
             Welcome
           </h1>
 

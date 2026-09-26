@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "@/auth/AuthProvider";
 import { CoralDot, Eyebrow } from "@/components/ui/status";
-
-const STEPS = ["Add sources", "Generate the BRD", "Review and export"];
+import { FileText, MessagesSquare, PencilLine, FileDown } from "lucide-react";
 
 const DETAILED_STEPS = [
   {
@@ -31,6 +30,36 @@ const DOC_SECTIONS = [
   "Scope",
   "Stakeholders",
   "Requirements",
+];
+
+const STATS = [
+  { value: "11", label: "Structured sections in every draft" },
+  { value: "3+", label: "Source types — PDF, Word, Gmail" },
+  { value: "2", label: "Export formats — PDF and DOCX" },
+  { value: "1", label: "Place to edit, ask, and export" },
+];
+
+const TILES = [
+  {
+    icon: FileText,
+    title: "Reads your sources",
+    body: "Uploads and Gmail threads become the evidence behind every section.",
+  },
+  {
+    icon: PencilLine,
+    title: "Edits in place",
+    body: "Change any section directly on the page — no round-trips, no re-uploads.",
+  },
+  {
+    icon: MessagesSquare,
+    title: "Answers questions",
+    body: "Ask where a requirement came from and get an answer traced to sources.",
+  },
+  {
+    icon: FileDown,
+    title: "Exports cleanly",
+    body: "Take the finished BRD as a paginated PDF or DOCX, mirroring the page.",
+  },
 ];
 
 const PRIMARY_CTA =
@@ -66,12 +95,12 @@ export default function LandingPage() {
         <div className="mx-auto w-full max-w-[1280px] text-center">
           <Eyebrow
             dot
-            className="animate-rise justify-center uppercase"
+            className="animate-rise justify-center"
           >
             AI-powered requirements
           </Eyebrow>
 
-          <h1 className="animate-rise mx-auto mt-4 max-w-4xl text-[40px] leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-[56px] sm:tracking-[-1.5px] lg:text-[80px] lg:tracking-[-2px]">
+          <h1 className="animate-rise mx-auto mt-4 max-w-4xl text-h1 leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-display sm:tracking-[-1.5px] lg:text-hero lg:tracking-[-2px]">
             Turn project files into a BRD.
           </h1>
 
@@ -95,26 +124,6 @@ export default function LandingPage() {
               See how it works
             </a>
           </div>
-
-          <ol
-            style={{ animationDelay: "260ms" }}
-            className="animate-rise mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-x-8"
-          >
-            {STEPS.map((step, index) => (
-              <li key={step} className="flex items-center gap-2.5">
-                <span
-                  aria-hidden="true"
-                  className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-white"
-                >
-                  {index + 1}
-                </span>
-
-                <span className="text-sm font-medium text-charcoal">
-                  {step}
-                </span>
-              </li>
-            ))}
-          </ol>
         </div>
       </section>
 
@@ -155,7 +164,7 @@ export default function LandingPage() {
               <div className="mt-4 space-y-3">
                 {DOC_SECTIONS.map((section) => (
                   <div key={section}>
-                    <p className="text-[13px] font-medium text-charcoal">
+                    <p className="text-sm font-medium text-charcoal">
                       {section}
                     </p>
                     <div className="mt-1.5 h-1.5 rounded-full bg-surface" />
@@ -172,6 +181,58 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Stat strip */}
+      <section aria-label="What you get" className="px-4 py-16 sm:px-8 lg:py-20">
+        <div className="mx-auto w-full max-w-[1280px]">
+          <dl className="grid grid-cols-2 gap-8 lg:grid-cols-4">
+            {STATS.map((stat) => (
+              <div key={stat.label} className="flex flex-col">
+                <dd className="text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink">
+                  {stat.value}
+                </dd>
+                <dt className="mt-2 text-sm leading-6 text-steel">
+                  {stat.label}
+                </dt>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* Capability tiles */}
+      <section
+        aria-label="Capabilities"
+        className="bg-surface px-4 py-16 sm:px-8 lg:py-20"
+      >
+        <div className="mx-auto w-full max-w-[1280px]">
+          <h2 className="max-w-2xl text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-h1 sm:leading-[1.2] sm:tracking-[-1px]">
+            Everything around the document, in one place.
+          </h2>
+
+          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {TILES.map((tile) => (
+              <div
+                key={tile.title}
+                className="rounded-3xl border border-hairline bg-canvas p-6"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex size-12 items-center justify-center rounded-full bg-surface text-ink"
+                >
+                  <tile.icon className="size-5" />
+                </span>
+
+                <h3 className="mt-5 text-xl leading-7 font-semibold text-ink">
+                  {tile.title}
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-steel">{tile.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Detailed How it works */}
       <section
         id="how-it-works"
@@ -179,7 +240,7 @@ export default function LandingPage() {
         className="scroll-mt-24 px-4 py-16 sm:px-8 lg:py-20"
       >
         <div className="mx-auto w-full max-w-[1280px]">
-          <h2 className="max-w-2xl text-[32px] leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-[40px] sm:leading-[1.2] sm:tracking-[-1px]">
+          <h2 className="max-w-2xl text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-h1 sm:leading-[1.2] sm:tracking-[-1px]">
             From scattered files to a finished BRD.
           </h2>
 
@@ -212,8 +273,8 @@ export default function LandingPage() {
       {/* Coral finale */}
       <section className="px-4 pb-16 sm:px-8 lg:pb-20">
         <div className="mx-auto w-full max-w-[1280px]">
-          <div className="rounded-[32px] bg-brand-coral px-8 py-16 text-center sm:px-16">
-            <h2 className="mx-auto max-w-2xl text-[32px] leading-[1.2] font-semibold tracking-[-0.5px] text-white sm:text-[40px] sm:tracking-[-1px]">
+          <div className="rounded-tile bg-brand-coral px-8 py-16 text-center sm:px-16">
+            <h2 className="mx-auto max-w-2xl text-h2 leading-[1.2] font-semibold tracking-[-0.5px] text-white sm:text-h1 sm:tracking-[-1px]">
               Your first BRD is one upload away.
             </h2>
 
@@ -229,16 +290,69 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="bg-primary px-4 py-16 sm:px-8">
-        <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-          <p className="flex items-center gap-2 text-sm font-semibold text-white">
-            <CoralDot />
-            BRD Agent
-          </p>
+      <footer className="bg-primary px-4 py-16 text-white sm:px-8">
+        <div className="mx-auto w-full max-w-[1280px]">
+          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <p className="flex items-center gap-2 text-base font-semibold text-white">
+                <CoralDot />
+                BRD Agent
+              </p>
+              <p className="mt-3 max-w-xs text-sm leading-6 text-muted">
+                From scattered files to a structured BRD.
+              </p>
+            </div>
 
-          <p className="text-sm text-muted">
-            From scattered files to a structured BRD.
-          </p>
+            <nav aria-label="Product">
+              <p className="text-sm font-medium text-white">Product</p>
+              <ul className="mt-3 space-y-1">
+                <li>
+                  <a
+                    href="#how-it-works"
+                    className="inline-block py-1 text-sm leading-6 text-muted transition-colors duration-200 hover:text-white"
+                  >
+                    How it works
+                  </a>
+                </li>
+                <li>
+                  <Link
+                    to={entry}
+                    className="inline-block py-1 text-sm leading-6 text-muted transition-colors duration-200 hover:text-white"
+                  >
+                    Create your first BRD
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+
+            <nav aria-label="Account">
+              <p className="text-sm font-medium text-white">Account</p>
+              <ul className="mt-3 space-y-1">
+                <li>
+                  <Link
+                    to={entry}
+                    className="inline-block py-1 text-sm leading-6 text-muted transition-colors duration-200 hover:text-white"
+                  >
+                    Sign in
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/workspaces"
+                    className="inline-block py-1 text-sm leading-6 text-muted transition-colors duration-200 hover:text-white"
+                  >
+                    Workspaces
+                  </Link>
+                </li>
+              </ul>
+            </nav>
+          </div>
+
+          <div className="mt-12 border-t border-white/10 pt-6">
+            <p className="text-xs leading-5 text-muted">
+              BRD Agent — turn project files into a BRD.
+            </p>
+          </div>
         </div>
       </footer>
     </main>

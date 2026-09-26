@@ -126,7 +126,7 @@ function Section({
     <section className="border-t border-hairline-soft py-8 first:border-t-0 first:pt-0">
       <div className="mb-4 flex items-center justify-between gap-4">
         <h2 className="text-2xl leading-8 font-semibold text-ink">
-          <span className="mr-3 text-sm font-semibold text-stone">
+          <span className="mr-3 text-sm font-semibold text-steel">
             {String(number).padStart(2, "0")}
           </span>
           {title}
@@ -153,7 +153,7 @@ function Section({
 
       {isEditing && (
         <div className="mt-6 flex items-center justify-between gap-3 border-t border-hairline-soft pt-5 print:hidden">
-          <span aria-live="polite" className="text-xs leading-5 text-stone">
+          <span aria-live="polite" className="text-xs leading-5 text-steel">
             {autosaveText ?? ""}
           </span>
 
@@ -185,14 +185,14 @@ function Section({
 function BulletList({ items }: { items: string[] }) {
   if (items.length === 0) {
     return (
-      <p className="text-[15px] text-steel italic">
+      <p className="text-base text-steel italic">
         None specified.
       </p>
     );
   }
 
   return (
-    <ul className="space-y-3 pl-5 text-justify text-[15px] leading-7 text-ink">
+    <ul className="space-y-3 pl-5 text-justify text-base leading-7 text-ink">
       {items.map((item, index) => (
         <li key={index} className="list-disc pl-1 marker:text-steel">
           {item}
@@ -240,7 +240,7 @@ function EditableList({
           <button
             type="button"
             onClick={() => removeItem(index)}
-            className="rounded-full border border-hairline px-4 py-2 text-[13px] font-medium text-steel transition-colors hover:bg-primary/5 hover:text-ink"
+            className="rounded-full border border-hairline px-4 py-2 text-sm font-medium text-steel transition-colors hover:bg-primary/5 hover:text-ink"
           >
             Remove
           </button>
@@ -250,7 +250,7 @@ function EditableList({
       <button
         type="button"
         onClick={addItem}
-        className="rounded-full border border-hairline px-5 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-primary/5"
+        className="rounded-full border border-hairline px-5 py-2 text-sm font-medium text-ink transition-colors hover:bg-primary/5"
       >
         + Add item
       </button>
@@ -564,7 +564,7 @@ export function BRDViewer({
       }}
     >
       <header className="px-2 py-8 sm:px-4">
-        <h1 className="text-[32px] leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-[40px] sm:leading-[1.2] sm:tracking-[-1px]">
+        <h1 className="text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-h1 sm:leading-[1.2] sm:tracking-[-1px]">
           {data.project_overview.project_name}
         </h1>
 
@@ -573,7 +573,7 @@ export function BRDViewer({
         </p>
 
         {(generatedOn || updatedOn || editedByUser) && (
-          <p className="mt-4 text-sm leading-5 text-stone">
+          <p className="mt-4 text-sm leading-5 text-steel">
             {[generatedOn && `Generated ${generatedOn}`, updatedOn && updatedOn !== generatedOn && `Updated ${updatedOn}`, editedByUser && "Edited by you"]
               .filter(Boolean)
               .join(" · ")}
@@ -857,7 +857,7 @@ export function BRDViewer({
                         onClick={() =>
                           removeStakeholder(index)
                         }
-                        className="rounded-full border border-hairline px-4 py-2 text-[13px] font-medium text-steel transition-colors hover:bg-primary/5 hover:text-ink"
+                        className="rounded-full border border-hairline px-4 py-2 text-sm font-medium text-steel transition-colors hover:bg-primary/5 hover:text-ink"
                       >
                         Remove
                       </button>
@@ -869,13 +869,13 @@ export function BRDViewer({
               <button
                 type="button"
                 onClick={addStakeholder}
-                className="rounded-full border border-hairline px-5 py-2 text-[13px] font-medium text-ink transition-colors hover:bg-primary/5"
+                className="rounded-full border border-hairline px-5 py-2 text-sm font-medium text-ink transition-colors hover:bg-primary/5"
               >
                 + Add stakeholder
               </button>
             </div>
           ) : data.stakeholders.stakeholders.length === 0 ? (
-            <p className="text-[15px] text-steel italic">
+            <p className="text-base text-steel italic">
               None specified.
             </p>
           ) : (

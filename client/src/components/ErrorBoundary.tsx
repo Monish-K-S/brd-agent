@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<
     return (
       <main className="flex min-h-screen flex-col items-center bg-canvas px-4 py-24 text-center text-ink sm:px-8">
         <div className="mx-auto w-full max-w-xl">
-          <h1 className="text-[32px] leading-[1.15] font-semibold tracking-[-0.5px] text-ink">
+          <h1 className="text-h2 leading-[1.15] font-semibold tracking-[-0.5px] text-ink">
             Something went wrong.
           </h1>
 
