@@ -70,7 +70,7 @@ Use TanStack Query for queries & mutations.
 ```
 client/src/
 ├─ api/ (client, workspaces, sources, brd, gmail)
-├─ auth/ (AuthProvider, RequireAuth)
+├─ auth/ (AuthProvider, RequireAuth, auth-context, useAuth)
 ├─ components/
 │  ├─ brd/ (BRDViewer, BRDQAPanel)
 │  ├─ gmail/ (GmailSourceBrowser)
@@ -86,7 +86,7 @@ Done: frontend init, auth flow, protected routes, workspace CRUD, workspace shel
 Remaining: none committed — next is user-directed (product depth or hygiene gaps).
 
 ## Verification Commands
-- Client: `npm run build` (must be green), preview `/ /auth /workspaces /workspaces/abc` → 200, `npm run lint` (3 pre-existing errors as of 2026-09-18 — do not chase).
+- Client: `npm run build` (must be green), preview `/ /auth /workspaces /workspaces/abc` → 200, `npm run lint` (must be clean — the 3 pre-existing errors from 2026-09-18 were fixed 2026-09-28: `buttonVariants` un-exported, auth split into `auth-context.ts` + `useAuth.ts`, BRDViewer draft sync moved to render phase).
 - Server: no pytest available; verify with targeted scripts (e.g. throwaway script in `/var/folders/.../opencode/`, never in repo) + `compileall`.
 - Diffs must stay confined to planned files; `client/DESIGN.md` shows as user-modified (spec updates) — never edit it unprompted.
 

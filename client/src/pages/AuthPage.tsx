@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-import { useAuth } from "@/auth/AuthProvider";
+import { useAuth } from "@/auth/useAuth";
 import { supabase } from "@/lib/supabase";
 import { CoralDot } from "@/components/ui/status";
 import { useEffect, useState } from "react";

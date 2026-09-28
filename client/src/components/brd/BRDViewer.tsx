@@ -418,11 +418,22 @@ export function BRDViewer({
     };
   }, [draft, editingSection, savedDraft, flushAutosave]);
 
-  useEffect(() => {
+  // Sync server data into the draft without an effect: when a fresh
+  // `data` identity arrives (regeneration/refetch) while not editing,
+  // adopt it; while editing, the draft belongs to the user. Render-phase
+  // adjustment resolves before commit, so no cascading render occurs.
+  const [prevData, setPrevData] = useState(data);
+  const [prevEditingSection, setPrevEditingSection] =
+    useState<EditingSection>(null);
+
+  if (prevData !== data || prevEditingSection !== editingSection) {
+    setPrevData(data);
+    setPrevEditingSection(editingSection);
+
     if (editingSection === null) {
       setDraft(data);
     }
-  }, [data, editingSection]);
+  }
 
   // Flush-then-switch: persist pending edits before moving to another
   // section. Stays put only when the flush itself failed, so no typed

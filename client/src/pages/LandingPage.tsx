@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "@/auth/AuthProvider";
+import { useAuth } from "@/auth/useAuth";
 import { CoralDot, Eyebrow } from "@/components/ui/status";
 import { FileText, MessagesSquare, PencilLine, FileDown } from "lucide-react";
 
