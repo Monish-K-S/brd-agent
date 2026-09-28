@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     google_client_id: str
     google_client_secret: str
     google_redirect_uri: str
+    google_drive_redirect_uri: str
 
     token_encryption_key: str
 
@@ -49,6 +50,10 @@ class Settings(BaseSettings):
     rate_limit_gmail_import: str = "20/hour"
     rate_limit_gmail_connect: str = "10/hour"
     rate_limit_gmail_callback: str = "20/minute"
+    rate_limit_drive_connect: str = "10/hour"
+    rate_limit_drive_callback: str = "20/minute"
+    rate_limit_drive_picker_token: str = "30/minute"
+    rate_limit_drive_import: str = "20/hour"
 
     allowed_hosts: Annotated[list[str], NoDecode] = ["*"]
     expose_db_health: bool = False

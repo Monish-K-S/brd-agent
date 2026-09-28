@@ -119,3 +119,18 @@ class StandardDocumentRepository:
             )
             .first()
         )
+
+    def get_by_drive_file_id(
+        self,
+        workspace_id: UUID,
+        drive_file_id: str,
+    ) -> StandardDocument | None:
+        return (
+            self.db.query(StandardDocument)
+            .filter(
+                StandardDocument.workspace_id == workspace_id,
+                StandardDocument.metadata_["drive_file_id"].astext
+                == drive_file_id,
+            )
+            .first()
+        )

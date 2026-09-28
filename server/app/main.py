@@ -23,6 +23,9 @@ from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.db.session import SessionLocal
+from app.integrations.drive.router import (
+    router as drive_router,
+)
 from app.integrations.gmail.router import (
     router as gmail_router,
 )
@@ -105,6 +108,7 @@ app.include_router(document_extraction_router)
 app.include_router(project_knowledge_router)
 app.include_router(brd_router)
 app.include_router(gmail_router)
+app.include_router(drive_router)
 
 
 app.add_middleware(
