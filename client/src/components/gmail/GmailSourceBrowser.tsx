@@ -154,7 +154,7 @@ export function GmailSourceBrowser({
               {[0, 1, 2].map((index) => (
                 <div
                   key={index}
-                  className="rounded-2xl border border-hairline bg-canvas p-4"
+                  className="rounded-xl border border-hairline bg-canvas p-4"
                 >
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="mt-2 h-3 w-1/3" />
@@ -164,7 +164,7 @@ export function GmailSourceBrowser({
           )}
 
           {isError && (
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-4">
               <p className="text-sm text-ink">Couldn&apos;t load emails.</p>
 
               <Button
@@ -199,8 +199,8 @@ export function GmailSourceBrowser({
                     key={message.id}
                     className={
                       selected
-                        ? "flex cursor-pointer gap-3 rounded-2xl border-2 border-ink bg-surface p-4 transition-colors duration-200"
-                        : "flex cursor-pointer gap-3 rounded-2xl border-2 border-transparent bg-surface p-4 transition-colors duration-200 hover:bg-black/5"
+                        ? "flex cursor-pointer gap-3 rounded-xl border-2 border-ink bg-canvas p-4 transition-colors duration-200"
+                        : "flex cursor-pointer gap-3 rounded-xl border-2 border-transparent bg-canvas p-4 transition-colors duration-200 hover:border-hairline"
                     }
                   >
                     <input
@@ -256,6 +256,7 @@ export function GmailSourceBrowser({
             </Button>
 
             <Button
+              variant="accent"
               onClick={() => onImport(selectedIds)}
               disabled={selectedIds.length === 0 || isImporting}
             >

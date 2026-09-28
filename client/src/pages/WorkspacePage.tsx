@@ -59,7 +59,6 @@ import {
   Eyebrow,
   FlashNote,
   StateAlert,
-  StatusBadge,
 } from "@/components/ui/status";
 import { useFlash } from "@/components/ui/use-flash";
 import {
@@ -92,9 +91,10 @@ function mapJobPhaseToStep(
   }
 }
 
-// Compact source card shared by the uploads, Gmail, and Drive lists:
-// single-line title plus a one-line meta row (neutral type badge +
-// optional subtitle) so long source lists stay scannable.
+// Compact source index row shared by the uploads, Gmail, and Drive
+// lists: single-line title plus a one-line meta row (neutral type badge
+// + optional subtitle). Rows sit in hairline-divided groups so long
+// source lists stay scannable without card chrome.
 function SourceCard({
   icon,
   title,
@@ -113,52 +113,47 @@ function SourceCard({
   onDelete: (documentId: string) => void;
 }) {
   return (
-    <div className="rounded-2xl border border-hairline bg-canvas p-3 transition-shadow duration-200 hover:shadow-level-1">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span
-            aria-hidden="true"
-            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-level-1"
-          >
-            {icon}
-          </span>
-
-          <div className="min-w-0">
-            <p
-              className="truncate text-sm leading-5 font-medium text-ink"
-              title={title}
-            >
-              {title}
-            </p>
-
-            <p className="mt-0.5 flex min-w-0 items-center gap-1.5">
-              <span className="shrink-0 rounded-md bg-surface px-1.5 py-px text-xs font-medium tracking-wide text-steel uppercase">
-                {badge}
-              </span>
-
-              {subtitle && (
-                <span
-                  className="truncate text-xs text-steel"
-                  title={subtitle}
-                >
-                  {subtitle}
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Delete source"
-          title="Delete source"
-          onClick={() => onDelete(documentId)}
-          disabled={isDeleting}
+    <div className="flex items-center justify-between gap-2 px-2 py-2.5 transition-colors duration-200 hover:bg-canvas">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span
+          aria-hidden="true"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-canvas text-ink"
         >
-          <Trash2 />
-        </Button>
+          {icon}
+        </span>
+
+        <div className="min-w-0">
+          <p
+            className="truncate text-sm leading-5 font-medium text-ink"
+            title={title}
+          >
+            {title}
+          </p>
+
+          <p className="mt-0.5 flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 rounded-md bg-canvas px-1.5 py-px text-xs font-medium tracking-wide text-steel uppercase">
+              {badge}
+            </span>
+
+            {subtitle && (
+              <span className="truncate text-xs text-steel" title={subtitle}>
+                {subtitle}
+              </span>
+            )}
+          </p>
+        </div>
       </div>
+
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label="Delete source"
+        title="Delete source"
+        onClick={() => onDelete(documentId)}
+        disabled={isDeleting}
+      >
+        <Trash2 />
+      </Button>
     </div>
   );
 }
@@ -1054,6 +1049,9 @@ export default function WorkspacePage() {
               </Button>
 
               <div className="min-w-0">
+                <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-steel uppercase">
+                  Project
+                </p>
                 <h1 className="flex items-center gap-2 truncate text-lg leading-6 font-semibold text-ink">
                   <CoralDot />
                   {workspace.name}
@@ -1085,18 +1083,18 @@ export default function WorkspacePage() {
               onClick={toggleSources}
               aria-label="Show sources"
               title="Show sources"
-              className="flex size-9 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1 transition-colors duration-200 max-md:size-11 hover:bg-black/5"
+              className="flex size-9 items-center justify-center rounded-full border border-hairline bg-canvas text-ink transition-colors duration-200 max-md:size-11 hover:bg-black/5"
             >
               <ChevronRight />
             </button>
           ) : (
             <>
               <div className="flex items-center justify-between gap-2">
-                <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
+                <h2 className="flex items-center gap-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   <CoralDot />
                   Sources
                   {(documents?.length ?? 0) > 0 && (
-                    <span className="ml-2 text-sm font-normal text-steel">
+                    <span className="ml-1 font-medium text-steel normal-case">
                       {documents?.length}
                     </span>
                   )}
@@ -1120,6 +1118,7 @@ export default function WorkspacePage() {
                   input — a label pill alone is not focusable. */}
               <Button
                 type="button"
+                variant="accent"
                 className="w-full"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadMutation.isPending}
@@ -1151,7 +1150,7 @@ export default function WorkspacePage() {
                 {[0, 1].map((index) => (
                   <div
                     key={index}
-                    className="rounded-2xl border border-hairline bg-canvas p-4"
+                    className="rounded-xl border border-hairline bg-canvas p-4"
                   >
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="mt-2 h-3 w-1/3" />
@@ -1161,7 +1160,7 @@ export default function WorkspacePage() {
             )}
 
             {isDocumentsError && (
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4">
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-4">
                 <p className="text-sm text-ink">
                   Couldn&apos;t load sources.
                 </p>
@@ -1187,7 +1186,7 @@ export default function WorkspacePage() {
               uploadedDocuments.length === 0 &&
               emailDocuments.length === 0 &&
               driveDocuments.length === 0 && (
-                <div className="mt-4 flex min-h-[92px] items-center justify-center rounded-2xl border border-dashed border-hairline bg-canvas/60 px-4 py-6 text-center text-sm leading-5 text-steel transition-colors duration-200 hover:border-ink/30">
+                <div className="mt-4 flex min-h-[92px] items-center justify-center rounded-xl border border-dashed border-hairline bg-canvas/60 px-4 py-6 text-center text-sm leading-5 text-steel">
                   Nothing here yet.
                 </div>
               )}
@@ -1195,22 +1194,28 @@ export default function WorkspacePage() {
             {!isDocumentsLoading &&
               !isDocumentsError &&
               uploadedDocuments.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {uploadedDocuments.map((document) => (
-                    <SourceCard
-                      key={document.id}
-                      icon={<FileText size={16} />}
-                      title={document.title || "Untitled source"}
-                      badge={document.source_type}
-                      documentId={document.id}
-                      isDeleting={
-                        deleteMutation.isPending &&
-                        deleteMutation.variables === document.id
-                      }
-                      onDelete={handleDeleteDocument}
-                    />
-                  ))}
-                </div>
+                <>
+                  <p className="mt-4 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
+                    Files · {uploadedDocuments.length}
+                  </p>
+
+                  <div className="mt-1 divide-y divide-hairline-soft border-y border-hairline-soft">
+                    {uploadedDocuments.map((document) => (
+                      <SourceCard
+                        key={document.id}
+                        icon={<FileText size={16} />}
+                        title={document.title || "Untitled source"}
+                        badge={document.source_type}
+                        documentId={document.id}
+                        isDeleting={
+                          deleteMutation.isPending &&
+                          deleteMutation.variables === document.id
+                        }
+                        onDelete={handleDeleteDocument}
+                      />
+                    ))}
+                  </div>
+                </>
               )}
 
             {uploadValidationError && (
@@ -1228,9 +1233,14 @@ export default function WorkspacePage() {
 
           {/* Gmail */}
           <section className="mt-8 border-t border-hairline-soft pt-6">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
+            <h2 className="flex items-center gap-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
               <CoralDot />
               Gmail
+              {emailDocuments.length > 0 && (
+                <span className="ml-1 font-medium normal-case">
+                  {emailDocuments.length}
+                </span>
+              )}
             </h2>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1280,7 +1290,7 @@ export default function WorkspacePage() {
             )}
 
             {!isGmailStatusLoading && isGmailStatusError && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-3">
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-3">
                 <p className="text-sm text-ink">
                   Couldn&apos;t check Gmail.
                 </p>
@@ -1304,7 +1314,7 @@ export default function WorkspacePage() {
                   </p>
 
                   {emailDocuments.length > 0 && (
-                    <div className="mt-4 space-y-2">
+                    <div className="mt-1 divide-y divide-hairline-soft border-y border-hairline-soft">
                       {emailDocuments.map((document) => (
                         <SourceCard
                           key={document.id}
@@ -1346,9 +1356,14 @@ export default function WorkspacePage() {
 
           {/* Google Drive */}
           <section className="mt-8 border-t border-hairline-soft pt-6">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
+            <h2 className="flex items-center gap-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
               <CoralDot />
               Google Drive
+              {driveDocuments.length > 0 && (
+                <span className="ml-1 font-medium normal-case">
+                  {driveDocuments.length}
+                </span>
+              )}
             </h2>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -1405,7 +1420,7 @@ export default function WorkspacePage() {
             )}
 
             {!isDriveStatusLoading && isDriveStatusError && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-3">
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-3">
                 <p className="text-sm text-ink">
                   Couldn&apos;t check Google Drive.
                 </p>
@@ -1429,7 +1444,7 @@ export default function WorkspacePage() {
                   </p>
 
                   {driveDocuments.length > 0 && (
-                    <div className="mt-4 space-y-2">
+                    <div className="mt-1 divide-y divide-hairline-soft border-y border-hairline-soft">
                       {driveDocuments.map((document) => (
                         <SourceCard
                           key={document.id}
@@ -1482,20 +1497,36 @@ export default function WorkspacePage() {
           )}
         </aside>
 
-        <section className="min-h-0 min-w-0 overflow-y-auto bg-surface p-4 print:bg-canvas print:p-0 sm:p-8">
+        <section className="min-h-0 min-w-0 overflow-y-auto bg-canvas p-4 print:bg-canvas print:p-0 sm:p-8">
           <div
-            className={`mx-auto mb-6 flex w-full ${docMeasure} flex-wrap items-center justify-between gap-3 transition-[max-width] duration-200 print:hidden`}
+            className={`mx-auto mb-6 w-full ${docMeasure} border-b border-hairline pb-5 transition-[max-width] duration-200 print:hidden`}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div className="min-w-0">
-                <Eyebrow dot>Business requirements</Eyebrow>
-                <h2 className="text-2xl leading-[1.3] font-semibold text-ink">BRD</h2>
-              </div>
+                <p className="truncate text-xs font-semibold tracking-[0.08em] text-steel uppercase">
+                  {workspace.name}
+                </p>
+                <h2 className="mt-1 text-2xl leading-[1.3] font-semibold tracking-[-0.5px] text-ink">
+                  Business Requirements Document
+                </h2>
 
-              {brdStateLabel && (
-                <StatusBadge tone="filled">{brdStateLabel}</StatusBadge>
-              )}
-            </div>
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-steel">
+                  {brdStateLabel && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.08em] uppercase">
+                      <CoralDot />
+                      {brdStateLabel}
+                    </span>
+                  )}
+
+                  {(documents?.length ?? 0) > 0 && (
+                    <span>
+                      {brdStateLabel ? "· " : ""}From{" "}
+                      {documents?.length}{" "}
+                      {documents?.length === 1 ? "source" : "sources"}
+                    </span>
+                  )}
+                </p>
+              </div>
 
             {brdStatus?.has_brd && (
               <DropdownMenu>
@@ -1519,11 +1550,12 @@ export default function WorkspacePage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            </div>
           </div>
 
           {generationStep !== "idle" && (
             <div
-              className={`mx-auto w-full ${docMeasure} rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 print:hidden`}
+              className={`mx-auto w-full ${docMeasure} rounded-xl border border-hairline bg-surface p-6 transition-[max-width] duration-200 print:hidden`}
             >
               <ol className="space-y-3">
                 {(
@@ -1575,12 +1607,12 @@ export default function WorkspacePage() {
                       <span
                         className={
                           isActive || isDone
-                            ? "text-base font-medium text-ink"
-                            : "text-base text-steel"
+                            ? "text-sm font-semibold tracking-[0.08em] text-ink uppercase"
+                            : "text-sm tracking-[0.08em] text-steel uppercase"
                         }
                       >
                         {label}
-                        {isActive ? `... ${activeElapsedSeconds}s` : ""}
+                        {isActive ? ` ··· ${activeElapsedSeconds}s` : ""}
                       </span>
                     </li>
                   );
@@ -1603,7 +1635,7 @@ export default function WorkspacePage() {
           {generationStep === "idle" && isBRDStatusLoading && (
             <div
               aria-label="Loading BRD status"
-              className={`mx-auto w-full ${docMeasure} space-y-3 rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 print:hidden`}
+              className={`mx-auto w-full ${docMeasure} space-y-3 rounded-xl border border-hairline bg-surface p-6 transition-[max-width] duration-200 print:hidden`}
             >
               <Skeleton className="h-5 w-1/3" />
               <Skeleton className="h-4 w-full" />
@@ -1612,7 +1644,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && isBRDStatusError && (
             <div
-              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4 transition-[max-width] duration-200 print:hidden`}
+              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 rounded-xl border border-hairline bg-surface p-4 transition-[max-width] duration-200 print:hidden`}
             >
               <p className="text-sm text-ink">Something went wrong.</p>
 
@@ -1641,6 +1673,7 @@ export default function WorkspacePage() {
                 action={
                   brdStatus.has_sources ? (
                     <Button
+                      variant="accent"
                       onClick={handleGenerateBRD}
                       disabled={generationStep !== "idle"}
                     >
@@ -1648,7 +1681,7 @@ export default function WorkspacePage() {
                     </Button>
                   ) : undefined
                 }
-                className={`mx-auto w-full ${docMeasure} border border-hairline bg-canvas shadow-level-1 transition-[max-width] duration-200 print:hidden`}
+                className={`mx-auto w-full ${docMeasure} border border-hairline bg-surface transition-[max-width] duration-200 print:hidden`}
               />
             )}
 
@@ -1657,7 +1690,7 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             brdStatus.regeneration_required && (
               <div
-                className={`mx-auto mb-6 w-full ${docMeasure} rounded-2xl border border-brand-coral/40 bg-canvas p-6 shadow-level-1 transition-[max-width] duration-200 print:hidden`}
+                className={`mx-auto mb-6 w-full ${docMeasure} rounded-xl border border-hairline border-l-2 border-l-accent-action bg-surface p-6 transition-[max-width] duration-200 print:hidden`}
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
@@ -1675,6 +1708,7 @@ export default function WorkspacePage() {
                   </div>
 
                   <Button
+                    variant="accent"
                     onClick={handleGenerateBRD}
                     disabled={generationStep !== "idle"}
                   >
@@ -1686,7 +1720,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && brdStatus?.has_brd && isBRDLoading && (
             <div
-              className={`mx-auto w-full ${docMeasure} rounded-2xl border border-hairline bg-canvas p-6 transition-[max-width] duration-200 sm:p-8`}
+              className={`mx-auto w-full ${docMeasure} rounded-xl border border-hairline bg-surface p-6 transition-[max-width] duration-200 sm:p-8`}
               aria-label="Loading BRD"
             >
               <Skeleton className="h-3 w-1/3" />
@@ -1704,7 +1738,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && brdStatus?.has_brd && isBRDError && (
             <div
-              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4 transition-[max-width] duration-200 print:hidden`}
+              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 rounded-xl border border-hairline bg-surface p-4 transition-[max-width] duration-200 print:hidden`}
             >
               <p className="text-sm text-ink">Something went wrong.</p>
 
@@ -1767,7 +1801,7 @@ export default function WorkspacePage() {
                 onClick={toggleQa}
                 aria-label="Show Q&A"
                 title="Show Q&A"
-                className="flex size-9 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1 transition-colors duration-200 max-md:size-11 hover:bg-black/5"
+                className="flex size-9 items-center justify-center rounded-full border border-hairline bg-canvas text-ink transition-colors duration-200 max-md:size-11 hover:bg-black/5"
               >
                 <ChevronLeft />
               </button>

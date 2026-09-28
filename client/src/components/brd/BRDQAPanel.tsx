@@ -87,20 +87,25 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
   }
 
   return (
-    <aside className="flex min-h-0 flex-col border-t border-hairline-soft bg-surface shadow-level-1 print:hidden md:h-[calc(100vh-65px)] md:border-t-0 md:border-l">
+    <aside className="flex min-h-0 flex-col border-t border-hairline-soft bg-surface print:hidden md:h-[calc(100vh-65px)] md:border-t-0 md:border-l">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-hairline-soft px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <span
             aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-canvas text-ink shadow-level-1"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-canvas text-ink"
           >
             <Bot />
           </span>
 
-          <h2 className="flex items-center gap-2 truncate text-base font-semibold text-ink">
-            <CoralDot />
-            Q&A
-          </h2>
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 truncate text-xs font-semibold tracking-[0.08em] text-steel uppercase">
+              <CoralDot />
+              Q&A
+            </h2>
+            <p className="truncate text-xs leading-4 text-steel">
+              Ask about this project
+            </p>
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
@@ -155,12 +160,12 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
                 <div
                   className={
                     message.role === "user"
-                      ? "max-w-[90%] rounded-2xl bg-primary px-4 py-3 text-sm leading-5 text-white"
+                      ? "max-w-[90%] rounded-xl bg-canvas px-4 py-3 text-sm leading-5 text-ink"
                       : "max-w-[95%]"
                   }
                 >
                   {message.role === "user" ? (
-                    <p className="whitespace-pre-wrap text-sm leading-5 text-white">
+                    <p className="text-sm leading-5 whitespace-pre-wrap text-ink">
                       {message.content}
                     </p>
                   ) : (
@@ -183,11 +188,14 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
                     message.sources &&
                     message.sources.length > 0 && (
                       <div className="mt-4 border-t border-hairline-soft pt-3">
+                        <p className="mb-1.5 text-[11px] font-semibold tracking-[0.08em] text-steel uppercase">
+                          Sources
+                        </p>
                         <div className="space-y-1.5">
                           {message.sources.map((source) => (
                             <div
                               key={source.id}
-                              className="rounded-2xl border border-hairline bg-canvas px-3 py-2"
+                              className="rounded-lg border border-hairline bg-canvas px-3 py-2"
                             >
                               <p
                                 className="truncate text-xs font-medium text-ink"
@@ -214,7 +222,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
         )}
 
         {askMutation.isError && (
-          <div className="mt-4 rounded-2xl border border-hairline bg-canvas p-3">
+          <div className="mt-4 rounded-xl border border-hairline bg-canvas p-3">
             <p className="text-xs text-ink" role="alert">
               Couldn&apos;t answer. Try again.
             </p>
@@ -246,6 +254,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
           <div className="mt-2 flex items-center justify-end gap-2 px-2 pb-1">
             <Button
               type="submit"
+              variant="accent"
               size="sm"
               disabled={!question.trim() || askMutation.isPending}
             >

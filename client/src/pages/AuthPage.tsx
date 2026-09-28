@@ -63,13 +63,7 @@ export default function AuthPage() {
       </div>
 
       <div className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md overflow-hidden rounded-2xl border border-hairline bg-canvas text-center">
-          <div
-            aria-hidden="true"
-            className="h-1 bg-brand-coral"
-          />
-
-          <div className="p-8 sm:p-10">
+        <div className="w-full max-w-md rounded-xl border border-hairline bg-surface p-8 text-center sm:p-10">
           <div className="flex justify-center">
             <CoralDot />
           </div>
@@ -84,7 +78,7 @@ export default function AuthPage() {
 
           {error && (
             <p
-              className="mt-6 rounded-lg border border-[#d45656] p-3 text-sm text-[#d45656]"
+              className="mt-6 rounded-lg border border-destructive p-3 text-sm text-destructive"
               role="alert"
             >
               {error}
@@ -125,7 +119,6 @@ export default function AuthPage() {
             <p className="text-sm text-steel">
               You&apos;ll land in your workspaces right after.
             </p>
-          </div>
           </div>
         </div>
       </div>

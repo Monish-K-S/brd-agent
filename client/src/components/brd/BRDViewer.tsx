@@ -125,8 +125,8 @@ function Section({
   return (
     <section className="border-t border-hairline-soft py-8 first:border-t-0 first:pt-0">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-2xl leading-8 font-semibold text-ink">
-          <span className="mr-3 text-sm font-semibold text-steel">
+        <h2 className="text-2xl leading-8 font-semibold tracking-[-0.25px] text-ink">
+          <span className="mr-3 text-sm font-semibold text-steel tabular-nums">
             {String(number).padStart(2, "0")}
           </span>
           {title}
@@ -171,7 +171,7 @@ function Section({
               type="button"
               onClick={onSave}
               disabled={isSaving}
-              className="rounded-full bg-primary px-5 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-deep active:bg-primary-deep disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full bg-accent-action px-5 py-1.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-accent-deep active:bg-accent-deep disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? "Saving..." : "Save"}
             </button>
@@ -574,7 +574,7 @@ export function BRDViewer({
         }
       }}
     >
-      <header className="px-2 py-8 sm:px-4">
+      <header className="px-2 pt-2 pb-8 sm:px-4">
         <h1 className="text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-h1 sm:leading-[1.2] sm:tracking-[-1px]">
           {data.project_overview.project_name}
         </h1>
@@ -592,8 +592,7 @@ export function BRDViewer({
         )}
       </header>
 
-      <div className="overflow-hidden rounded-2xl border border-hairline bg-canvas shadow-level-2 print:border-0 print:rounded-none print:shadow-none">
-        <div aria-hidden="true" className="h-1 bg-brand-coral print:hidden" />
+      <div className="overflow-hidden rounded-xl border border-hairline bg-surface print:rounded-none print:border-0 print:shadow-none">
         <div className="px-6 py-8 sm:px-10">
         {/* 01 — Executive Summary */}
         <Section
@@ -674,7 +673,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-medium text-ink">
+                <h3 className="text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Project Name
                 </h3>
 
@@ -684,7 +683,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-ink">
+                <h3 className="text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Description
                 </h3>
 
@@ -742,7 +741,7 @@ export function BRDViewer({
           {editingSection === "scope" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   In Scope
                 </h3>
 
@@ -760,7 +759,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Out of Scope
                 </h3>
 
@@ -780,7 +779,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   In Scope
                 </h3>
 
@@ -788,7 +787,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Out of Scope
                 </h3>
 
@@ -822,7 +821,7 @@ export function BRDViewer({
                 (stakeholder, index) => (
                   <div
                     key={index}
-                    className="rounded-2xl border border-hairline bg-surface p-4"
+                    className="rounded-xl border border-hairline bg-canvas p-4"
                   >
                     <div className="grid gap-4 md:grid-cols-3">
                       <EditableField
@@ -892,7 +891,7 @@ export function BRDViewer({
           ) : (
             <div className="overflow-x-auto rounded-lg border border-hairline">
               <table className="w-full text-left text-sm leading-5">
-                <thead className="bg-surface">
+                <thead className="bg-canvas">
                   <tr>
                     <th className="px-4 py-3 text-sm font-medium text-ink">
                       Name
@@ -1055,7 +1054,7 @@ export function BRDViewer({
           {editingSection === "assumptions_and_constraints" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Assumptions
                 </h3>
 
@@ -1075,7 +1074,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Constraints
                 </h3>
 
@@ -1097,7 +1096,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Assumptions
                 </h3>
 
@@ -1109,7 +1108,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Constraints
                 </h3>
 
@@ -1138,7 +1137,7 @@ export function BRDViewer({
           {editingSection === "risks_and_decisions" ? (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Risks
                 </h3>
 
@@ -1156,7 +1155,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Decisions
                 </h3>
 
@@ -1176,7 +1175,7 @@ export function BRDViewer({
           ) : (
             <div className="space-y-8">
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Risks
                 </h3>
 
@@ -1186,7 +1185,7 @@ export function BRDViewer({
               </div>
 
               <div>
-                <h3 className="mb-2 text-sm font-medium text-ink">
+                <h3 className="mb-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
                   Decisions
                 </h3>
 

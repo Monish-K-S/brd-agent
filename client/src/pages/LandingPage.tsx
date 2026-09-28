@@ -91,7 +91,7 @@ export default function LandingPage() {
       </header>
 
       {/* Centered hero */}
-      <section className="px-4 pt-24 pb-16 sm:px-8 lg:pt-24 lg:pb-20">
+      <section className="px-4 pt-16 pb-12 sm:px-8 lg:pt-20 lg:pb-16">
         <div className="mx-auto w-full max-w-[1280px] text-center">
           <Eyebrow
             dot
@@ -100,7 +100,7 @@ export default function LandingPage() {
             AI-powered requirements
           </Eyebrow>
 
-          <h1 className="animate-rise mx-auto mt-4 max-w-4xl text-h1 leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-display sm:tracking-[-1.5px] lg:text-hero lg:tracking-[-2px]">
+          <h1 className="animate-rise mx-auto mt-4 max-w-3xl text-h1 leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-display sm:tracking-[-1.5px]">
             Turn project files into a BRD.
           </h1>
 
@@ -128,7 +128,7 @@ export default function LandingPage() {
       </section>
 
       {/* Source-to-BRD composition */}
-      <section className="bg-surface px-4 py-16 sm:px-8 lg:py-20">
+      <section className="bg-surface px-4 py-12 sm:px-8 lg:py-16">
         <div
           aria-hidden="true"
           className="mx-auto w-full max-w-[1280px] select-none"
@@ -148,12 +148,7 @@ export default function LandingPage() {
 
             <div className="h-8 w-px bg-brand-coral/40" />
 
-            <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-hairline bg-canvas text-left">
-              <div
-                aria-hidden="true"
-                className="h-1 bg-brand-coral"
-              />
-
+            <div className="w-full max-w-sm overflow-hidden rounded-xl border border-hairline bg-canvas text-left">
               <div className="p-5">
               <div className="flex items-center gap-2">
                 <span className="size-2.5 rounded-full bg-brand-coral" />
@@ -182,11 +177,11 @@ export default function LandingPage() {
       </section>
 
       {/* Stat strip */}
-      <section aria-label="What you get" className="px-4 py-16 sm:px-8 lg:py-20">
+      <section aria-label="What you get" className="px-4 py-12 sm:px-8 lg:py-16">
         <div className="mx-auto w-full max-w-[1280px]">
           <dl className="grid grid-cols-2 gap-8 lg:grid-cols-4">
             {STATS.map((stat) => (
-              <div key={stat.label} className="flex flex-col">
+              <div key={stat.label} className="flex flex-col border-t border-hairline pt-6">
                 <dd className="text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink">
                   {stat.value}
                 </dd>
@@ -202,7 +197,7 @@ export default function LandingPage() {
       {/* Capability tiles */}
       <section
         aria-label="Capabilities"
-        className="bg-surface px-4 py-16 sm:px-8 lg:py-20"
+        className="bg-surface px-4 py-12 sm:px-8 lg:py-16"
       >
         <div className="mx-auto w-full max-w-[1280px]">
           <h2 className="max-w-2xl text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-h1 sm:leading-[1.2] sm:tracking-[-1px]">
@@ -213,7 +208,7 @@ export default function LandingPage() {
             {TILES.map((tile) => (
               <div
                 key={tile.title}
-                className="rounded-3xl border border-hairline bg-canvas p-6"
+                className="rounded-xl border border-hairline bg-canvas p-6"
               >
                 <span
                   aria-hidden="true"
@@ -237,7 +232,7 @@ export default function LandingPage() {
       <section
         id="how-it-works"
         aria-label="How it works in detail"
-        className="scroll-mt-24 px-4 py-16 sm:px-8 lg:py-20"
+        className="scroll-mt-24 px-4 py-12 sm:px-8 lg:py-16"
       >
         <div className="mx-auto w-full max-w-[1280px]">
           <h2 className="max-w-2xl text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-h1 sm:leading-[1.2] sm:tracking-[-1px]">

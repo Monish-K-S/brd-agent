@@ -81,7 +81,7 @@ const WorkspaceCard = memo(function WorkspaceCard({
 
   return (
     <div
-      className="flex flex-col rounded-2xl border border-hairline bg-canvas p-6 transition-all duration-200 hover:border-brand-coral/40 hover:shadow-level-1"
+      className="flex flex-col rounded-xl border border-hairline bg-canvas p-6 transition-colors duration-200 hover:border-ink"
     >
       <button
         type="button"
@@ -316,7 +316,7 @@ export default function WorkspacesPage() {
             )}
           </div>
 
-          <Button onClick={() => setDialogOpen(true)}>New workspace</Button>
+          <Button variant="accent" onClick={() => setDialogOpen(true)}>New workspace</Button>
         </div>
 
         {(workspaces ?? []).length > 0 && (
@@ -371,7 +371,7 @@ export default function WorkspacesPage() {
               {[0, 1, 2].map((index) => (
                 <div
                   key={index}
-                  className="rounded-2xl border border-hairline bg-canvas p-6"
+                  className="rounded-xl border border-hairline bg-canvas p-6"
                 >
                   <Skeleton className="h-5 w-2/3" />
                   <Skeleton className="mt-3 h-4 w-full" />
@@ -382,7 +382,7 @@ export default function WorkspacesPage() {
           )}
 
           {isError && (
-            <div className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-4">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-4">
               <p className="text-sm text-ink">Something went wrong.</p>
 
               <Button
@@ -401,7 +401,7 @@ export default function WorkspacesPage() {
               description="Add project files and generate a BRD from them."
               className="border border-hairline bg-canvas"
               action={
-                <Button onClick={() => setDialogOpen(true)}>
+                <Button variant="accent" onClick={() => setDialogOpen(true)}>
                   New workspace
                 </Button>
               }
@@ -413,7 +413,7 @@ export default function WorkspacesPage() {
             workspaces &&
             workspaces.length > 0 &&
             visibleWorkspaces.length === 0 && (
-              <p className="rounded-2xl border border-hairline bg-canvas p-6 text-center text-base text-steel">
+              <p className="rounded-xl border border-hairline bg-canvas p-6 text-center text-base text-steel">
                 No matches.
               </p>
             )}
@@ -423,9 +423,9 @@ export default function WorkspacesPage() {
               <button
                 type="button"
                 onClick={() => setDialogOpen(true)}
-                className="group flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-hairline bg-canvas p-6 text-steel transition-colors duration-200 hover:border-brand-coral hover:text-ink"
+                className="group flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-hairline bg-canvas p-6 text-steel transition-colors duration-200 hover:border-ink hover:text-ink"
               >
-                <Plus aria-hidden="true" className="size-5 transition-colors duration-200 group-hover:text-brand-coral" />
+                <Plus aria-hidden="true" className="size-5" />
                 <span className="text-base font-medium">New workspace</span>
               </button>
 
@@ -511,6 +511,7 @@ export default function WorkspacesPage() {
 
                 <Button
                   type="submit"
+                  variant="accent"
                   disabled={
                     !name.trim() ||
                     duplicateNameEntered ||

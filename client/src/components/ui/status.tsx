@@ -2,9 +2,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "cn";
 
 /* Shared status primitives: quiet labels, pills, empty states, alerts.
-   Monochrome only, sentence case — except the single brand-coral accent
-   (CoralDot / Eyebrow dot), the app's one signature moment. Product
-   colors never appear anywhere else here. */
+   Warm neutrals with hairline borders; the single coral accent
+   (CoralDot / Eyebrow dot / technical AI dots) is the app's one
+   signature moment. Product colors never appear anywhere else here. */
 
 export function CoralDot({ className }: { className?: string }) {
   return (
@@ -27,7 +27,7 @@ export function Eyebrow({
   return (
     <p
       className={cn(
-        "text-xs font-semibold tracking-normal text-steel",
+        "text-xs font-semibold tracking-[0.08em] text-steel uppercase",
         dot && "flex items-center gap-1.5",
         className,
       )}
@@ -84,7 +84,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "rounded-2xl bg-surface p-8 text-center sm:p-12",
+        "rounded-xl bg-surface p-8 text-center sm:p-12",
         className,
       )}
     >
@@ -142,7 +142,7 @@ export function StateAlert({
     <div
       role="alert"
       className={cn(
-        "rounded-2xl border border-hairline bg-canvas p-4 text-base leading-6 text-ink",
+        "rounded-xl border border-hairline bg-canvas p-4 text-base leading-6 text-ink",
         className,
       )}
     >

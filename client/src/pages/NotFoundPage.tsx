@@ -21,16 +21,15 @@ export function ErrorHero({
 }) {
   return (
     <div className="mx-auto w-full max-w-[1280px] text-center">
-      <div
-        aria-hidden="true"
-        className="mx-auto h-1 w-12 rounded-full bg-brand-coral"
-      />
+      <div aria-hidden="true" className="flex justify-center">
+        <CoralDot />
+      </div>
 
-      <p className="mt-4 text-sm font-semibold tracking-normal text-steel">
+      <p className="mt-4 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
         {overline}
       </p>
 
-      <h1 className="animate-rise mx-auto mt-4 max-w-2xl text-h1 leading-[1.1] font-semibold tracking-[-1px] text-ink sm:text-display sm:tracking-[-1.5px]">
+      <h1 className="animate-rise mx-auto mt-4 max-w-2xl text-h2 leading-[1.25] font-semibold tracking-[-0.5px] text-ink sm:text-h1 sm:leading-[1.2] sm:tracking-[-1px]">
         {title}
       </h1>
 
@@ -81,7 +80,7 @@ export default function NotFoundPage({
         </div>
       </header>
 
-      <section className="flex flex-1 items-center px-4 py-24 sm:px-8">
+      <section className="flex flex-1 items-center px-4 py-16 sm:px-8">
         <ErrorHero overline={overline} title={title} body={body}>
           <Link to={home} className={PRIMARY_CTA}>
             {homeLabel}

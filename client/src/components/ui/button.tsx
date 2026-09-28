@@ -17,6 +17,8 @@ const buttonVariants = cva(
           "border-ink bg-transparent px-6 py-[11px] text-sm font-semibold text-ink hover:bg-black/5 aria-expanded:bg-black/5",
         utility:
           "rounded-lg border border-hairline bg-white px-3.5 py-1 text-sm font-medium text-ink hover:bg-black/5 aria-expanded:bg-black/5",
+        accent:
+          "bg-accent-action px-6 py-[11px] text-sm font-semibold text-white hover:bg-accent-deep active:bg-accent-deep disabled:bg-hairline disabled:text-muted",
         secondary:
           "border border-hairline bg-canvas px-6 py-[11px] text-sm font-semibold text-ink hover:bg-black/5 aria-expanded:bg-black/5",
         subtle:
