@@ -34,22 +34,59 @@ class DriveImportService:
         self.document_service = StandardDocumentService(db)
         self.ingestion_service = DocumentIngestionService()
 
-    def import_file(
+    def import_files(
         self,
         workspace_id: UUID,
         user_id: UUID,
-        drive_file_id: str,
-    ) -> tuple[object, bool]:
-        existing_document = (
-            self.document_repository.get_by_drive_file_id(
+        drive_file_ids: list[str],
+    ) -> tuple[list, list[str]]:
+        imported_documents = []
+        skipped_file_ids = []
+
+        unique_file_ids = list(
+            dict.fromkeys(drive_file_ids),
+        )
+
+        for drive_file_id in unique_file_ids:
+            existing_document = (
+                self.document_repository.get_by_drive_file_id(
+                    workspace_id=workspace_id,
+                    drive_file_id=drive_file_id,
+                )
+            )
+
+            if existing_document is not None:
+                skipped_file_ids.append(drive_file_id)
+                continue
+
+            imported_documents.extend(
+                self._fetch_documents(
+                    user_id=user_id,
+                    drive_file_id=drive_file_id,
+                )
+            )
+
+        if not imported_documents:
+            return [], skipped_file_ids
+
+        created_documents = (
+            self.document_service.create_documents_from_ingestion(
                 workspace_id=workspace_id,
-                drive_file_id=drive_file_id,
+                user_id=user_id,
+                documents=imported_documents,
             )
         )
 
-        if existing_document is not None:
-            return existing_document, True
+        if created_documents is None:
+            raise ValueError("Workspace not found.")
 
+        return created_documents, skipped_file_ids
+
+    def _fetch_documents(
+        self,
+        user_id: UUID,
+        drive_file_id: str,
+    ) -> list:
         metadata = self.drive_service.get_file_metadata(
             user_id=user_id,
             file_id=drive_file_id,
@@ -129,15 +166,4 @@ class DriveImportService:
                 f"No readable content found in file: {file_name}."
             )
 
-        created_documents = (
-            self.document_service.create_documents_from_ingestion(
-                workspace_id=workspace_id,
-                user_id=user_id,
-                documents=documents,
-            )
-        )
-
-        if created_documents is None:
-            raise ValueError("Workspace not found.")
-
-        return created_documents[0], False
+        return documents

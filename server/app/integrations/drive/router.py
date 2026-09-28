@@ -13,6 +13,7 @@ from app.integrations.drive.import_service import DriveImportService
 from app.integrations.drive.schemas import (
     DriveFileImportRequest,
     DriveFileImportResponse,
+    DriveImportedDocument,
 )
 from app.integrations.drive.service import DriveService
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -389,20 +390,30 @@ def import_drive_file(
     import_service = DriveImportService(db)
 
     try:
-        document, skipped = import_service.import_file(
+        (
+            created_documents,
+            skipped_file_ids,
+        ) = import_service.import_files(
             workspace_id=workspace_id,
             user_id=current_user.id,
-            drive_file_id=import_request.drive_file_id,
+            drive_file_ids=import_request.drive_file_ids,
         )
 
+        imported = [
+            DriveImportedDocument(
+                id=document.id,
+                drive_file_id=document.metadata_.get(
+                    "drive_file_id",
+                    "",
+                ),
+                title=document.title,
+            )
+            for document in created_documents
+        ]
+
         return DriveFileImportResponse(
-            id=document.id,
-            drive_file_id=document.metadata_.get(
-                "drive_file_id",
-                import_request.drive_file_id,
-            ),
-            title=document.title,
-            skipped=skipped,
+            imported=imported,
+            skipped_file_ids=skipped_file_ids,
         )
 
     except ValueError as exc:
