@@ -1,75 +1,54 @@
-# React + TypeScript + Vite
+# BRD Agent — Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite + TypeScript single-page app for BRD Agent: workspaces, source management (uploads, Gmail, Google Drive), an 11-section BRD viewer with inline editing, workspace Q&A, and PDF/DOCX export.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19 + Vite + TypeScript, React Router, TanStack Query, Axios
+- Tailwind CSS v4 (`src/index.css` `@theme` tokens) + shadcn/Base UI primitives
+- DM Sans via `@fontsource-variable/dm-sans` (locked — do not swap fonts)
+- Supabase JS for Google-only auth (`src/lib/supabase.ts`)
 
-## React Compiler
+## Scripts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev      # local dev server
+npm run build    # type-check + production build (must be green)
+npm run preview  # preview the production build
+npm run lint     # eslint (must be clean)
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## Environment (`client/.env.local`, see `.env.example`)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Variable | Description |
+|---|---|
+| `VITE_API_URL` | Backend base URL (`http://localhost:8000`) |
+| `VITE_SUPABASE_URL` | Same Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Same Supabase anon key |
+| `VITE_GOOGLE_PICKER_API_KEY` | Browser key restricted to the Google Picker API |
+| `VITE_GOOGLE_APP_ID` | Numeric Google Cloud project number |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Structure
 
+```text
+src/
+  api/            # endpoint wrappers: client, workspaces, sources, brd, gmail, drive
+  auth/           # AuthProvider, RequireAuth, auth-context, useAuth
+  components/
+    brd/          # BRDViewer (11-section document + inline editing), BRDQAPanel (Q&A)
+    drive/        # drivePicker.ts — Google Picker helper (no JSX)
+    gmail/        # GmailSourceBrowser (search + multiselect import dialog)
+    layout/       # TopBar (slot shell)
+    ui/           # button, dialog, dropdown-menu, input, label, skeleton, status, use-flash
+    ErrorBoundary.tsx
+  pages/          # LandingPage, AuthPage, WorkspacesPage, WorkspacePage, NotFoundPage
+  lib/            # Supabase client
+  App.tsx / main.tsx / index.css
 ```
+
+## Design
+
+Warm "Editorial AI Workspace" system defined in `src/index.css`: off-white canvas `#F7F7F4`, white surfaces, ink `#151515`, one coral accent `#FF5A36` for in-app primary actions (Generate, Add, Ask, Save) — black pills stay on landing CTAs. `client/DESIGN.md` (MiniMax analysis) is reference only; never edit it unprompted.
+
+Redesigns here are **visual-only**: never alter routes, API shapes, status codes, query keys, mutation logic, or Supabase flows. See the root `AGENTS.md` for the full agent guide.
