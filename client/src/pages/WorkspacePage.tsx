@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
@@ -27,6 +27,17 @@ import {
   getGmailStatus,
   importGmailMessages,
 } from "@/api/gmail";
+import {
+  connectDrive,
+  disconnectDrive,
+  getDrivePickerToken,
+  getDriveStatus,
+  importDriveFiles,
+} from "@/api/drive";
+import {
+  loadGooglePicker,
+  openDrivePicker,
+} from "@/components/drive/drivePicker";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -81,6 +92,77 @@ function mapJobPhaseToStep(
   }
 }
 
+// Compact source card shared by the uploads, Gmail, and Drive lists:
+// single-line title plus a one-line meta row (neutral type badge +
+// optional subtitle) so long source lists stay scannable.
+function SourceCard({
+  icon,
+  title,
+  badge,
+  subtitle,
+  documentId,
+  isDeleting,
+  onDelete,
+}: {
+  icon: ReactNode;
+  title: string;
+  badge: string;
+  subtitle?: string | null;
+  documentId: string;
+  isDeleting: boolean;
+  onDelete: (documentId: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-hairline bg-canvas p-3 transition-shadow duration-200 hover:shadow-level-1">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-level-1"
+          >
+            {icon}
+          </span>
+
+          <div className="min-w-0">
+            <p
+              className="truncate text-sm leading-5 font-medium text-ink"
+              title={title}
+            >
+              {title}
+            </p>
+
+            <p className="mt-0.5 flex min-w-0 items-center gap-1.5">
+              <span className="shrink-0 rounded-md bg-surface px-1.5 py-px text-xs font-medium tracking-wide text-steel uppercase">
+                {badge}
+              </span>
+
+              {subtitle && (
+                <span
+                  className="truncate text-xs text-steel"
+                  title={subtitle}
+                >
+                  {subtitle}
+                </span>
+              )}
+            </p>
+          </div>
+        </div>
+
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Delete source"
+          title="Delete source"
+          onClick={() => onDelete(documentId)}
+          disabled={isDeleting}
+        >
+          <Trash2 />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function WorkspacePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -96,6 +178,10 @@ export default function WorkspacePage() {
   >(null);
 
   const [isGmailBrowserOpen, setIsGmailBrowserOpen] = useState(false);
+  const [isDrivePickerBusy, setIsDrivePickerBusy] = useState(false);
+  const [drivePickerError, setDrivePickerError] = useState<string | null>(null);
+  const [confirmDisconnectDriveOpen, setConfirmDisconnectDriveOpen] =
+    useState(false);
 
   const {
     data: workspace,
@@ -130,6 +216,18 @@ export default function WorkspacePage() {
   } = useQuery({
     queryKey: ["gmail-status"],
     queryFn: getGmailStatus,
+    enabled: Boolean(id),
+    retry: false,
+  });
+
+  const {
+    data: driveStatus,
+    isLoading: isDriveStatusLoading,
+    isError: isDriveStatusError,
+    refetch: refetchDriveStatus,
+  } = useQuery({
+    queryKey: ["drive-status"],
+    queryFn: getDriveStatus,
     enabled: Boolean(id),
     retry: false,
   });
@@ -249,6 +347,45 @@ export default function WorkspacePage() {
 
       setIsGmailBrowserOpen(false);
       flashSources("Added");
+    },
+  });
+
+  const connectDriveMutation = useMutation({
+    mutationFn: () => connectDrive(id!),
+    onSuccess: (authorizationUrl) => {
+      window.location.assign(authorizationUrl);
+    },
+  });
+
+  const disconnectDriveMutation = useMutation({
+    mutationFn: disconnectDrive,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["drive-status"],
+      });
+    },
+  });
+
+  const importDriveMutation = useMutation({
+    mutationFn: (driveFileIds: string[]) =>
+      importDriveFiles(id!, driveFileIds),
+    onSuccess: (result) => {
+      void Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["documents", id],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["brd-status", id],
+        }),
+      ]);
+
+      if (result.imported.length === 0) {
+        flashSources("Already added");
+      } else if (result.imported.length === 1) {
+        flashSources("Added");
+      } else {
+        flashSources(`Added ${result.imported.length} files`);
+      }
     },
   });
 
@@ -695,11 +832,88 @@ export default function WorkspacePage() {
     importGmailMutation.mutate(messageIds);
   }
 
+  function handleConnectDrive() {
+    connectDriveMutation.mutate();
+  }
+
+  function handleDisconnectDrive() {
+    setConfirmDisconnectDriveOpen(true);
+  }
+
+  function handleConfirmDisconnectDrive() {
+    if (disconnectDriveMutation.isPending) {
+      return;
+    }
+
+    disconnectDriveMutation.mutate();
+    setConfirmDisconnectDriveOpen(false);
+  }
+
+  async function handleChooseFromDrive() {
+    if (!id || isDrivePickerBusy || importDriveMutation.isPending) {
+      return;
+    }
+
+    setDrivePickerError(null);
+    setIsDrivePickerBusy(true);
+
+    try {
+      const accessToken = await getDrivePickerToken();
+
+      await loadGooglePicker();
+
+      openDrivePicker({
+        accessToken,
+        onPicked: (results) => {
+          setIsDrivePickerBusy(false);
+          importDriveMutation.mutate(
+            results.map((result) => result.driveFileId),
+          );
+        },
+        onCancel: () => {
+          setIsDrivePickerBusy(false);
+        },
+      });
+    } catch {
+      setIsDrivePickerBusy(false);
+      setDrivePickerError("Couldn't open Google Drive. Try again.");
+    }
+  }
+
+  function driveImportErrorMessage(): string | null {
+    if (!importDriveMutation.isError) {
+      return null;
+    }
+
+    const error = importDriveMutation.error;
+
+    if (isAxiosError(error)) {
+      const detail = (
+        error.response?.data as { detail?: unknown } | undefined
+      )?.detail;
+
+      if (typeof detail === "string" && detail) {
+        return detail;
+      }
+    }
+
+    return "Import failed. Try again.";
+  }
+
   const uploadedDocuments =
-    documents?.filter((document) => document.source_type !== "email") ?? [];
+    documents?.filter(
+      (document) =>
+        document.source_type !== "email" &&
+        typeof document.metadata.drive_file_id !== "string",
+    ) ?? [];
 
   const emailDocuments =
     documents?.filter((document) => document.source_type === "email") ?? [];
+
+  const driveDocuments =
+    documents?.filter(
+      (document) => typeof document.metadata.drive_file_id === "string",
+    ) ?? [];
 
   function readPanelPreference(key: string): boolean {
     try {
@@ -971,7 +1185,8 @@ export default function WorkspacePage() {
               {!isDocumentsLoading &&
               !isDocumentsError &&
               uploadedDocuments.length === 0 &&
-              emailDocuments.length === 0 && (
+              emailDocuments.length === 0 &&
+              driveDocuments.length === 0 && (
                 <div className="mt-4 flex min-h-[92px] items-center justify-center rounded-2xl border border-dashed border-hairline bg-canvas/60 px-4 py-6 text-center text-sm leading-5 text-steel transition-colors duration-200 hover:border-ink/30">
                   Nothing here yet.
                 </div>
@@ -982,56 +1197,18 @@ export default function WorkspacePage() {
               uploadedDocuments.length > 0 && (
                 <div className="mt-4 space-y-2">
                   {uploadedDocuments.map((document) => (
-                    <div
+                    <SourceCard
                       key={document.id}
-                      className="rounded-2xl border border-hairline bg-canvas p-4 transition-shadow duration-200 hover:shadow-level-1"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <span
-                            aria-hidden="true"
-                            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-level-1"
-                          >
-                            <FileText />
-                          </span>
-
-                          <div className="min-w-0">
-                            <p
-                              className="line-clamp-2 text-sm leading-5 font-medium text-ink"
-                              title={document.title || "Untitled source"}
-                            >
-                              {document.title || "Untitled source"}
-                            </p>
-
-                            <div className="mt-2">
-                              <StatusBadge
-                                tone={
-                                  document.source_type === "email"
-                                    ? "beta"
-                                    : "code"
-                                }
-                              >
-                                {document.source_type}
-                              </StatusBadge>
-                            </div>
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label="Delete source"
-                          title="Delete source"
-                          onClick={() => handleDeleteDocument(document.id)}
-                          disabled={
-                            deleteMutation.isPending &&
-                            deleteMutation.variables === document.id
-                          }
-                        >
-                          <Trash2 />
-                        </Button>
-                      </div>
-                    </div>
+                      icon={<FileText size={16} />}
+                      title={document.title || "Untitled source"}
+                      badge={document.source_type}
+                      documentId={document.id}
+                      isDeleting={
+                        deleteMutation.isPending &&
+                        deleteMutation.variables === document.id
+                      }
+                      onDelete={handleDeleteDocument}
+                    />
                   ))}
                 </div>
               )}
@@ -1129,53 +1306,19 @@ export default function WorkspacePage() {
                   {emailDocuments.length > 0 && (
                     <div className="mt-4 space-y-2">
                       {emailDocuments.map((document) => (
-                        <div
+                        <SourceCard
                           key={document.id}
-                          className="rounded-2xl border border-hairline bg-canvas p-4 transition-shadow duration-200 hover:shadow-level-1"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex min-w-0 items-start gap-3">
-                              <span
-                                aria-hidden="true"
-                                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-ink shadow-level-1"
-                              >
-                                <Mail />
-                              </span>
-
-                              <div className="min-w-0">
-                                <p
-                                  className="line-clamp-2 text-sm leading-5 font-medium text-ink"
-                                  title={document.title || "No subject"}
-                                >
-                                  {document.title || "No subject"}
-                                </p>
-
-                                {document.author && (
-                                  <p
-                                    className="mt-1 truncate text-xs text-steel"
-                                    title={document.author}
-                                  >
-                                    {document.author}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label="Delete source"
-                              title="Delete source"
-                              onClick={() => handleDeleteDocument(document.id)}
-                              disabled={
-                                deleteMutation.isPending &&
-                                deleteMutation.variables === document.id
-                              }
-                            >
-                              <Trash2 />
-                            </Button>
-                          </div>
-                        </div>
+                          icon={<Mail size={16} />}
+                          title={document.title || "No subject"}
+                          badge={document.source_type}
+                          subtitle={document.author}
+                          documentId={document.id}
+                          isDeleting={
+                            deleteMutation.isPending &&
+                            deleteMutation.variables === document.id
+                          }
+                          onDelete={handleDeleteDocument}
+                        />
                       ))}
                     </div>
                   )}
@@ -1197,6 +1340,135 @@ export default function WorkspacePage() {
             {importGmailMutation.isError && (
               <StateAlert className="mt-3">
                 Import failed. Try again.
+              </StateAlert>
+            )}
+          </section>
+
+          {/* Google Drive */}
+          <section className="mt-8 border-t border-hairline-soft pt-6">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-ink">
+              <CoralDot />
+              Google Drive
+            </h2>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {!isDriveStatusLoading &&
+                !isDriveStatusError &&
+                !driveStatus?.connected && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleConnectDrive}
+                    disabled={connectDriveMutation.isPending}
+                  >
+                    {connectDriveMutation.isPending
+                      ? "Connecting..."
+                      : "Connect"}
+                  </Button>
+                )}
+
+              {!isDriveStatusLoading &&
+                !isDriveStatusError &&
+                driveStatus?.connected && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleChooseFromDrive()}
+                      disabled={
+                        isDrivePickerBusy || importDriveMutation.isPending
+                      }
+                    >
+                      {importDriveMutation.isPending
+                        ? "Importing..."
+                        : isDrivePickerBusy
+                          ? "Opening..."
+                          : "Choose files"}
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDisconnectDrive}
+                      disabled={disconnectDriveMutation.isPending}
+                    >
+                      {disconnectDriveMutation.isPending
+                        ? "Disconnecting..."
+                        : "Disconnect"}
+                    </Button>
+                  </>
+                )}
+            </div>
+
+            {isDriveStatusLoading && (
+              <p className="mt-3 text-xs text-steel">Checking...</p>
+            )}
+
+            {!isDriveStatusLoading && isDriveStatusError && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-canvas p-3">
+                <p className="text-sm text-ink">
+                  Couldn&apos;t check Google Drive.
+                </p>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => refetchDriveStatus()}
+                >
+                  Retry
+                </Button>
+              </div>
+            )}
+
+            {!isDriveStatusLoading &&
+              !isDriveStatusError &&
+              driveStatus?.connected && (
+                <>
+                  <p className="mt-3 truncate text-xs text-steel">
+                    {driveStatus.email}
+                  </p>
+
+                  {driveDocuments.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      {driveDocuments.map((document) => (
+                        <SourceCard
+                          key={document.id}
+                          icon={<FileText size={16} />}
+                          title={document.title || "Untitled source"}
+                          badge={document.source_type}
+                          subtitle={document.author}
+                          documentId={document.id}
+                          isDeleting={
+                            deleteMutation.isPending &&
+                            deleteMutation.variables === document.id
+                          }
+                          onDelete={handleDeleteDocument}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+            {connectDriveMutation.isError && (
+              <StateAlert className="mt-3">
+                Connection failed. Try again.
+              </StateAlert>
+            )}
+
+            {disconnectDriveMutation.isError && (
+              <StateAlert className="mt-3">
+                Couldn&apos;t disconnect.
+              </StateAlert>
+            )}
+
+            {drivePickerError && (
+              <StateAlert className="mt-3">{drivePickerError}</StateAlert>
+            )}
+
+            {driveImportErrorMessage() && (
+              <StateAlert className="mt-3">
+                {driveImportErrorMessage()}
               </StateAlert>
             )}
           </section>
@@ -1567,6 +1839,41 @@ export default function WorkspacePage() {
               variant="destructive"
               onClick={handleConfirmDisconnectGmail}
               disabled={disconnectGmailMutation.isPending}
+            >
+              Disconnect
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmDisconnectDriveOpen}
+        onOpenChange={setConfirmDisconnectDriveOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Disconnect Google Drive?</DialogTitle>
+
+            <DialogDescription>
+              Imported files stay. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="subtle"
+              onClick={() => setConfirmDisconnectDriveOpen(false)}
+              disabled={disconnectDriveMutation.isPending}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDisconnectDrive}
+              disabled={disconnectDriveMutation.isPending}
             >
               Disconnect
             </Button>
