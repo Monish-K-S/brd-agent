@@ -1,16 +1,16 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "cn";
 
-/* Shared status primitives: quiet labels, pills, empty states, alerts.
-   Warm neutrals with hairline borders; the single coral accent
-   (CoralDot / Eyebrow dot / technical AI dots) is the app's one
-   signature moment. Product colors never appear anywhere else here. */
+/* Shared status primitives: quiet sentence-case labels, pills, empty
+   states, alerts. Warm neutrals with hairline borders; the coral signal
+   dot (SignalDot) is the app's one status signature — small markers,
+   never structure. */
 
-export function CoralDot({ className }: { className?: string }) {
+export function SignalDot({ className }: { className?: string }) {
   return (
     <span
       aria-hidden="true"
-      className={cn("inline-block size-2 shrink-0 rounded-full bg-brand-coral", className)}
+      className={cn("inline-block size-2 shrink-0 rounded-full bg-signal", className)}
     />
   );
 }
@@ -18,55 +18,14 @@ export function CoralDot({ className }: { className?: string }) {
 export function Eyebrow({
   children,
   className,
-  dot = false,
 }: {
   children: ReactNode;
   className?: string;
-  dot?: boolean;
 }) {
   return (
-    <p
-      className={cn(
-        "text-xs font-semibold tracking-[0.08em] text-steel uppercase",
-        dot && "flex items-center gap-1.5",
-        className,
-      )}
-    >
-      {dot && <CoralDot />}
+    <p className={cn("text-xs font-medium text-steel", className)}>
       {children}
     </p>
-  );
-}
-
-type BadgeTone = "neutral" | "filled" | "success" | "beta" | "code";
-
-const badgeTones: Record<BadgeTone, string> = {
-  neutral: "border border-hairline bg-canvas text-ink",
-  filled: "bg-primary text-white",
-  success: "bg-success-bg text-success-text",
-  beta: "bg-brand-blue-200 text-brand-blue-deep",
-  code: "rounded-md bg-brand-blue-200 px-1.5 py-0.5 text-brand-blue-deep",
-};
-
-export function StatusBadge({
-  tone = "neutral",
-  children,
-  className,
-}: {
-  tone?: BadgeTone;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex max-w-full items-center rounded-full px-3 py-1 text-sm font-medium",
-        badgeTones[tone],
-        className,
-      )}
-    >
-      <span className="truncate">{children}</span>
-    </span>
   );
 }
 
@@ -84,11 +43,11 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "rounded-xl bg-surface p-8 text-center sm:p-12",
+        "border border-hairline bg-surface px-6 py-12 text-center sm:px-10 sm:py-14",
         className,
       )}
     >
-      <h2 className="text-2xl leading-[1.3] font-semibold text-ink">{title}</h2>
+      <h2 className="font-display text-h3 font-normal text-ink">{title}</h2>
 
       <p className="mx-auto mt-2 max-w-sm text-base leading-6 text-steel">
         {description}
@@ -122,7 +81,7 @@ export function FlashNote({
     <p
       role="status"
       className={cn(
-        "inline-flex items-center rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-white",
+        "reveal inline-flex items-center rounded-full bg-primary px-4 py-1.5 text-sm font-medium text-surface",
         className,
       )}
     >
@@ -142,7 +101,7 @@ export function StateAlert({
     <div
       role="alert"
       className={cn(
-        "rounded-xl border border-hairline bg-canvas p-4 text-base leading-6 text-ink",
+        "border border-hairline border-l-2 border-l-ink bg-surface px-4 py-3 text-sm leading-6 text-ink",
         className,
       )}
     >

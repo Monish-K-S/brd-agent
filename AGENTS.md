@@ -1,6 +1,7 @@
-# BRD‑Agent – Agent Guide
+# Sourcify – Agent Guide
 
 ## Overview
+- Product brand: **Sourcify** (renamed from BRD Agent 2026-10-01; repo path `brd-agent` and internal `brd*` identifiers stay). Frontend user-facing branding is Sourcify only.
 - Backend: FastAPI (`server/`).
 - Frontend: React + Vite + TS (`client/`).
 - Core flow: **Create Workspace → Add Sources → Generate BRD → View/Download → Add More Sources → Regenerate**.
@@ -18,18 +19,20 @@
 ## Frontend Stack (locked)
 - **Core**: React, Vite, TypeScript.
 - **UI**: Tailwind CSS, shadcn/ui.
-- **Type**: DM Sans 600 via `@fontsource-variable/dm-sans` (locked — do not swap fonts).
+- **Type**: DM Sans via `@fontsource-variable/dm-sans` (UI/body, locked) + Instrument Serif via `@fontsource/instrument-serif` (`font-display` token: wordmark, hero/display headings, page titles, BRD masthead, section numerals — display only, never body/UI).
 - **Routing**: React Router.
 - **State**: TanStack Query (API), React Context/AuthProvider (auth), `useState` (local).
 - **HTTP**: Axios (configured with Supabase token).
 - **Auth**: Supabase JS – Google-only (decision: no email/password), logout, persistent sessions.
 
 ## Design System (locked)
-- `client/DESIGN.md` (MiniMax analysis) is reference only — never edit it unprompted. `client/.agents/skills/frontend-design` + `ui-ux-pro-max` are supporting expertise only — never `--persist` them into the project.
-- Direction: **"Editorial AI Workspace"** (shipped 2026‑09‑28): warm off-white page (`--color-canvas:#F7F7F4`) with white document surfaces (`--color-surface:#FFFFFF`), ink `#151515`, secondary `#686866`, hairlines `#DEDED9`, one coral accent `#FF5A36` (`--color-accent-action`, soft wash `--color-accent-soft:#FFF0EB`, hover `--color-accent-deep`). DM Sans locked.
-- Accent rule (decided 2026‑09‑28): **coral primaries in-app** — new `accent` button variant for Generate/Regenerate, Add (upload/Gmail import), Ask, Save, workspace Create. **Black pills stay** on landing CTAs and dialog Cancel/Delete patterns. Otherwise coral only for dots, active states, AI progress indicators, and small markers (e.g. outdated-banner left edge). Never large coral surfaces except the landing finale.
-- Surface language: thin hairline borders, small-to-medium radius (`rounded-xl` state cards/sheets, `rounded-lg` rows/inputs), flat (no `shadow-level-*` on cards), hairline-divided index rows for sources, white BRD sheet on warm center column.
-- Redesign rule: **page-by-page, visual-only** — never alter routes, API shapes, status codes, query keys, mutation logic, or Supabase flows. Preserve all CTAs/labels unless explicitly asked. Executed 2026‑09‑28 in order: Workspace → BRD Viewer → Sources → Q&A → Workspaces → Landing → Auth/404.
+- `client/DESIGN.md` (the old Uber-inspired reference) has been removed from the repo by the user; the rules below are the source of truth. `client/.agents/skills/frontend-design` + `ui-ux-pro-max` are supporting expertise only — never `--persist` them into the project.
+- Direction: **"Sourcify — warm editorial document software"** (shipped 2026-10-01): cream canvas `--color-canvas:#F5F1E8`, warm-white surfaces `--color-surface:#FFFDF8`, soft `#EEEAE1`/`#E7E1D5`, ink `#151515`, body `#4A463D`, steel `#6D6A63` (4.79:1 on cream), stone `#85817A`, hairline `#DDD8CD`, `edge:#8A8478` (3.3:1) for control outlines. One accent: signal coral `--color-signal:#FF5C3B` (+ `signal-text:#C43A17` for coral text on cream, `signal-soft:#FFF0EB`, `signal-deep:#E0431F`). Semantic (AA on cream): success `#1F7A4C`, warning `#96601B`, error `#B42318`, info `#2A5DA8`.
+- Accent rule (2026-10-01): **coral is a signal, not structure**. Only: the transformation action (`accent` button variant = Generate/Regenerate), status dots (outdated=warning, ready=ink, generating=pulsing coral), selected-state left rules (Gmail rows), progress spinners, small brand markers (wordmark dot, finale rule, favicon dot), `::selection`. Filled coral takes **black** labels (white-on-coral fails AA); primary buttons are otherwise black. Never coral for body text — use `signal-text`.
+- Background system: `components/brand/FieldBackdrop.tsx` = fixed, aria-hidden CSS layers (warm radial washes + masked dot grid + paper folds + ~4.5% inline-SVG grain). Intensities: `strong` (landing) / `expressive` (404) / `atmospheric` (workspaces) / `soft` (auth) / `restrained` (workspace chrome — rails/document sit on solid surfaces; never texture behind reading text). Canvas base lives on `html` so it paints under the `-z-10` backdrop; page `<main>`s must not re-assert `bg-canvas` over it.
+- Motion system (CSS-only, no libraries): tokens `--ease-out-soft`/`--ease-spring`, `--dur-1/2/3`; utilities `reveal` (+ `--reveal-delay`), `reveal-view` (scroll-driven, behind `@supports (animation-timeline: view())`), `press` (translate-y on :active), `drift-a/b` (landing fragments), `shell-cols` (rail grid transition), staggered BRD section mount via `[data-brd-document] > section` CSS. `tw-animate-css` drives dialog/dropdown enter-exit. Global reduced-motion kill-switch neutralises all of it.
+- Surface language: thin hairlines, explicit radius ladder (4/6/8/10/14/18 + full pills — the old `calc(var(--radius)*n)` multiplier chain is gone), flat everything (`shadow-paper` only on the BRD sheet; `shadow-level-1` hovers; `shadow-level-2` overlays), **sentence-case labels** (uppercase + `tracking-[0.08em]` purged 2026-10-01), hairline-divided index rows for sources.
+- Redesign rule: **page-by-page, visual-only** — never alter routes, API shapes, status codes, query keys, mutation logic, or Supabase flows. Preserve all CTAs/labels unless explicitly asked. Executed 2026-10-01 (Sourcify rebrand): tokens → primitives → Landing → Auth → 404 → Workspaces → Workspace shell → Sources → Viewer → Q&A → states.
 
 ## API Layout (`client/src/api/`)
 ```
@@ -48,8 +51,8 @@ Use TanStack Query for queries & mutations.
 3. **Workspaces** – `/workspaces` (search pill, Recent/A–Z sort tabs, count line, creation tile + header pill sharing one dialog, per-id delete tracking).
 4. **Workspace** – `/workspaces/:id` with three regions:
    - **Sources** (left fixed 300px rail: `SOURCES + ADD` index — Files / Gmail / Google Drive groups with live counts, hairline-divided rows, upload with client pre-check, per-id delete, Gmail browser dialog, Drive Picker via `drivePicker.ts` + `VITE_GOOGLE_PICKER_API_KEY`/`VITE_GOOGLE_APP_ID`).
-   - **BRD** (center warm column, white sheet: doc header `workspace eyebrow → Business Requirements Document → ● status · From N sources` with hairline rule; viewer, inline section editing with coral Save; technical progress indicators `READING SOURCES ··· Ns`; PDF + DOCX download with folios).
-   - **Q&A** (right fixed 320px rail: warm user bubbles, justified assistant paragraphs, `SOURCES` footnote rows, coral Ask; optimistic send <16ms, error rollback restoring composer, auto-scroll).
+   - **BRD** (center column over restrained field: utility bar `workspace name · ● status · From N sources → Export`, hairline rule; the document title itself lives in the viewer masthead (D1, 2026-10-01); inline section editing with black Save pill; sentence-case progress steps `Reading sources ··· Ns`; PDF + DOCX download with folios).
+   - **Q&A** (right fixed 320px rail: soft user bubbles, justified full-width assistant paragraphs, hairline `Sources` rows with type, black Ask pill, pulsing coral Thinking dots; optimistic send <16ms, error rollback restoring composer, auto-scroll).
 
 ## Workspace States
 - `EMPTY` – no-sources prompt to upload.
@@ -66,7 +69,7 @@ Use TanStack Query for queries & mutations.
 - No version history or diff UI in Phase 1.
 
 ## BRD Viewer (`components/brd/BRDViewer.tsx`)
-- Professional document‑style view: DM Sans 600 headings, tabular `01–11` numerals, steel micro-label subsections, hairline dividers, `data-table`, `text-input` inline edits, coral pill save, stone meta (`Generated/Updated/Edited by you`).
+- Professional document-style view: warm-white page (`rounded-lg`, `shadow-paper`, borderless) on cream, serif masthead (`project_name`) under a `Business Requirements Document` eyebrow, serif coral `01–11` numerals above DM Sans 600 section titles, sentence-case subsection labels, hairline section rules, flat `border-y` stakeholder table, black pill save, stone meta (`Generated/Updated/Edited by you`).
 - Reading text `text-justify` + `hyphens-auto lang=en`; paper width adapts to rails (`docMeasure` 720/880/1024px centered; print = white full-width).
 - Exports mirror the viewer: justified body, 1.15 leading, gray PDF rules, page folios in both formats.
 
@@ -87,7 +90,7 @@ client/src/
 ```
 
 ## Implementation Status
-Done: frontend init, auth flow, protected routes, workspace CRUD, workspace shell, sources + Gmail import, generation integration, viewer, PDF + DOCX downloads, outdated detection + regeneration, empty/error states, per-id delete tracking, Dialog confirms (no `window.confirm`), `index.html` title (`BRD Agent`), `.env.example`, skeletons, API 401 handling, full MiniMax re-skin (Landing/Auth/Workspaces/Workspace), export typography polish + verification, response-time pass (WS1–WS4: dropped Inter/Geist webfonts ≈218KB, vendor `manualChunks`, BRD 5-min + workspaces 60-s stale, gmail-search 90-s gc, batched invalidates, memoized workspace grid), Google Drive connector (shared `google_connections` row, `drive.file` scope, Picker multiselect → existing ingestion), `generation_jobs` RLS (migration `62d4ff311943`), Editorial AI Workspace re-skin 2026‑09‑28 (warm canvas, coral in-app primaries, document-sheet viewer, source index rail).
+Done: frontend init, auth flow, protected routes, workspace CRUD, workspace shell, sources + Gmail import, generation integration, viewer, PDF + DOCX downloads, outdated detection + regeneration, empty/error states, per-id delete tracking, Dialog confirms (no `window.confirm`), `index.html` title (`BRD Agent`), `.env.example`, skeletons, API 401 handling, full MiniMax re-skin (Landing/Auth/Workspaces/Workspace), export typography polish + verification, response-time pass (WS1–WS4: dropped Inter/Geist webfonts ≈218KB, vendor `manualChunks`, BRD 5-min + workspaces 60-s stale, gmail-search 90-s gc, batched invalidates, memoized workspace grid), Google Drive connector (shared `google_connections` row, `drive.file` scope, Picker multiselect → existing ingestion), `generation_jobs` RLS (migration `62d4ff311943`), Editorial AI Workspace re-skin 2026‑09‑28 (warm canvas, coral in-app primaries, document-sheet viewer, source index rail), **Sourcify rebrand + identity redesign 2026-10-01** (cream/ink/coral-signal token system, Instrument Serif display + DM Sans UI, FieldBackdrop CSS backgrounds + grain, reveal/press/shell-cols motion, Wordmark brand component, sentence-case labels, coral disciplined to the transformation action, Vite-template assets purged, `index.html` title `Sourcify`).
 Remaining: none committed — next is user-directed (product depth or hygiene gaps).
 
 ## Verification Commands
@@ -120,9 +123,17 @@ Remaining: none committed — next is user-directed (product depth or hygiene ga
 - `RequireAuth` loading state is a minimal centered spinner (`role=status`).
 - `VITE_API_URL` was already guarded (`api/client.ts` warns + throws) — gap entry was stale, no change needed.
 
+## Closed 2026-10-01 (Sourcify rebrand + identity)
+- Frontend-only rebrand `BRD Agent` → `Sourcify`: `index.html` (title/description/og/theme-color `#F5F1E8`), landing/auth/404/workspaces/workspace chrome, footers, `favicon.svg` (ink tile + document rules + `#ff5c3b` dot), new `components/brand/Wordmark.tsx` (serif lockup + coral source mark, `tone`/`size` props) and `FieldBackdrop.tsx`. Internal identifiers untouched (`brd*` routes/files, `server` `app_name`, `Business Requirements Document` as the document-type eyebrow inside the viewer masthead).
+- `index.css` rewritten: cream/warm-white/signal palette + contrast-corrected text ladder, explicit radius ladder (old `calc(var(--radius)*n)` chain gone), fluid clamp display sizes, `--font-display`, `--shell-chrome: 3.5625rem` (TopBar + both `calc(100vh-65px)` sites unified), field/grain/reveal/reveal-view/press/drift/shell-cols utilities, `shadow-paper`, coral `::selection`, `:focus-visible` ink outline. Dead tokens deleted (`brand-magenta/blue/blue-deep/blue-200/purple`, `success-bg/text`, `radius-card/tile`, `accent-action/soft/deep`, `charcoal/slate/ink-strong/input-border`, `hairline-soft`, `surface-soft`). `text-muted` call sites → `text-faint` (the shadcn `--accent` inline mapping owns `text-muted`).
+- Primitives: `CoralDot` → `SignalDot`; `Eyebrow` sentence-case, `dot` prop dropped; unused `StatusBadge`/`badgeTones` deleted; button variants re-specified (black primaries, `accent` = filled coral + ink label used only for Generate/Regenerate, `subtle` = soft fill, `destructive` = outlined error-text pill, `press` motion); dialog/dropdown off-token hexes (`#efefef`, `#5e5e5e`, `bg-white`, `shadow-[...]`) tokenized; TopBar 56px `--shell-chrome` + `contained` prop; input/skeleton retoned.
+- Pages visual-only per the standing redesign rule: Landing fully recomposed (hero + abstract scatter→align fragment study replacing the invented filenames/status, section list from real `ALLOWED_SECTIONS`, ink promo band with coral rule), Auth card-on-cream, Workspaces flat hairline index with hover lift, Workspace shell utility-bar header (D1: the duplicate page H2 → viewer owns the title), sources rail sentence-case group labels + compact rows + hover-reveal delete, viewer document sheet (`shadow-paper`, serif numerals/masthead, `text-body` 1.75 leading, `hyphens-auto`, hover-reveal Edit pills, section mount stagger), Q&A compact header/flat rows/`source_type` on trace rows/pulsing-coral Thinking. All routes, API shapes, query keys, mutation logic, generation job tracking, autosave, upload validation, OAuth/Picker untouched; zero `server/` diff.
+- Added `@fontsource/instrument-serif` (static 400 normal + italic, latin subsets ≈43KB woff2 — deliberate, display-only exception to the 2026-09-18 font diet). Deleted unused Vite-template assets (`public/icons.svg`, `src/assets/*`).
+- Verified: `npm run build` green, `npm run lint` clean, preview routes `/ /auth /workspaces /workspaces/abc` 200, CSS-utility emission spot-checked in `dist`.
+
 ## Closed 2026‑09‑28 (editorial re-skin)
 - "Editorial AI Workspace": warm tokens (`canvas #F7F7F4`, `surface #FFFFFF`, ink `#151515`, hairline `#DEDED9`, accent `#FF5A36` + soft `#FFF0EB`), new `accent` button variant (in-app primaries coral; landing black pills kept), page-by-page visual-only pass Workspace → Viewer → Sources → Q&A → Workspaces → Landing → Auth/404. Query keys, routes, labels, logic untouched; build green, lint clean.
 - `generation_jobs` RLS: migration `62d4ff311943` (`user_id = auth.uid()` select/insert/update/delete `TO authenticated`, reversible downgrade), applied to Supabase; backend role bypasses RLS (same posture as the other 7 tables), so no app-code changes.
 - Google Drive connector shipped (see Implementation Status); `client/.env.example` documents `VITE_GOOGLE_PICKER_API_KEY` / `VITE_GOOGLE_APP_ID`.
 
-*Version 1.3 – 2026‑09‑28*
+*Version 1.4 – 2026-10-01 (Sourcify identity)*

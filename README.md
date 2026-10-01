@@ -1,6 +1,6 @@
-# BRD Agent
+# Sourcify
 
-BRD Agent turns scattered project sources into a structured Business Requirements Document (BRD).
+Sourcify turns scattered project sources into structured project knowledge and a usable Business Requirements Document (BRD).
 
 Create a workspace, add sources (uploaded documents, Gmail threads, Google Drive files), and generate a professional BRD you can view in the app and download as PDF or DOCX. Adding more sources later marks the BRD as outdated so you can regenerate it.
 

@@ -52,9 +52,9 @@ import {
 import { BRDViewer } from "@/components/brd/BRDViewer";
 import { BRDQAPanel } from "@/components/brd/BRDQAPanel";
 import { TopBar } from "@/components/layout/TopBar";
+import { FieldBackdrop } from "@/components/brand/FieldBackdrop";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  CoralDot,
   EmptyState,
   Eyebrow,
   FlashNote,
@@ -113,11 +113,11 @@ function SourceCard({
   onDelete: (documentId: string) => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 px-2 py-2.5 transition-colors duration-200 hover:bg-canvas">
+    <div className="group/source -mx-2 flex items-center justify-between gap-2 rounded-md px-2 py-2.5 transition-colors duration-200 hover:bg-soft/70">
       <div className="flex min-w-0 items-center gap-2.5">
         <span
           aria-hidden="true"
-          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-canvas text-ink"
+          className="flex size-5 shrink-0 items-center justify-center text-stone"
         >
           {icon}
         </span>
@@ -131,7 +131,7 @@ function SourceCard({
           </p>
 
           <p className="mt-0.5 flex min-w-0 items-center gap-1.5">
-            <span className="shrink-0 rounded-md bg-canvas px-1.5 py-px text-xs font-medium tracking-wide text-steel uppercase">
+            <span className="shrink-0 text-xs font-medium text-steel">
               {badge}
             </span>
 
@@ -149,6 +149,7 @@ function SourceCard({
         size="icon-sm"
         aria-label="Delete source"
         title="Delete source"
+        className="text-stone opacity-0 transition-opacity duration-200 group-focus-within/source:opacity-100 group-hover/source:opacity-100 hover:text-error"
         onClick={() => onDelete(documentId)}
         disabled={isDeleting}
       >
@@ -1033,9 +1034,14 @@ export default function WorkspacePage() {
         : "max-w-[720px]";
 
   return (
-    <main className="min-h-screen bg-canvas text-ink">
+    <main className="relative min-h-screen print:bg-white">
+      <div className="print:hidden">
+        <FieldBackdrop intensity="restrained" />
+      </div>
+
       <div className="print:hidden">
         <TopBar
+          contained={false}
           left={
             <>
               <Button
@@ -1049,11 +1055,10 @@ export default function WorkspacePage() {
               </Button>
 
               <div className="min-w-0">
-                <p className="text-[11px] leading-4 font-semibold tracking-[0.08em] text-steel uppercase">
+                <p className="text-xs leading-4 font-medium text-steel">
                   Project
                 </p>
-                <h1 className="flex items-center gap-2 truncate text-lg leading-6 font-semibold text-ink">
-                  <CoralDot />
+                <h1 className="truncate text-base leading-6 font-medium text-ink">
                   {workspace.name}
                 </h1>
 
@@ -1074,27 +1079,26 @@ export default function WorkspacePage() {
       </div>
 
       <div
-        className={`grid min-h-[calc(100vh-65px)] grid-cols-1 md:h-[calc(100vh-65px)] md:overflow-hidden ${gridCols}`}
+        className={`shell-cols grid min-h-[calc(100vh-var(--shell-chrome))] grid-cols-1 md:h-[calc(100vh-var(--shell-chrome))] md:overflow-hidden ${gridCols}`}
       >
-        <aside className="border-b border-hairline-soft bg-surface p-4 print:hidden md:overflow-y-auto md:border-r md:border-b-0">
+        <aside className="order-2 border-b border-hairline bg-surface px-4 py-5 print:hidden md:order-none md:overflow-y-auto md:border-r md:border-b-0">
           {!sourcesOpen ? (
             <button
               type="button"
               onClick={toggleSources}
               aria-label="Show sources"
               title="Show sources"
-              className="flex size-9 items-center justify-center rounded-full border border-hairline bg-canvas text-ink transition-colors duration-200 max-md:size-11 hover:bg-black/5"
+              className="flex size-9 items-center justify-center rounded-full border border-hairline bg-surface text-ink transition-colors duration-200 max-md:size-11 hover:bg-soft"
             >
               <ChevronRight />
             </button>
           ) : (
             <>
               <div className="flex items-center justify-between gap-2">
-                <h2 className="flex items-center gap-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
-                  <CoralDot />
+                <h2 className="flex items-baseline gap-2 text-sm font-medium text-ink">
                   Sources
                   {(documents?.length ?? 0) > 0 && (
-                    <span className="ml-1 font-medium text-steel normal-case">
+                    <span className="text-sm text-steel tabular-nums">
                       {documents?.length}
                     </span>
                   )}
@@ -1106,7 +1110,7 @@ export default function WorkspacePage() {
                   aria-label="Hide sources"
                   aria-expanded="true"
                   title="Hide sources"
-                  className="flex size-9 items-center justify-center rounded-full text-ink transition-colors duration-200 max-md:size-11 hover:bg-black/5"
+                  className="flex size-9 items-center justify-center rounded-full text-stone transition-colors duration-200 max-md:size-11 hover:bg-soft hover:text-ink"
                 >
                   <ChevronLeft />
                 </button>
@@ -1118,7 +1122,7 @@ export default function WorkspacePage() {
                   input — a label pill alone is not focusable. */}
               <Button
                 type="button"
-                variant="accent"
+                variant="default"
                 className="w-full"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadMutation.isPending}
@@ -1146,12 +1150,9 @@ export default function WorkspacePage() {
             </p>
 
             {isDocumentsLoading && (
-              <div className="mt-4 space-y-2" aria-label="Loading sources">
+              <div className="mt-4 space-y-2 border-t border-hairline pt-4" aria-label="Loading sources">
                 {[0, 1].map((index) => (
-                  <div
-                    key={index}
-                    className="rounded-xl border border-hairline bg-canvas p-4"
-                  >
+                  <div key={index} className="py-2.5">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="mt-2 h-3 w-1/3" />
                   </div>
@@ -1160,7 +1161,7 @@ export default function WorkspacePage() {
             )}
 
             {isDocumentsError && (
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-4">
+              <div className="mt-4 flex items-center justify-between gap-3 border-y border-hairline py-3">
                 <p className="text-sm text-ink">
                   Couldn&apos;t load sources.
                 </p>
@@ -1186,20 +1187,23 @@ export default function WorkspacePage() {
               uploadedDocuments.length === 0 &&
               emailDocuments.length === 0 &&
               driveDocuments.length === 0 && (
-                <div className="mt-4 flex min-h-[92px] items-center justify-center rounded-xl border border-dashed border-hairline bg-canvas/60 px-4 py-6 text-center text-sm leading-5 text-steel">
+                <p className="mt-5 border-t border-hairline pt-4 text-sm leading-5 text-steel">
                   Nothing here yet.
-                </div>
+                </p>
               )}
 
             {!isDocumentsLoading &&
               !isDocumentsError &&
               uploadedDocuments.length > 0 && (
                 <>
-                  <p className="mt-4 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
-                    Files · {uploadedDocuments.length}
+                  <p className="mt-5 flex items-baseline gap-2 text-sm font-medium text-ink">
+                    Files
+                    <span className="text-xs text-steel tabular-nums">
+                      {uploadedDocuments.length}
+                    </span>
                   </p>
 
-                  <div className="mt-1 divide-y divide-hairline-soft border-y border-hairline-soft">
+                  <div className="mt-1 divide-y divide-hairline border-t border-hairline">
                     {uploadedDocuments.map((document) => (
                       <SourceCard
                         key={document.id}
@@ -1232,12 +1236,11 @@ export default function WorkspacePage() {
           </section>
 
           {/* Gmail */}
-          <section className="mt-8 border-t border-hairline-soft pt-6">
-            <h2 className="flex items-center gap-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
-              <CoralDot />
+          <section className="mt-8 border-t border-hairline pt-5">
+            <h2 className="flex items-baseline gap-2 text-sm font-medium text-ink">
               Gmail
               {emailDocuments.length > 0 && (
-                <span className="ml-1 font-medium normal-case">
+                <span className="text-xs text-steel tabular-nums">
                   {emailDocuments.length}
                 </span>
               )}
@@ -1290,7 +1293,7 @@ export default function WorkspacePage() {
             )}
 
             {!isGmailStatusLoading && isGmailStatusError && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-3">
+              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
                 <p className="text-sm text-ink">
                   Couldn&apos;t check Gmail.
                 </p>
@@ -1314,7 +1317,7 @@ export default function WorkspacePage() {
                   </p>
 
                   {emailDocuments.length > 0 && (
-                    <div className="mt-1 divide-y divide-hairline-soft border-y border-hairline-soft">
+                    <div className="mt-1 divide-y divide-hairline border-t border-hairline">
                       {emailDocuments.map((document) => (
                         <SourceCard
                           key={document.id}
@@ -1355,12 +1358,11 @@ export default function WorkspacePage() {
           </section>
 
           {/* Google Drive */}
-          <section className="mt-8 border-t border-hairline-soft pt-6">
-            <h2 className="flex items-center gap-2 text-xs font-semibold tracking-[0.08em] text-steel uppercase">
-              <CoralDot />
+          <section className="mt-8 border-t border-hairline pt-5">
+            <h2 className="flex items-baseline gap-2 text-sm font-medium text-ink">
               Google Drive
               {driveDocuments.length > 0 && (
-                <span className="ml-1 font-medium normal-case">
+                <span className="text-xs text-steel tabular-nums">
                   {driveDocuments.length}
                 </span>
               )}
@@ -1420,7 +1422,7 @@ export default function WorkspacePage() {
             )}
 
             {!isDriveStatusLoading && isDriveStatusError && (
-              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-3">
+              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
                 <p className="text-sm text-ink">
                   Couldn&apos;t check Google Drive.
                 </p>
@@ -1444,7 +1446,7 @@ export default function WorkspacePage() {
                   </p>
 
                   {driveDocuments.length > 0 && (
-                    <div className="mt-1 divide-y divide-hairline-soft border-y border-hairline-soft">
+                    <div className="mt-1 divide-y divide-hairline border-t border-hairline">
                       {driveDocuments.map((document) => (
                         <SourceCard
                           key={document.id}
@@ -1497,36 +1499,43 @@ export default function WorkspacePage() {
           )}
         </aside>
 
-        <section className="min-h-0 min-w-0 overflow-y-auto bg-canvas p-4 print:bg-canvas print:p-0 sm:p-8">
+        <section className="order-1 min-h-0 min-w-0 overflow-y-auto px-4 pb-8 pt-0 print:bg-white print:p-0 sm:px-8 md:order-none">
           <div
-            className={`mx-auto mb-6 w-full ${docMeasure} border-b border-hairline pb-5 transition-[max-width] duration-200 print:hidden`}
+            className="sticky top-0 z-[5] -mx-4 border-b border-hairline bg-canvas px-4 pb-4 pt-6 print:hidden sm:-mx-8 sm:px-8"
           >
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold tracking-[0.08em] text-steel uppercase">
-                  {workspace.name}
-                </p>
-                <h2 className="mt-1 text-2xl leading-[1.3] font-semibold tracking-[-0.5px] text-ink">
-                  Business Requirements Document
-                </h2>
+            <div
+              className={`mx-auto flex w-full ${docMeasure} flex-wrap items-center justify-between gap-3 transition-[max-width] duration-200`}
+            >
+            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+              <p className="truncate text-base leading-6 font-medium text-ink">
+                {workspace.name}
+              </p>
 
-                <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-steel">
-                  {brdStateLabel && (
-                    <span className="flex items-center gap-1.5 text-xs font-semibold tracking-[0.08em] uppercase">
-                      <CoralDot />
-                      {brdStateLabel}
-                    </span>
-                  )}
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-steel">
+                {brdStateLabel && (
+                  <span className="flex items-center gap-1.5 text-xs font-medium text-steel">
+                    <span
+                      aria-hidden="true"
+                      className={
+                        generationStep !== "idle"
+                          ? "size-1.5 animate-pulse rounded-full bg-signal"
+                          : brdStatus?.regeneration_required
+                            ? "size-1.5 rounded-full bg-warning"
+                            : "size-1.5 rounded-full bg-ink"
+                      }
+                    />
+                    {brdStateLabel}
+                  </span>
+                )}
 
-                  {(documents?.length ?? 0) > 0 && (
-                    <span>
-                      {brdStateLabel ? "· " : ""}From{" "}
-                      {documents?.length}{" "}
-                      {documents?.length === 1 ? "source" : "sources"}
-                    </span>
-                  )}
-                </p>
-              </div>
+                {(documents?.length ?? 0) > 0 && (
+                  <span className="text-xs text-steel">
+                    From {documents?.length}{" "}
+                    {documents?.length === 1 ? "source" : "sources"}
+                  </span>
+                )}
+              </p>
+            </div>
 
             {brdStatus?.has_brd && (
               <DropdownMenu>
@@ -1555,9 +1564,9 @@ export default function WorkspacePage() {
 
           {generationStep !== "idle" && (
             <div
-              className={`mx-auto w-full ${docMeasure} rounded-xl border border-hairline bg-surface p-6 transition-[max-width] duration-200 print:hidden`}
+              className={`mx-auto w-full ${docMeasure} border-y border-hairline bg-surface px-5 py-4 transition-[max-width] duration-200 print:hidden`}
             >
-              <ol className="space-y-3">
+              <ol className="space-y-2.5">
                 {(
                   [
                     ["processing-sources", "Reading sources"],
@@ -1591,14 +1600,14 @@ export default function WorkspacePage() {
                       {isActive ? (
                         <Loader2
                           aria-hidden="true"
-                          className="size-4 animate-spin text-brand-coral"
+                          className="size-4 animate-spin text-signal"
                         />
                       ) : (
                         <span
                           aria-hidden="true"
                           className={
                             isDone
-                              ? "size-2 rounded-full bg-brand-coral"
+                              ? "size-2 rounded-full bg-ink"
                               : "size-2 rounded-full border border-ink/20"
                           }
                         />
@@ -1607,8 +1616,8 @@ export default function WorkspacePage() {
                       <span
                         className={
                           isActive || isDone
-                            ? "text-sm font-semibold tracking-[0.08em] text-ink uppercase"
-                            : "text-sm tracking-[0.08em] text-steel uppercase"
+                            ? "text-sm font-medium text-ink"
+                            : "text-sm text-steel"
                         }
                       >
                         {label}
@@ -1635,7 +1644,7 @@ export default function WorkspacePage() {
           {generationStep === "idle" && isBRDStatusLoading && (
             <div
               aria-label="Loading BRD status"
-              className={`mx-auto w-full ${docMeasure} space-y-3 rounded-xl border border-hairline bg-surface p-6 transition-[max-width] duration-200 print:hidden`}
+              className={`mx-auto w-full ${docMeasure} space-y-3 border-y border-hairline bg-surface px-5 py-5 transition-[max-width] duration-200 print:hidden`}
             >
               <Skeleton className="h-5 w-1/3" />
               <Skeleton className="h-4 w-full" />
@@ -1644,7 +1653,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && isBRDStatusError && (
             <div
-              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 rounded-xl border border-hairline bg-surface p-4 transition-[max-width] duration-200 print:hidden`}
+              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 border-y border-hairline bg-surface px-5 py-4 transition-[max-width] duration-200 print:hidden`}
             >
               <p className="text-sm text-ink">Something went wrong.</p>
 
@@ -1690,11 +1699,11 @@ export default function WorkspacePage() {
             brdStatus?.has_brd &&
             brdStatus.regeneration_required && (
               <div
-                className={`mx-auto mb-6 w-full ${docMeasure} rounded-xl border border-hairline border-l-2 border-l-accent-action bg-surface p-6 transition-[max-width] duration-200 print:hidden`}
+                className={`mx-auto mb-8 w-full ${docMeasure} border border-hairline border-l-2 border-l-signal bg-surface px-5 py-4 transition-[max-width] duration-200 print:hidden`}
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <Eyebrow dot>Needs attention</Eyebrow>
+                    <Eyebrow className="text-signal-text">Needs attention</Eyebrow>
                     <p className="mt-1 text-base font-medium text-ink">
                       New sources available.
                     </p>
@@ -1720,15 +1729,15 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && brdStatus?.has_brd && isBRDLoading && (
             <div
-              className={`mx-auto w-full ${docMeasure} rounded-xl border border-hairline bg-surface p-6 transition-[max-width] duration-200 sm:p-8`}
+              className={`mx-auto w-full ${docMeasure} bg-surface px-8 py-10 shadow-paper transition-[max-width] duration-200 sm:px-12 sm:py-14`}
               aria-label="Loading BRD"
             >
               <Skeleton className="h-3 w-1/3" />
-              <Skeleton className="mt-4 h-8 w-2/3" />
-              <Skeleton className="mt-4 h-4 w-full" />
+              <Skeleton className="mt-4 h-9 w-2/3" />
+              <Skeleton className="mt-5 h-4 w-full" />
               <Skeleton className="mt-2 h-4 w-5/6" />
 
-              <div className="mt-8 border-t border-hairline-soft pt-8">
+              <div className="mt-10 border-t border-hairline pt-8">
                 <Skeleton className="h-5 w-1/4" />
                 <Skeleton className="mt-3 h-4 w-full" />
                 <Skeleton className="mt-2 h-4 w-4/6" />
@@ -1738,7 +1747,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && brdStatus?.has_brd && isBRDError && (
             <div
-              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 rounded-xl border border-hairline bg-surface p-4 transition-[max-width] duration-200 print:hidden`}
+              className={`mx-auto flex w-full ${docMeasure} items-center justify-between gap-3 border-y border-hairline bg-surface px-5 py-4 transition-[max-width] duration-200 print:hidden`}
             >
               <p className="text-sm text-ink">Something went wrong.</p>
 
@@ -1795,13 +1804,13 @@ export default function WorkspacePage() {
           (qaOpen ? (
             <BRDQAPanel workspaceId={id} onCollapse={toggleQa} />
           ) : (
-            <div className="border-t border-hairline-soft bg-surface p-4 print:hidden md:border-t-0 md:border-l">
+            <div className="order-3 border-t border-hairline bg-surface p-4 print:hidden md:order-none md:border-t-0 md:border-l">
               <button
                 type="button"
                 onClick={toggleQa}
                 aria-label="Show Q&A"
                 title="Show Q&A"
-                className="flex size-9 items-center justify-center rounded-full border border-hairline bg-canvas text-ink transition-colors duration-200 max-md:size-11 hover:bg-black/5"
+                className="flex size-9 items-center justify-center rounded-full border border-hairline bg-surface text-ink transition-colors duration-200 max-md:size-11 hover:bg-soft"
               >
                 <ChevronLeft />
               </button>

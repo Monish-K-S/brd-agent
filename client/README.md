@@ -1,12 +1,12 @@
-# BRD Agent — Client
+# Sourcify — Client
 
-React + Vite + TypeScript single-page app for BRD Agent: workspaces, source management (uploads, Gmail, Google Drive), an 11-section BRD viewer with inline editing, workspace Q&A, and PDF/DOCX export.
+React + Vite + TypeScript single-page app for Sourcify: workspaces, source management (uploads, Gmail, Google Drive), an 11-section BRD viewer with inline editing, workspace Q&A, and PDF/DOCX export.
 
 ## Stack
 
 - React 19 + Vite + TypeScript, React Router, TanStack Query, Axios
 - Tailwind CSS v4 (`src/index.css` `@theme` tokens) + shadcn/Base UI primitives
-- DM Sans via `@fontsource-variable/dm-sans` (locked — do not swap fonts)
+- DM Sans via `@fontsource-variable/dm-sans` (UI/body) + Instrument Serif via `@fontsource/instrument-serif` (`font-display` — brand/display surfaces only)
 - Supabase JS for Google-only auth (`src/lib/supabase.ts`)
 
 ## Scripts

@@ -33,9 +33,14 @@ export class ErrorBoundary extends Component<
     }
 
     return (
-      <main className="flex min-h-screen flex-col items-center bg-canvas px-4 py-24 text-center text-ink sm:px-8">
+      <main className="relative flex min-h-screen flex-col items-center bg-canvas px-4 py-24 text-center text-ink sm:px-8">
         <div className="mx-auto w-full max-w-xl">
-          <h1 className="text-h2 leading-[1.15] font-semibold tracking-[-0.5px] text-ink">
+          <span
+            aria-hidden="true"
+            className="mx-auto mb-8 block size-2 rounded-full bg-signal"
+          />
+
+          <h1 className="font-display text-h1 leading-[1.1] font-normal text-ink">
             Something went wrong.
           </h1>
 
@@ -48,14 +53,14 @@ export class ErrorBoundary extends Component<
             <button
               type="button"
               onClick={this.handleRetry}
-              className="inline-flex min-h-11 cursor-pointer items-center rounded-full bg-primary px-6 py-[11px] text-sm font-semibold text-white transition-colors duration-200 hover:bg-primary-deep active:bg-primary-deep"
+              className="press inline-flex min-h-11 cursor-pointer items-center rounded-full bg-primary px-6 py-[11px] text-sm font-semibold text-surface transition-colors duration-200 hover:bg-primary-deep active:bg-primary-deep"
             >
               Try again
             </button>
 
             <Link
               to="/"
-              className="inline-flex min-h-11 items-center rounded-full border border-ink bg-transparent px-6 py-[11px] text-sm font-semibold text-ink transition-colors duration-200 hover:bg-black/5"
+              className="press inline-flex min-h-11 items-center rounded-full border border-ink/25 bg-transparent px-6 py-[11px] text-sm font-semibold text-ink transition-colors duration-200 hover:border-ink/50 hover:bg-soft"
             >
               Back to home
             </Link>
