@@ -2,8 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { askBRD, type BRDQAResponse } from "@/api/brd";
 import { Button } from "@/components/ui/button";
-import { CoralDot } from "@/components/ui/status";
-import { Bot, ChevronRight, Loader2, Send, Trash2 } from "lucide-react";
+import { ChevronRight, Loader2, Send, Trash2 } from "lucide-react";
 
 type Message = {
   id: string;
@@ -87,25 +86,13 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
   }
 
   return (
-    <aside className="flex min-h-0 flex-col border-t border-hairline-soft bg-surface print:hidden md:h-[calc(100vh-65px)] md:border-t-0 md:border-l">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-hairline-soft px-4 py-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-canvas text-ink"
-          >
-            <Bot />
-          </span>
-
-          <div className="min-w-0">
-            <h2 className="flex items-center gap-2 truncate text-xs font-semibold tracking-[0.08em] text-steel uppercase">
-              <CoralDot />
-              Q&A
-            </h2>
-            <p className="truncate text-xs leading-4 text-steel">
-              Ask about this project
-            </p>
-          </div>
+    <aside className="order-3 flex min-h-0 flex-col border-t border-hairline bg-surface print:hidden md:order-none md:h-[calc(100vh-var(--shell-chrome))] md:border-t-0 md:border-l">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-hairline px-4 py-3">
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-medium text-ink">Q&amp;A</h2>
+          <p className="truncate text-xs leading-4 text-steel">
+            Ask about this project
+          </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
@@ -117,6 +104,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
               disabled={askMutation.isPending}
               aria-label="Clear Q&A"
               title="Clear Q&A"
+              className="text-stone hover:text-ink"
             >
               <Trash2 />
             </Button>
@@ -129,7 +117,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
               aria-label="Hide Q&A"
               aria-expanded="true"
               title="Hide Q&A"
-              className="flex size-9 items-center justify-center rounded-full text-ink transition-colors duration-200 max-md:size-11 hover:bg-black/5"
+              className="flex size-9 items-center justify-center rounded-full text-stone transition-colors duration-200 max-md:size-11 hover:bg-soft hover:text-ink"
             >
               <ChevronRight />
             </button>
@@ -137,31 +125,29 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
         </div>
       </div>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
-          <div className="flex h-full min-h-[200px] flex-col items-center justify-center text-center">
-            <p className="max-w-[240px] text-sm leading-5 text-steel">
-              Ask about requirements, decisions, or where something came from.
-            </p>
-          </div>
+          <p className="border-b border-hairline pb-4 text-sm leading-6 text-steel">
+            Ask about requirements, decisions, or where something came from.
+          </p>
         )}
 
         {messages.length > 0 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={
                   message.role === "user"
-                    ? "flex justify-end"
-                    : "flex justify-start"
+                    ? "animate-in fade-in-0 slide-in-from-bottom-1 duration-200 flex justify-end"
+                    : "animate-in fade-in-0 duration-300 flex justify-start"
                 }
               >
                 <div
                   className={
                     message.role === "user"
-                      ? "max-w-[90%] rounded-xl bg-canvas px-4 py-3 text-sm leading-5 text-ink"
-                      : "max-w-[95%]"
+                      ? "max-w-[85%] rounded-lg rounded-br-xs bg-soft px-3.5 py-2.5 text-sm leading-5 text-ink"
+                      : "w-full"
                   }
                 >
                   {message.role === "user" ? (
@@ -176,7 +162,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
                           <p
                             key={index}
                             lang="en"
-                            className="text-justify text-sm leading-6 hyphens-auto whitespace-pre-line text-ink"
+                            className="text-justify text-sm leading-6 hyphens-auto whitespace-pre-line text-body"
                           >
                             {paragraph}
                           </p>
@@ -187,25 +173,28 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
                   {message.role === "assistant" &&
                     message.sources &&
                     message.sources.length > 0 && (
-                      <div className="mt-4 border-t border-hairline-soft pt-3">
-                        <p className="mb-1.5 text-[11px] font-semibold tracking-[0.08em] text-steel uppercase">
+                      <div className="mt-4 border-t border-hairline pt-3">
+                        <p className="mb-1 text-xs font-medium text-steel">
                           Sources
                         </p>
-                        <div className="space-y-1.5">
+                        <ul className="divide-y divide-hairline">
                           {message.sources.map((source) => (
-                            <div
+                            <li
                               key={source.id}
-                              className="rounded-lg border border-hairline bg-canvas px-3 py-2"
+                              className="flex items-baseline justify-between gap-3 py-1.5"
                             >
                               <p
-                                className="truncate text-xs font-medium text-ink"
+                                className="min-w-0 truncate text-xs font-medium text-ink"
                                 title={source.title ?? "Untitled source"}
                               >
                                 {source.title ?? "Untitled source"}
                               </p>
-                            </div>
+                              <span className="shrink-0 text-[11px] text-steel">
+                                {source.source_type}
+                              </span>
+                            </li>
                           ))}
-                        </div>
+                        </ul>
                       </div>
                     )}
                 </div>
@@ -214,7 +203,11 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
 
             {askMutation.isPending && (
               <div className="flex items-center gap-2 text-sm text-steel">
-                <Loader2 className="animate-spin" />
+                <span aria-hidden="true" className="flex items-center gap-1">
+                  <span className="size-1.5 animate-pulse rounded-full bg-signal" />
+                  <span className="size-1.5 animate-pulse rounded-full bg-signal [animation-delay:150ms]" />
+                  <span className="size-1.5 animate-pulse rounded-full bg-signal [animation-delay:300ms]" />
+                </span>
                 Thinking...
               </div>
             )}
@@ -222,7 +215,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
         )}
 
         {askMutation.isError && (
-          <div className="mt-4 rounded-xl border border-hairline bg-canvas p-3">
+          <div className="mt-4 border-y border-hairline py-3">
             <p className="text-xs text-ink" role="alert">
               Couldn&apos;t answer. Try again.
             </p>
@@ -232,9 +225,9 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
 
       <form
         onSubmit={handleSubmit}
-        className="shrink-0 border-t border-hairline-soft bg-canvas p-4"
+        className="shrink-0 border-t border-hairline bg-surface px-4 py-3"
       >
-        <div className="rounded-lg border border-hairline bg-surface p-2 transition-colors duration-200 focus-within:border-ink">
+        <div className="rounded-lg border border-hairline bg-canvas/70 p-2 transition-colors duration-200 focus-within:border-ink focus-within:bg-surface">
           <textarea
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
@@ -254,7 +247,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
           <div className="mt-2 flex items-center justify-end gap-2 px-2 pb-1">
             <Button
               type="submit"
-              variant="accent"
+              variant="default"
               size="sm"
               disabled={!question.trim() || askMutation.isPending}
             >

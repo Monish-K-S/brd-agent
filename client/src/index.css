@@ -2,76 +2,97 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/dm-sans";
+@import "@fontsource/instrument-serif/latin-400.css";
+@import "@fontsource/instrument-serif/latin-400-italic.css";
 
-/* Editorial AI Workspace tokens: warm off-white canvas, white document
-   surfaces, near-black ink, one coral accent used sparingly for primary
-   in-app actions, active states, and AI indicators. DM Sans locked. */
+/* SOURCIFY identity: warm cream canvas, warm-white surfaces, black ink,
+   one coral signal accent used with intent (markers, states, brand
+   moments — never structure), Instrument Serif display paired with
+   DM Sans UI. Light-only. Contrast-checked: ink 16.2:1 on cream,
+   steel 4.79:1 on cream, edge 3.3:1 for control outlines. */
 @theme {
-    --font-sans: 'DM Sans Variable', 'DM Sans', 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'DM Sans Variable', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
     --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
-    --color-canvas: #f7f7f4;
-    --color-surface: #ffffff;
-    --color-surface-soft: #efefea;
+    /* Warm neutrals */
+    --color-canvas: #f5f1e8;
+    --color-surface: #fffdf8;
+    --color-soft: #eeeae1;
+    --color-soft-deep: #e7e1d5;
+
+    /* Ink ladder */
     --color-primary: #151515;
-    --color-primary-deep: #2b2b29;
+    --color-primary-deep: #252525;
     --color-ink: #151515;
-    --color-ink-strong: #000000;
-    --color-charcoal: #2b2b29;
-    --color-slate: #55554f;
-    --color-steel: #686866;
-    --color-stone: #9a9a94;
-    --color-muted: #a8a8a0;
-    --color-hairline: #deded9;
-    --color-hairline-soft: #e9e9e3;
-    --color-input-border: #deded9;
+    --color-body: #4a463d;
+    --color-steel: #6d6a63;
+    --color-stone: #85817a;
+    /* Faint decorative micro-labels / disabled text (not for reading). */
+    --color-faint: #a39e93;
 
-    /* DESIGN.md semantic tokens. */
-    --color-success-bg: #e8ffea;
-    --color-success-text: #1ba673;
+    /* Lines */
+    --color-hairline: #ddd8cd;
+    --color-edge: #8a8478;
 
-    /* Product-identity colors: signature moments only, never structure. */
-    --color-brand-coral: #ff5a36;
-    --color-brand-magenta: #ea5ec1;
-    --color-brand-blue: #1456f0;
-    --color-brand-blue-deep: #1d4ed8;
-    --color-brand-blue-200: #bfdbfe;
-    --color-brand-purple: #a855f7;
+    /* Signal accent: coral. Decorative marks, active states, progress,
+       selection. signal-text carries any coral TEXT/icon on cream (4.7:1);
+       filled coral takes black labels (5.95:1), never white. */
+    --color-signal: #ff5c3b;
+    --color-signal-deep: #e0431f;
+    --color-signal-soft: #fff0eb;
+    --color-signal-text: #c43a17;
 
-    /* Editorial accent: primary in-app actions, active states, AI states,
-       selected items, small indicators. Paired soft wash for highlights. */
-    --color-accent-action: #ff5a36;
-    --color-accent-soft: #fff0eb;
-    --color-accent-deep: #d94324;
+    /* Semantic, restrained, AA on cream */
+    --color-success: #1f7a4c;
+    --color-warning: #96601b;
+    --color-error: #b42318;
+    --color-info: #2a5da8;
+    --color-destructive: #b42318;
 
-    /* DESIGN.md type scale: display sizes step hero -> display ->
-       heading-lg (h1) -> heading-md (h2) -> heading-sm (h3). */
-    --text-hero: 80px;
-    --text-hero--line-height: 1.1;
-    --text-hero--letter-spacing: -2px;
-    --text-display: 56px;
+    /* Fluid editorial type scale (Utopia-style) — serif display sizes.
+       No aggressive negative tracking; character comes from the face. */
+    --text-hero: clamp(2.75rem, 1.6rem + 4.6vw, 5rem);
+    --text-hero--line-height: 1.05;
+    --text-display: clamp(2rem, 1.35rem + 2.6vw, 3.5rem);
     --text-display--line-height: 1.1;
-    --text-display--letter-spacing: -1.5px;
-    --text-h1: 40px;
-    --text-h1--line-height: 1.2;
-    --text-h1--letter-spacing: -1px;
-    --text-h2: 32px;
-    --text-h2--line-height: 1.25;
-    --text-h2--letter-spacing: -0.5px;
-    --text-h3: 24px;
+    --text-h1: clamp(1.75rem, 1.35rem + 1.6vw, 2.5rem);
+    --text-h1--line-height: 1.15;
+    --text-h2: clamp(1.5rem, 1.25rem + 1vw, 2rem);
+    --text-h2--line-height: 1.2;
+    --text-h3: 1.5rem;
     --text-h3--line-height: 1.3;
+    --text-lead: clamp(1.0625rem, 0.98rem + 0.4vw, 1.25rem);
+    --text-lead--line-height: 1.6;
+    --text-reading: 1.0625rem;
+    --text-reading--line-height: 1.75;
 
-    /* DESIGN.md radius contrast: 32px product/feature moments vs
-       16px quiet white cards. */
-    --radius-card: 1rem;
-    --radius-tile: 2rem;
+    /* Explicit radius ladder — no multiplier chain. */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+    --radius-2xl: 18px;
+
+    /* Motion language: SOURCE -> SIGNAL -> STRUCTURE.
+       Fast enough to feel responsive, slow enough to feel intentional. */
+    --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+    --ease-spring: cubic-bezier(0.34, 1.32, 0.64, 1);
+    --dur-1: 120ms;
+    --dur-2: 220ms;
+    --dur-3: 360ms;
+
+    /* Shell chrome height (single source of truth for calc() users):
+       3.5rem TopBar content + py-2.5 min-height clamp + 1px border = 57px. */
+    --shell-chrome: 3.5625rem;
 }
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: 'DM Sans Variable', 'DM Sans', 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--font-display);
+    --font-sans: 'DM Sans Variable', 'DM Sans', ui-sans-serif, system-ui, sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -103,83 +124,83 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 10px;
+    --radius-xl: 14px;
+    --radius-2xl: 18px;
+    --radius-3xl: 22px;
+    --radius-4xl: 28px;
 }
 
 :root {
-    --background: #f7f7f4;
+    --background: #f5f1e8;
     --foreground: #151515;
-    --card: #ffffff;
+    --card: #fffdf8;
     --card-foreground: #151515;
-    --popover: #ffffff;
+    --popover: #fffdf8;
     --popover-foreground: #151515;
     --primary: #151515;
-    --primary-foreground: #ffffff;
-    --secondary: #ffffff;
+    --primary-foreground: #fffdf8;
+    --secondary: #eeeae1;
     --secondary-foreground: #151515;
-    --muted: #efefea;
-    --muted-foreground: #686866;
-    --accent: #efefea;
+    --muted: #eeeae1;
+    --muted-foreground: #6d6a63;
+    --accent: #eeeae1;
     --accent-foreground: #151515;
-    --destructive: #d45656;
-    --border: #deded9;
-    --input: #deded9;
+    --destructive: #b42318;
+    --border: #ddd8cd;
+    --input: #ddd8cd;
     --ring: #151515;
     --chart-1: #151515;
-    --chart-2: #686866;
-    --chart-3: #55554f;
-    --chart-4: #9a9a94;
-    --chart-5: #deded9;
-    --radius: 0.625rem;
-    --sidebar: #ffffff;
+    --chart-2: #6d6a63;
+    --chart-3: #4a463d;
+    --chart-4: #85817a;
+    --chart-5: #ddd8cd;
+    --radius: 0.5rem;
+    --sidebar: #fffdf8;
     --sidebar-foreground: #151515;
     --sidebar-primary: #151515;
-    --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #efefea;
+    --sidebar-primary-foreground: #fffdf8;
+    --sidebar-accent: #eeeae1;
     --sidebar-accent-foreground: #151515;
-    --sidebar-border: #deded9;
+    --sidebar-border: #ddd8cd;
     --sidebar-ring: #151515;
 }
 
 /* Light-only: no dark palette ships. Keep .dark identical to
    :root so any stray dark class does not change behavior or appearance. */
 .dark {
-    --background: #f7f7f4;
+    --background: #f5f1e8;
     --foreground: #151515;
-    --card: #ffffff;
+    --card: #fffdf8;
     --card-foreground: #151515;
-    --popover: #ffffff;
+    --popover: #fffdf8;
     --popover-foreground: #151515;
     --primary: #151515;
-    --primary-foreground: #ffffff;
-    --secondary: #ffffff;
+    --primary-foreground: #fffdf8;
+    --secondary: #eeeae1;
     --secondary-foreground: #151515;
-    --muted: #efefea;
-    --muted-foreground: #686866;
-    --accent: #efefea;
+    --muted: #eeeae1;
+    --muted-foreground: #6d6a63;
+    --accent: #eeeae1;
     --accent-foreground: #151515;
-    --destructive: #d45656;
-    --border: #deded9;
-    --input: #deded9;
+    --destructive: #b42318;
+    --border: #ddd8cd;
+    --input: #ddd8cd;
     --ring: #151515;
     --chart-1: #151515;
-    --chart-2: #686866;
-    --chart-3: #55554f;
-    --chart-4: #9a9a94;
-    --chart-5: #deded9;
-    --sidebar: #ffffff;
+    --chart-2: #6d6a63;
+    --chart-3: #4a463d;
+    --chart-4: #85817a;
+    --chart-5: #ddd8cd;
+    --sidebar: #fffdf8;
     --sidebar-foreground: #151515;
     --sidebar-primary: #151515;
-    --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #efefea;
+    --sidebar-primary-foreground: #fffdf8;
+    --sidebar-accent: #eeeae1;
     --sidebar-accent-foreground: #151515;
-    --sidebar-border: #deded9;
+    --sidebar-border: #ddd8cd;
     --sidebar-ring: #151515;
 }
 
@@ -187,8 +208,14 @@
   * {
     @apply border-border outline-ring/50;
     }
+  /* Canvas base lives on html so it propagates to the page canvas and
+     paints *below* the -z-10 FieldBackdrop; body stays transparent or it
+     would cover the field layers. */
+  html {
+    background: var(--color-canvas);
+  }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground antialiased;
   }
   html {
     @apply font-sans;
@@ -206,28 +233,110 @@
   [aria-disabled="true"] {
     cursor: not-allowed;
   }
+
+  /* Consistent ink focus across everything that isn't already a
+     ring-styled primitive. */
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
 }
 
-/* DESIGN.md elevation: predominantly flat. Level 1 hovers tiles,
-   Level 2 dropdowns/cards, Level 4 modals. */
+/* Elevation: predominantly flat. Paper lifts the document one level off
+   the cream; level 1 hovers tiles; level 2 carries overlays. */
+@utility shadow-paper {
+  box-shadow:
+    0 1px 2px rgba(33, 28, 20, 0.05),
+    0 12px 28px -12px rgba(33, 28, 20, 0.14);
+}
 @utility shadow-level-1 {
-  box-shadow: rgba(0, 0, 0, 0.04) 0px 1px 2px 0px;
+  box-shadow: rgba(33, 28, 20, 0.06) 0px 1px 3px 0px;
 }
 @utility shadow-level-2 {
-  box-shadow: rgba(0, 0, 0, 0.08) 0px 4px 6px 0px;
-}
-@utility shadow-level-3 {
-  box-shadow: rgba(36, 36, 36, 0.08) 0px 12px 16px -4px;
+  box-shadow: rgba(33, 28, 20, 0.12) 0px 8px 24px -6px;
 }
 
-/* Brand selection: ink wash */
+/* Brand selection: coral wash under ink. */
 ::selection {
-  background: #ff5a36;
-  color: #ffffff;
+  background: #ff5c3b;
+  color: #151515;
 }
 
-/* Restrained entrance: single fade-up, staggered via inline delay.
-   The global reduced-motion kill-switch neutralises this. */
+/* ------------------------------------------------------------------
+   Background system — CSS-only, no image payloads.
+
+   FieldBackdrop renders these in fixed, aria-hidden layers behind the
+   page: washes (warm depth), source dots (a quiet grid of "sources"
+   fading out before the content column), paper folds (two broad low-
+   alpha gradients), and grain (feTurbulence, ~4% multiply).
+   ------------------------------------------------------------------ */
+
+@utility field-washes {
+  background-image:
+    radial-gradient(60rem 40rem at 12% -8%, rgba(255, 253, 248, 0.85), transparent 60%),
+    radial-gradient(50rem 34rem at 92% 4%, rgba(246, 238, 222, 0.9), transparent 62%),
+    radial-gradient(46rem 46rem at 78% 96%, rgba(255, 240, 235, 0.5), transparent 60%),
+    radial-gradient(40rem 40rem at 6% 92%, rgba(238, 234, 225, 0.6), transparent 58%);
+}
+
+/* Dot grid: scattered sources, radially masked so it dissolves toward
+   the center of the viewport. */
+@utility field-dots {
+  background-image: radial-gradient(rgba(21, 21, 21, 0.055) 1px, transparent 1.4px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(52rem 36rem at 50% 38%, transparent 34%, black 80%);
+  mask-image: radial-gradient(52rem 36rem at 50% 38%, transparent 34%, black 80%);
+}
+
+@utility field-folds {
+  background-image:
+    linear-gradient(108deg, transparent 38%, rgba(255, 255, 255, 0.55) 46%, transparent 54%),
+    linear-gradient(74deg, transparent 42%, rgba(231, 225, 213, 0.6) 50%, transparent 60%);
+}
+
+@utility field-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  opacity: 0.045;
+  mix-blend-mode: multiply;
+}
+
+/* ------------------------------------------------------------------
+   Motion — opacity, translation, scale. No bounces, no glow.
+   The global reduced-motion kill-switch below snaps every one of
+   these to its final state, so functionality is identical.
+   ------------------------------------------------------------------ */
+
+@keyframes sourcify-rise {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+/* Entrance reveal. Stagger with an inline --reveal-delay. */
+@utility reveal {
+  animation: sourcify-rise var(--dur-3) var(--ease-out-soft) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* Scroll reveal (CSS scroll-driven animation — zero JS, zero observers).
+   Where the timeline is unsupported the block never applies and the
+   section is simply visible. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal-view {
+      animation: sourcify-rise var(--dur-3) var(--ease-out-soft) both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 42%;
+    }
+  }
+}
+
+/* Restrained entrance kept under its historic name (landing + 404). */
 @keyframes rise {
   from {
     opacity: 0;
@@ -241,6 +350,59 @@
 
 @utility animate-rise {
   animation: rise 0.7s ease-out both;
+}
+
+/* BRD document mount: sections resolve top-to-bottom — the motion
+   language is "information becoming organized". CSS-only; the viewer
+   mounts this once per BRD, and the reduced-motion kill-switch below
+   neutralises it everywhere else. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-brd-document] > section {
+    animation: sourcify-rise var(--dur-3) var(--ease-out-soft) both;
+  }
+  [data-brd-document] > section:nth-child(3) { animation-delay: 60ms; }
+  [data-brd-document] > section:nth-child(4) { animation-delay: 110ms; }
+  [data-brd-document] > section:nth-child(5) { animation-delay: 160ms; }
+  [data-brd-document] > section:nth-child(6) { animation-delay: 210ms; }
+  [data-brd-document] > section:nth-child(7) { animation-delay: 260ms; }
+  [data-brd-document] > section:nth-child(n + 8) { animation-delay: 300ms; }
+}
+
+/* Tactile press: buttons compress instead of just changing color. */
+@utility press {
+  transition:
+    background-color var(--dur-1) var(--ease-out-soft),
+    color var(--dur-1) var(--ease-out-soft),
+    border-color var(--dur-1) var(--ease-out-soft),
+    box-shadow var(--dur-2) var(--ease-out-soft),
+    translate var(--dur-1) var(--ease-spring);
+  &:active:not(:disabled) {
+    translate: 0 1px;
+  }
+}
+
+/* Slow drift for the transformation hero (purely decorative). */
+@keyframes drift-a {
+  from { transform: translate(0, 0) rotate(-4deg); }
+  50%  { transform: translate(6px, -5px) rotate(2deg); }
+  to   { transform: translate(0, 0) rotate(-4deg); }
+}
+@keyframes drift-b {
+  from { transform: translate(0, 0) rotate(3deg); }
+  50%  { transform: translate(-5px, 4px) rotate(-2deg); }
+  to   { transform: translate(0, 0) rotate(3deg); }
+}
+
+@utility drift-a {
+  animation: drift-a 9s ease-in-out infinite;
+}
+@utility drift-b {
+  animation: drift-b 11s ease-in-out infinite;
+}
+
+/* Layout interpolation for the workspace rails. */
+@utility shell-cols {
+  transition: grid-template-columns var(--dur-3) var(--ease-out-soft);
 }
 
 /* Smooth in-page anchors, motion-safe only */
@@ -257,7 +419,8 @@
   }
 }
 
-/* Respect reduced-motion: kill enter animations and transitions */@media (prefers-reduced-motion: reduce) {
+/* Respect reduced-motion: kill enter animations and transitions */
+@media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {

@@ -103,10 +103,10 @@ export function GmailSourceBrowser({
     >
       <DialogContent
         showCloseButton={false}
-        className="flex max-h-[85vh] max-w-2xl flex-col gap-0 p-0 print:hidden sm:max-w-2xl"
+        className="flex max-h-[85vh] max-w-2xl flex-col gap-0 overflow-hidden p-0 print:hidden sm:max-w-2xl"
       >
         <div className="flex items-center justify-between gap-4 p-6">
-          <DialogTitle className="text-h3 leading-[1.3] font-semibold text-ink">
+          <DialogTitle>
             Add emails
           </DialogTitle>
 
@@ -127,7 +127,7 @@ export function GmailSourceBrowser({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search emails..."
-              className="h-10 min-w-0 flex-1 rounded-lg border border-hairline bg-canvas px-4 text-base text-ink outline-none placeholder:text-stone focus-visible:border-ink"
+              className="h-10 min-w-0 flex-1 rounded-full border border-hairline bg-surface px-4 text-base text-ink outline-none transition-colors placeholder:text-stone focus-visible:border-ink"
               disabled={isImporting}
             />
 
@@ -150,12 +150,9 @@ export function GmailSourceBrowser({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4">
           {isLoading && (
-            <div className="space-y-2" aria-label="Loading emails">
+            <div className="divide-y divide-hairline border-y border-hairline" aria-label="Loading emails">
               {[0, 1, 2].map((index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border border-hairline bg-canvas p-4"
-                >
+                <div key={index} className="flex gap-3 py-4">
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="mt-2 h-3 w-1/3" />
                 </div>
@@ -164,7 +161,7 @@ export function GmailSourceBrowser({
           )}
 
           {isError && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-4">
+            <div className="flex items-center justify-between gap-3 border-y border-hairline py-3">
               <p className="text-sm text-ink">Couldn&apos;t load emails.</p>
 
               <Button
@@ -190,17 +187,17 @@ export function GmailSourceBrowser({
           )}
 
           {!isLoading && !isError && messages.length > 0 && (
-            <div className="space-y-2">
+            <ul className="divide-y divide-hairline border-y border-hairline">
               {messages.map((message) => {
                 const selected = selectedIds.includes(message.id);
 
                 return (
+                  <li key={message.id}>
                   <label
-                    key={message.id}
                     className={
                       selected
-                        ? "flex cursor-pointer gap-3 rounded-xl border-2 border-ink bg-canvas p-4 transition-colors duration-200"
-                        : "flex cursor-pointer gap-3 rounded-xl border-2 border-transparent bg-canvas p-4 transition-colors duration-200 hover:border-hairline"
+                        ? "flex cursor-pointer gap-3 border-l-2 border-signal bg-signal-soft/60 px-4 py-4 transition-colors duration-200"
+                        : "flex cursor-pointer gap-3 border-l-2 border-transparent px-4 py-4 transition-colors duration-200 hover:bg-soft/60"
                     }
                   >
                     <input
@@ -231,15 +228,16 @@ export function GmailSourceBrowser({
                           {message.snippet}
                         </p>
                       )}
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          )}
+                     </div>
+                   </label>
+                   </li>
+                 );
+               })}
+             </ul>
+           )}
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-hairline-soft p-4">
+        <div className="flex items-center justify-between gap-3 border-t border-hairline bg-canvas/60 px-6 py-4">
           <p className="text-sm text-steel">
             {selectedIds.length === 0
               ? "None selected"
@@ -256,7 +254,6 @@ export function GmailSourceBrowser({
             </Button>
 
             <Button
-              variant="accent"
               onClick={() => onImport(selectedIds)}
               disabled={selectedIds.length === 0 || isImporting}
             >

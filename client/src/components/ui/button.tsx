@@ -3,30 +3,30 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "cn"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding font-sans text-base font-medium whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-full border border-transparent bg-clip-padding font-sans text-base font-medium whitespace-nowrap outline-none select-none focus-visible:ring-3 focus-visible:ring-ink/25 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-error aria-invalid:ring-3 aria-invalid:ring-error/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
         default:
-          "bg-primary px-6 py-[11px] text-sm font-semibold text-white hover:bg-primary-deep active:bg-primary-deep",
+          "press bg-primary px-6 py-[11px] text-sm font-semibold text-surface hover:bg-primary-deep active:bg-primary-deep",
         brand:
-          "bg-primary px-6 py-[11px] text-sm font-semibold text-white hover:bg-primary-deep active:bg-primary-deep",
+          "press bg-primary px-6 py-[11px] text-sm font-semibold text-surface hover:bg-primary-deep active:bg-primary-deep",
         ink:
-          "bg-primary px-6 py-[11px] text-sm font-semibold text-white hover:bg-primary-deep active:bg-primary-deep",
+          "press bg-primary px-6 py-[11px] text-sm font-semibold text-surface hover:bg-primary-deep active:bg-primary-deep",
         outline:
-          "border-ink bg-transparent px-6 py-[11px] text-sm font-semibold text-ink hover:bg-black/5 aria-expanded:bg-black/5",
+          "press border-edge/60 bg-transparent px-6 py-[11px] text-sm font-semibold text-ink hover:border-edge hover:bg-soft aria-expanded:bg-soft",
         utility:
-          "rounded-lg border border-hairline bg-white px-3.5 py-1 text-sm font-medium text-ink hover:bg-black/5 aria-expanded:bg-black/5",
+          "press rounded-lg border border-hairline bg-surface px-3.5 py-1 text-sm font-medium text-ink hover:border-edge/60 hover:bg-soft aria-expanded:bg-soft",
         accent:
-          "bg-accent-action px-6 py-[11px] text-sm font-semibold text-white hover:bg-accent-deep active:bg-accent-deep disabled:bg-hairline disabled:text-muted",
+          "press bg-signal px-6 py-[11px] text-sm font-semibold text-ink hover:bg-signal-deep active:bg-signal-deep disabled:bg-hairline disabled:text-faint",
         secondary:
-          "border border-hairline bg-canvas px-6 py-[11px] text-sm font-semibold text-ink hover:bg-black/5 aria-expanded:bg-black/5",
+          "press border-hairline bg-soft px-6 py-[11px] text-sm font-semibold text-ink hover:bg-soft-deep aria-expanded:bg-soft-deep",
         subtle:
-          "bg-surface px-6 py-[11px] text-sm font-semibold text-ink hover:bg-black/5 aria-expanded:bg-black/5",
+          "press bg-soft px-6 py-[11px] text-sm font-semibold text-ink hover:bg-soft-deep aria-expanded:bg-soft-deep",
         ghost:
-          "text-ink hover:bg-black/5 aria-expanded:bg-black/5",
+          "press text-ink hover:bg-soft aria-expanded:bg-soft",
         destructive:
-          "bg-transparent text-ink underline-offset-4 hover:underline focus-visible:border-ring focus-visible:ring-ring/50",
+          "press border-hairline bg-surface px-6 py-[11px] text-sm font-semibold text-error hover:border-error/40 hover:bg-error/5",
         link: "text-ink underline-offset-4 hover:underline",
       },
       size: {

@@ -23,6 +23,8 @@ import {
 } from "@/api/workspaces";
 import { getBRDStatus } from "@/api/brd";
 import { TopBar } from "@/components/layout/TopBar";
+import { Wordmark } from "@/components/brand/Wordmark";
+import { FieldBackdrop } from "@/components/brand/FieldBackdrop";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState, Eyebrow, StateAlert } from "@/components/ui/status";
 
@@ -81,7 +83,7 @@ const WorkspaceCard = memo(function WorkspaceCard({
 
   return (
     <div
-      className="flex flex-col rounded-xl border border-hairline bg-canvas p-6 transition-colors duration-200 hover:border-ink"
+      className="flex flex-col rounded-lg border border-hairline bg-surface p-6 transition-[border-color,box-shadow,translate] duration-200 ease-out hover:border-edge/50 hover:shadow-level-1 hover:-translate-y-px"
     >
       <button
         type="button"
@@ -90,7 +92,7 @@ const WorkspaceCard = memo(function WorkspaceCard({
         onFocus={() => onPrefetch(workspace.id)}
         className="w-full flex-1 text-left"
       >
-        <h2 className="text-xl leading-7 font-semibold text-ink">
+        <h2 className="text-lg leading-7 font-semibold text-ink">
           {workspace.name}
         </h2>
 
@@ -291,11 +293,11 @@ export default function WorkspacesPage() {
   );
 
   return (
-    <main className="min-h-screen bg-canvas text-ink">
+    <main className="relative min-h-screen text-ink">
+      <FieldBackdrop intensity="atmospheric" />
+
       <TopBar
-        left={
-          <span className="text-base font-semibold text-ink">BRD Agent</span>
-        }
+        left={<Wordmark size="sm" />}
         right={
           <Button variant="subtle" size="sm" onClick={handleSignOut}>
             Sign out
@@ -303,11 +305,11 @@ export default function WorkspacesPage() {
         }
       />
 
-      <div className="mx-auto w-full max-w-[1280px] px-4 pt-8 sm:px-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="mx-auto w-full max-w-[1280px] px-4 pt-10 sm:px-8">
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <Eyebrow dot>Your projects</Eyebrow>
-            <h1 className="mt-1 text-h1 leading-[1.2] font-semibold tracking-[-1px] text-ink">
+            <Eyebrow>Your projects</Eyebrow>
+            <h1 className="mt-1 font-display text-h1 leading-[1.1] font-normal text-ink">
               Workspaces
             </h1>
 
@@ -316,7 +318,7 @@ export default function WorkspacesPage() {
             )}
           </div>
 
-          <Button variant="accent" onClick={() => setDialogOpen(true)}>New workspace</Button>
+          <Button onClick={() => setDialogOpen(true)}>New workspace</Button>
         </div>
 
         {(workspaces ?? []).length > 0 && (
@@ -327,7 +329,7 @@ export default function WorkspacesPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search"
               aria-label="Search workspaces"
-              className="h-9 w-full max-w-xs rounded-lg border border-hairline bg-surface px-4 text-sm text-ink outline-none placeholder:text-steel focus-visible:border-ink"
+              className="h-9 w-full max-w-xs rounded-full border border-hairline bg-surface px-4 text-sm text-ink outline-none transition-colors placeholder:text-stone focus-visible:border-ink"
             />
 
             <div
@@ -348,8 +350,8 @@ export default function WorkspacesPage() {
                   onClick={() => setSort(option.value)}
                   className={
                     sort === option.value
-                      ? "inline-flex min-h-9 items-center rounded-full border border-primary bg-primary px-4 text-sm font-medium text-white transition-colors duration-200"
-                      : "inline-flex min-h-9 items-center rounded-full border border-hairline bg-canvas px-4 text-sm font-medium text-steel transition-colors duration-200 hover:text-ink"
+                      ? "inline-flex min-h-9 items-center rounded-full border border-primary bg-primary px-4 text-sm font-medium text-surface transition-colors duration-200"
+                      : "inline-flex min-h-9 items-center rounded-full border border-hairline bg-surface px-4 text-sm font-medium text-steel transition-colors duration-200 hover:bg-soft hover:text-ink"
                   }
                 >
                   {option.label}
@@ -360,7 +362,7 @@ export default function WorkspacesPage() {
         )}
       </div>
 
-      <div className="mt-6 bg-surface">
+      <div className="mt-8 border-t border-hairline">
         <div className="mx-auto w-full max-w-[1280px] px-4 py-8 sm:px-8">
           <section aria-label="Workspaces">
           {isLoading && (
@@ -371,7 +373,7 @@ export default function WorkspacesPage() {
               {[0, 1, 2].map((index) => (
                 <div
                   key={index}
-                  className="rounded-xl border border-hairline bg-canvas p-6"
+                  className="rounded-lg border border-hairline bg-surface p-6"
                 >
                   <Skeleton className="h-5 w-2/3" />
                   <Skeleton className="mt-3 h-4 w-full" />
@@ -382,7 +384,7 @@ export default function WorkspacesPage() {
           )}
 
           {isError && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-canvas p-4">
+            <div className="flex items-center justify-between gap-3 border border-hairline border-l-2 border-l-ink bg-surface p-4">
               <p className="text-sm text-ink">Something went wrong.</p>
 
               <Button
@@ -399,9 +401,8 @@ export default function WorkspacesPage() {
             <EmptyState
               title="Create your first workspace"
               description="Add project files and generate a BRD from them."
-              className="border border-hairline bg-canvas"
               action={
-                <Button variant="accent" onClick={() => setDialogOpen(true)}>
+                <Button onClick={() => setDialogOpen(true)}>
                   New workspace
                 </Button>
               }
@@ -413,7 +414,7 @@ export default function WorkspacesPage() {
             workspaces &&
             workspaces.length > 0 &&
             visibleWorkspaces.length === 0 && (
-              <p className="rounded-xl border border-hairline bg-canvas p-6 text-center text-base text-steel">
+              <p className="border border-hairline bg-surface p-6 text-center text-base text-steel">
                 No matches.
               </p>
             )}
@@ -423,7 +424,7 @@ export default function WorkspacesPage() {
               <button
                 type="button"
                 onClick={() => setDialogOpen(true)}
-                className="group flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-hairline bg-canvas p-6 text-steel transition-colors duration-200 hover:border-ink hover:text-ink"
+                className="press group flex min-h-[180px] flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-edge/50 bg-transparent p-6 text-steel transition-colors duration-200 hover:border-ink hover:bg-soft/60 hover:text-ink"
               >
                 <Plus aria-hidden="true" className="size-5" />
                 <span className="text-base font-medium">New workspace</span>
@@ -511,7 +512,6 @@ export default function WorkspacesPage() {
 
                 <Button
                   type="submit"
-                  variant="accent"
                   disabled={
                     !name.trim() ||
                     duplicateNameEntered ||
