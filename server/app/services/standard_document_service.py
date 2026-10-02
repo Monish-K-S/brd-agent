@@ -64,6 +64,23 @@ class StandardDocumentService:
             workspace_id,
         )
 
+    def get_workspace_document_summaries_for_user(
+        self,
+        workspace_id: UUID,
+        user_id: UUID,
+    ) -> list[StandardDocument] | None:
+        workspace = self.workspace_service.get_workspace_for_user(
+            workspace_id=workspace_id,
+            user_id=user_id,
+        )
+
+        if workspace is None:
+            return None
+
+        return self.document_repository.get_summaries_by_workspace_id(
+            workspace_id,
+        )
+
     def create_document(
         self,
         workspace_id: UUID,

@@ -336,6 +336,20 @@
   }
 }
 
+/* Workspaces index mount: tiles cascade in, then fall back to natural
+   styles (backwards fill) so hover lift/press still own the element
+   afterwards. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-workspace-grid] > * {
+    animation: sourcify-rise var(--dur-3) var(--ease-out-soft) backwards;
+  }
+  [data-workspace-grid] > :nth-child(2) { animation-delay: 50ms; }
+  [data-workspace-grid] > :nth-child(3) { animation-delay: 100ms; }
+  [data-workspace-grid] > :nth-child(4) { animation-delay: 150ms; }
+  [data-workspace-grid] > :nth-child(5) { animation-delay: 200ms; }
+  [data-workspace-grid] > :nth-child(n + 6) { animation-delay: 250ms; }
+}
+
 /* Restrained entrance kept under its historic name (landing + 404). */
 @keyframes rise {
   from {

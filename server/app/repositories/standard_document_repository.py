@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, defer
 
 from app.db.models.standard_document import StandardDocument
 
@@ -24,6 +24,22 @@ class StandardDocumentRepository:
     ) -> list[StandardDocument]:
         return (
             self.db.query(StandardDocument)
+            .filter(
+                StandardDocument.workspace_id == workspace_id,
+            )
+            .order_by(
+                StandardDocument.created_at.asc(),
+            )
+            .all()
+        )
+
+    def get_summaries_by_workspace_id(
+        self,
+        workspace_id: UUID,
+    ) -> list[StandardDocument]:
+        return (
+            self.db.query(StandardDocument)
+            .options(defer(StandardDocument.content))
             .filter(
                 StandardDocument.workspace_id == workspace_id,
             )

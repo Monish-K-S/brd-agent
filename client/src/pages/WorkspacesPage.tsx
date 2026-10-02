@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -306,7 +306,7 @@ export default function WorkspacesPage() {
       />
 
       <div className="mx-auto w-full max-w-[1280px] px-4 pt-10 sm:px-8">
-        <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="reveal flex flex-wrap items-end justify-between gap-4">
           <div>
             <Eyebrow>Your projects</Eyebrow>
             <h1 className="mt-1 font-display text-h1 leading-[1.1] font-normal text-ink">
@@ -322,7 +322,7 @@ export default function WorkspacesPage() {
         </div>
 
         {(workspaces ?? []).length > 0 && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="reveal mt-6 flex flex-wrap items-center justify-between gap-3" style={{ "--reveal-delay": "80ms" } as CSSProperties}>
             <input
               type="search"
               value={search}
@@ -367,6 +367,7 @@ export default function WorkspacesPage() {
           <section aria-label="Workspaces">
           {isLoading && (
             <div
+              data-workspace-grid
               className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
               aria-label="Loading workspaces"
             >
@@ -398,15 +399,17 @@ export default function WorkspacesPage() {
           )}
 
           {!isLoading && !isError && workspaces?.length === 0 && (
-            <EmptyState
-              title="Create your first workspace"
-              description="Add project files and generate a BRD from them."
-              action={
-                <Button onClick={() => setDialogOpen(true)}>
-                  New workspace
-                </Button>
-              }
-            />
+            <div className="reveal">
+              <EmptyState
+                title="Create your first workspace"
+                description="Add project files and generate a BRD from them."
+                action={
+                  <Button onClick={() => setDialogOpen(true)}>
+                    New workspace
+                  </Button>
+                }
+              />
+            </div>
           )}
 
           {!isLoading &&
@@ -420,7 +423,7 @@ export default function WorkspacesPage() {
             )}
 
           {!isLoading && !isError && visibleWorkspaces.length > 0 && (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div data-workspace-grid className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setDialogOpen(true)}

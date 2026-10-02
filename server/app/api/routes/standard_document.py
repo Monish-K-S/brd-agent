@@ -21,7 +21,10 @@ from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.db.models.user import User
 from app.db.session import get_db
-from app.schemas.standard_document import StandardDocumentResponse
+from app.schemas.standard_document import (
+    StandardDocumentResponse,
+    StandardDocumentSummary,
+)
 from app.services.document_ingestion_service import (
     DocumentIngestionService,
 )
@@ -142,7 +145,7 @@ def find_duplicate_upload(
 
 @router.post(
     "/upload",
-    response_model=list[StandardDocumentResponse],
+    response_model=list[StandardDocumentSummary],
     status_code=status.HTTP_201_CREATED,
 )
 @limiter.limit(settings.rate_limit_upload)
@@ -157,7 +160,7 @@ def upload_documents(
         get_current_db_user,
     ),
     db: Session = Depends(get_db),
-) -> list[StandardDocumentResponse]:
+) -> list[StandardDocumentSummary]:
 
     ingestion_service = DocumentIngestionService()
     document_service = StandardDocumentService(db)
@@ -174,7 +177,7 @@ def upload_documents(
         )
 
     existing_documents = (
-        document_service.get_workspace_documents_for_user(
+        document_service.get_workspace_document_summaries_for_user(
             workspace_id=workspace_id,
             user_id=current_user.id,
         )
@@ -316,7 +319,7 @@ def upload_documents(
             )
 
         return [
-            StandardDocumentResponse(
+            StandardDocumentSummary(
                 id=document.id,
                 workspace_id=document.workspace_id,
                 source_type=document.source_type,
@@ -324,7 +327,6 @@ def upload_documents(
                 author=document.author,
                 source_created_at=document.source_created_at,
                 participants=document.participants,
-                content=document.content,
                 metadata=document.metadata_,
                 created_at=document.created_at,
                 updated_at=document.updated_at,
@@ -339,7 +341,7 @@ def upload_documents(
 
 @router.get(
     "",
-    response_model=list[StandardDocumentResponse],
+    response_model=list[StandardDocumentSummary],
 )
 def get_workspace_documents(
     workspace_id: UUID,
@@ -347,10 +349,10 @@ def get_workspace_documents(
         get_current_db_user,
     ),
     db: Session = Depends(get_db),
-) -> list[StandardDocumentResponse]:
+) -> list[StandardDocumentSummary]:
     document_service = StandardDocumentService(db)
 
-    documents = document_service.get_workspace_documents_for_user(
+    documents = document_service.get_workspace_document_summaries_for_user(
         workspace_id=workspace_id,
         user_id=current_user.id,
     )
@@ -362,7 +364,7 @@ def get_workspace_documents(
         )
 
     return [
-        StandardDocumentResponse(
+        StandardDocumentSummary(
             id=document.id,
             workspace_id=document.workspace_id,
             source_type=document.source_type,
@@ -370,7 +372,6 @@ def get_workspace_documents(
             author=document.author,
             source_created_at=document.source_created_at,
             participants=document.participants,
-            content=document.content,
             metadata=document.metadata_,
             created_at=document.created_at,
             updated_at=document.updated_at,
