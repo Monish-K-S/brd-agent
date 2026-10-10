@@ -9,7 +9,7 @@
 
 ## 1. Executive summary
 
-The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. The dominant theme:
+The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. **M-3** has since been fixed (2026-10-10, commit `916a50b`) — 8 mediums remain open. **H-1** and **H-2** were fixed later the same day (uncommitted working tree at time of writing) — 1 high (H-3) remains open. The dominant theme:
 
 > **Export integrity and job lifecycle are the two weak surfaces.** A crash-class bug still exists in the PDF path (incomplete unicode normalization + a validation/mapper mismatch that lets structurally-broken BRD data reach both exporters), and generation jobs can wedge a workspace permanently after a server restart. Both are cheap to fix.
 
@@ -33,8 +33,10 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 
 ---
 
-### 🔴 H-1 — PDF export can still crash on characters the normalizer doesn't map
+### ✅ H-1 — PDF export can still crash on characters the normalizer doesn't map — FIXED 2026-10-10
 
+- **Status:** fixed (uncommitted working tree at time of writing). `_normalize_text` map extended (~20 entries: arrows, `≥≤≠≈`, `€→EUR`, `✓/✗`, `√∞`, `▪◆™`, CJK punctuation) plus a terminal `encode("latin-1", errors="replace")` safety net, so unknown chars degrade to `?` instead of 500ing. Locked by `test_pdf_build_survives_unmapped_unicode` + `test_normalize_text_always_latin1_safe` in `server/tests/test_export_builders.py`. DOCX builder untouched (keeps real Unicode).
+- **Original finding (for the record):**
 - **Where:** `server/app/ai/builders/brd_document_builder.py:710` (`_normalize_text`)
 - **Constraint:** fpdf2 2.8.8 core Helvetica supports U+0000–U+00FF only (AGENTS.md latin-1 rule; prior crash 2026-09-18).
 - **Verified:** `_normalize_text` maps only 7 characters (`— – ' ' " " •`) plus a no-op `"..." → "..."`. Direct testing of the installed fpdf2 shows `FPDFUnicodeEncodingException` for at least these plausible LLM outputs, all of which **survive** the normalizer:
@@ -48,8 +50,10 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
   3. Switch the BRD PDF to the `DejaVuSans.ttf` fonts already vendored at `server/app/ai/fonts/` (used by `project_document_builder.py`), which removes the latin-1 class entirely. Note: changes metric/typography posture of the export — bigger visual diff than options 1–2.
 - Add a test case feeding an unmappable char (`→`) to lock the fix.
 
-### 🔴 H-2 — `validate_brd_data()` shape validation doesn't match `BRDMapper` → poisoned BRD breaks exports
+### ✅ H-2 — `validate_brd_data()` shape validation doesn't match `BRDMapper` → poisoned BRD breaks exports — FIXED 2026-10-10
 
+- **Status:** fixed (uncommitted working tree at time of writing). `validate_brd_data` now requires all 11 sections plus exactly the mapper's hard reads (`executive_summary.content`, `project_overview.project_name/description`, per-entry stakeholder `name`, list-typed plural fields) — malformed PUTs 422 at the door. Both export service methods wrap `brd_mapper.map()` into a new `BRDMalformedError`, translated by both export routes to 422 with a "Regenerate the BRD" hint, so rows poisoned before the fix degrade gracefully instead of 500ing. Locked by new `server/tests/test_brd_shape.py` (11 tests). Verified: pytest 50 passed, route/service imports clean.
+- **Original finding (for the record):**
 - **Where:** `server/app/schemas/brd.py:79` (`validate_brd_data`) vs. `server/app/ai/mappers/brd_mapper.py:37` (`BRDMapper.map` — `data["content"]`-style hard key access)
 - **Verified:** `PUT /workspaces/{id}/brd` with `{"executive_summary": {}, "project_overview": {}, ...}` (all 11 sections empty objects) **passes** `validate_brd_data` (it only checks section keys, dict-ness, depth ≤ 6, string ≤ 50k, total ≤ 1 MB), is persisted, and then `BRDMapper().map()` raises `KeyError: 'content'` — which is exactly what **both** export endpoints (`export_brd_pdf_for_user` / `export_brd_docx_for_user`) call on every request. The row is stuck: every PDF/DOCX download 500s until a regenerate overwrites it.
 - **Impact:** any client bug, partial edit, or deliberate PUT can permanently break a workspace's exports (and the viewer renders from loosely-typed `brd_data` on the client, so the UI may half-work while downloads are dead).
@@ -82,8 +86,10 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 - **Verified asymmetry:** the upload path enforces 10 MB / 500k chars / 200 pages at the parser, but email bodies and Drive files enter `standard_documents` with no character ceiling (Drive trusts the metadata `size` field, then buffers everything). A 30 MB mail thread or a mis-declared Drive file flows straight into the Sarvam project-PDF (and its cost) without the caps the upload path guarantees. The docstring in `DriveImportService` even says "bytes enter the existing pipeline" — but the cap check happens per-document only inside `TxtParser/PdfParser/DocxParser`, which are never size-limited for the pre-buffered Drive blob the same way (file bytes already fully in RAM regardless of parse caps).
 - **Fix:** cap Gmail-mapped content at `settings.max_extracted_chars` (reject or truncate+flag); stream Drive downloads with a hard byte ceiling (`MediaIoBaseDownload` with a max-bytes guard) instead of buffering.
 
-### 🟠 M-3 — `GET /workspaces/{id}/documents` returns full `content` for every source
+### ✅ M-3 — `GET /workspaces/{id}/documents` returns full `content` for every source — FIXED 2026-10-10
 
+- **Status:** fixed in commit `916a50b`. `StandardDocumentSummary` (no `content`) added in `server/app/schemas/standard_document.py`; GET list + upload 201 + upload dedup pre-check now use it, backed by `get_summaries_by_workspace_id()` with a deferred `content` column (`server/app/repositories/standard_document_repository.py:36`); per-document GET keeps full `StandardDocumentResponse`; client type in `client/src/api/documents.ts` dropped `content`. Locked by `server/tests/test_document_summaries.py` (6 tests). Verified: pytest 37 passed, `npm run build` + `npm run lint` green.
+- **Original finding (for the record):**
 - **Where:** `server/app/api/routes/standard_document.py:344` → `StandardDocumentResponse.content: str` (`app/schemas/standard_document.py:15`)
 - **Verified:** each document carries up to 500k chars; the sources rail in `client/src/pages/WorkspacePage.tsx` renders only title/type/metadata/count — the content is never displayed. A 10-source workspace can ship multi-MB JSON on every mount and every post-upload/delete invalidation.
 - **Fix:** add a list-projection endpoint (or `include_content=false` query param; repository-level deferred column) and use it from the client's `getDocuments`. Keep the per-document endpoint (also currently unused by the UI — see L-1) for full content.
@@ -180,11 +186,11 @@ AGENTS.md: skills are "supporting expertise only — never `--persist` them into
 
 ## 5. Suggested fix order (when edits are authorized)
 
-1. **H-1 + H-2** in one pass — they're the same surface (export integrity): latin-1 safety net in the PDF builder + shape-validating `PUT` / export-side 422. Add crash-regression tests (`→`, `€`, `✓`; empty-section PUT).
+1. ~~**H-1 + H-2**~~ done 2026-10-10 (export integrity: latin-1 safety net + shape-validating `PUT` / export-side 422, with crash-regression tests).
 2. **H-3** — startup/status stale-job reaper + one-active-job partial unique index (migration) + optional client watchdog.
 3. **M-1** — rate-limit key on verified user id (`request.state`), not token hash.
 4. **M-6 + M-8 + M-9** — fresh-clone green tests, README truth, kill/redirect the root requirements file (this restores "CI-less manual verification" trust).
-5. **M-2 / M-3 / M-7** — pipeline caps + list projection + deploy posture doc note.
+5. **M-2 / M-7** — pipeline caps + deploy posture doc note (M-3 list projection done 2026-10-10).
 6. **M-4 / M-5** — design-decision items (disconnect-dialog copy; coral contrast token pick).
 7. **L-1…L-10** — batch hygiene pass (all small; keep diffs per AGENTS.md conventions, restart backend after `server/` changes).
 

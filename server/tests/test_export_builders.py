@@ -114,6 +114,38 @@ def test_pdf_build_survives_non_latin1_content(tmp_path):
     assert "None specified" in pdf_text(output)
 
 
+def test_pdf_build_survives_unmapped_unicode(tmp_path):
+    """Chars outside the explicit map (H-1: ->, EUR, checkmarks, CJK
+    punctuation) must degrade gracefully, never 500 the PDF download."""
+    output = tmp_path / "brd-hostile.pdf"
+
+    hostile = (
+        "Latency p99 must drop 20% → 100ms; cost <= EUR 500 ≥ baseline. "
+        "Steps: ✓ done, ✗ pending. Risks: A⇒B, x≠y, a≈b, √n < ∞. "
+        "Items ▪ alpha ◆ beta ™. Notes、first，second."
+        "Unmapped emoji 🙂 and snowman ☃ degrade to '?'."
+    )
+    brd = make_brd()
+    brd.business_requirements.requirements.append(hostile)
+
+    BRDDocumentBuilder().build(brd, str(output))
+
+    raw = output.read_bytes()
+    assert raw.startswith(b"%PDF")
+    text = pdf_text(output)
+    assert "->" in text  # mapped arrow survives readably
+    assert "EUR" in text  # mapped euro survives readably
+
+
+def test_normalize_text_always_latin1_safe():
+    """_normalize_text output must always be latin-1 encodable, no matter
+    the input — the safety net, not the map, is the crash guarantee."""
+    hostile = "→←↑↓⇒≥≤≠≈√∞€✓✗▪◆™、，🙂☃零"
+    normalized = BRDDocumentBuilder._normalize_text(hostile)
+    normalized.encode("latin-1")  # raises on any survivor
+    assert "?" in normalized  # truly unmapped chars (emoji/CJK) degrade
+
+
 def test_pdf_has_page_folios(tmp_path):
     output = tmp_path / "brd.pdf"
 

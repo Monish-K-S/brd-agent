@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.schemas.brd import (
     BRDDataInvalidError,
     BRDDataTooLargeError,
+    BRDMalformedError,
     BRDResponse,
     BRDStatusResponse,
     BRDUpdateRequest,
@@ -285,10 +286,16 @@ def export_brd_pdf(
 ) -> FileResponse:
     brd_service = BRDService(db)
 
-    result = brd_service.export_brd_pdf_for_user(
-        workspace_id=workspace_id,
-        user_id=current_user.id,
-    )
+    try:
+        result = brd_service.export_brd_pdf_for_user(
+            workspace_id=workspace_id,
+            user_id=current_user.id,
+        )
+    except BRDMalformedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        )
 
     if result is None:
         raise HTTPException(
@@ -329,10 +336,16 @@ def export_brd_docx(
 ) -> FileResponse:
     brd_service = BRDService(db)
 
-    result = brd_service.export_brd_docx_for_user(
-        workspace_id=workspace_id,
-        user_id=current_user.id,
-    )
+    try:
+        result = brd_service.export_brd_docx_for_user(
+            workspace_id=workspace_id,
+            user_id=current_user.id,
+        )
+    except BRDMalformedError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        )
 
     if result is None:
         raise HTTPException(

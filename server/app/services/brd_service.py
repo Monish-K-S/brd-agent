@@ -23,6 +23,7 @@ from app.repositories.generation_job_repository import (
 from app.repositories.standard_document_repository import (
     StandardDocumentRepository,
 )
+from app.schemas.brd import BRDMalformedError
 from app.services.project_knowledge_service import (
     ProjectKnowledgeService,
 )
@@ -173,9 +174,15 @@ class BRDService:
         if brd is None:
             return None
 
-        brd_model = self.brd_mapper.map(
-            brd.brd_data,
-        )
+        try:
+            brd_model = self.brd_mapper.map(
+                brd.brd_data,
+            )
+        except (KeyError, TypeError, AttributeError) as exc:
+            raise BRDMalformedError(
+                "Stored BRD data is malformed and cannot be exported. "
+                "Regenerate the BRD to fix this."
+            ) from exc
 
         temp_file = tempfile.NamedTemporaryFile(
             suffix=".pdf",
@@ -219,9 +226,15 @@ class BRDService:
         if brd is None:
             return None
 
-        brd_model = self.brd_mapper.map(
-            brd.brd_data,
-        )
+        try:
+            brd_model = self.brd_mapper.map(
+                brd.brd_data,
+            )
+        except (KeyError, TypeError, AttributeError) as exc:
+            raise BRDMalformedError(
+                "Stored BRD data is malformed and cannot be exported. "
+                "Regenerate the BRD to fix this."
+            ) from exc
 
         temp_file = tempfile.NamedTemporaryFile(
             suffix=".docx",

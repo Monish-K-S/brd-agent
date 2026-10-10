@@ -47,6 +47,35 @@ class BRDDataInvalidError(ValueError):
     pass
 
 
+class BRDMalformedError(ValueError):
+    """Stored BRD data that passed validation earlier (or predates it)
+    but cannot be mapped for export. Surfaces as a 422 with a
+    regenerate hint instead of a 500 KeyError."""
+
+
+# Fields BRDMapper hard-reads (data["..."] / entry["name"]) — everything
+# else in the mapper already uses .get() with safe defaults, so only
+# these need enforcing. Mirrors app/ai/mappers/brd_mapper.py.
+_REQUIRED_BRD_FIELDS = {
+    "executive_summary": {"content": str},
+    "project_overview": {"project_name": str, "description": str},
+}
+
+# Plural fields the mapper wraps in list(...) — a non-list here would
+# silently shred (list("abc") -> ["a", "b", "c"]) or crash downstream.
+_REQUIRED_BRD_LISTS = {
+    "business_objectives": ("objectives",),
+    "scope": ("in_scope", "out_of_scope"),
+    "stakeholders": ("stakeholders",),
+    "business_requirements": ("requirements",),
+    "functional_requirements": ("requirements",),
+    "non_functional_requirements": ("requirements",),
+    "assumptions_and_constraints": ("assumptions", "constraints"),
+    "risks_and_decisions": ("risks", "decisions"),
+    "open_questions": ("questions",),
+}
+
+
 def _check_brd_value(value: object, depth: int) -> None:
     if depth > MAX_BRD_DATA_DEPTH:
         raise BRDDataInvalidError(
@@ -89,6 +118,44 @@ def validate_brd_data(brd_data: dict) -> None:
         if not isinstance(content, dict):
             raise BRDDataInvalidError(
                 f"BRD section {section!r} must be an object"
+            )
+
+    # The exporter hard-reads every section (BRDMapper.map does
+    # data["executive_summary"] etc.), so a partial body that passes the
+    # checks above would persist and then 500 both downloads (H-2).
+    missing = ALLOWED_BRD_SECTIONS - set(brd_data)
+
+    if missing:
+        raise BRDDataInvalidError(
+            "Missing BRD sections: " + ", ".join(sorted(missing))
+        )
+
+    for section, fields in _REQUIRED_BRD_FIELDS.items():
+        content = brd_data[section]
+
+        for field, kind in fields.items():
+            if not isinstance(content.get(field), kind):
+                raise BRDDataInvalidError(
+                    f"BRD section {section!r} must include "
+                    f"{field!r} as a string"
+                )
+
+    for section, lists in _REQUIRED_BRD_LISTS.items():
+        content = brd_data[section]
+
+        for field in lists:
+            if field in content and not isinstance(content[field], list):
+                raise BRDDataInvalidError(
+                    f"BRD section {section!r} field {field!r} "
+                    "must be a list"
+                )
+
+    for entry in brd_data["stakeholders"].get("stakeholders", []):
+        if not isinstance(entry, dict) or not isinstance(
+            entry.get("name"), str
+        ):
+            raise BRDDataInvalidError(
+                "Each stakeholder entry must include 'name' as a string"
             )
 
     _check_brd_value(brd_data, 0)
