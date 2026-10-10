@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from app.core.config import settings
-from app.integrations.gmail.service import GmailService
+from app.integrations.google_oauth_store import GoogleOAuthStore
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from sqlalchemy.orm import Session
@@ -9,13 +9,14 @@ from sqlalchemy.orm import Session
 
 DRIVE_FILE_SCOPE = "https://www.googleapis.com/auth/drive.file"
 
-GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
 
-
+# Drive grants are drive.file-only: a Drive connect no longer carries
+# Gmail read access, and the Drive row is fully independent of Gmail's.
 DRIVE_SCOPES = [
-    GMAIL_READONLY_SCOPE,
     DRIVE_FILE_SCOPE,
 ]
+
+DRIVE_PROVIDER = "drive"
 
 
 # Drive MIME types that download as raw bytes and flow through the
@@ -35,15 +36,19 @@ class DriveService:
     """
     Google Drive API access for the Drive source connector.
 
-    Connection storage, token encryption, and refresh are shared with the
-    Gmail connector: both use the same google_connections row
-    (provider="google"), delegated to GmailService. Only the OAuth flow
-    (redirect URI + scopes) and the Drive API calls live here.
+    Token storage, encryption, and refresh live in GoogleOAuthStore
+    scoped to provider="drive", so the Drive grant is fully independent
+    of the Gmail grant. Only the OAuth flow (redirect URI + scopes) and
+    the Drive API calls live here.
     """
 
     def __init__(self, db: Session):
         self.db = db
-        self.google_service = GmailService(db)
+        self.oauth_store = GoogleOAuthStore(
+            db,
+            provider=DRIVE_PROVIDER,
+            scopes=DRIVE_SCOPES,
+        )
 
     def _create_flow(
         self,
@@ -113,7 +118,7 @@ class DriveService:
         self,
         user_id: UUID,
     ):
-        return self.google_service.get_connection(user_id)
+        return self.oauth_store.get_connection(user_id)
 
     def save_connection(
         self,
@@ -121,7 +126,7 @@ class DriveService:
         credentials: Credentials,
         email: str,
     ):
-        return self.google_service.save_connection(
+        return self.oauth_store.save_connection(
             user_id=user_id,
             credentials=credentials,
             email=email,
@@ -131,19 +136,19 @@ class DriveService:
         self,
         user_id: UUID,
     ) -> bool:
-        return self.google_service.revoke_connection(user_id)
+        return self.oauth_store.revoke_connection(user_id)
 
     def delete_connection(
         self,
         user_id: UUID,
     ) -> None:
-        self.google_service.delete_connection(user_id)
+        self.oauth_store.delete_connection(user_id)
 
     def get_credentials(
         self,
         user_id: UUID,
     ) -> Credentials:
-        return self.google_service.get_credentials(user_id)
+        return self.oauth_store.get_credentials(user_id)
 
     def get_picker_token(
         self,

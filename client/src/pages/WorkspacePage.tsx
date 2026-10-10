@@ -39,6 +39,9 @@ import {
   openDrivePicker,
 } from "@/components/drive/drivePicker";
 import {
+  isGoogleReconnectRequiredError,
+} from "@/api/googleReconnect";
+import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
@@ -176,6 +179,7 @@ export default function WorkspacePage() {
   const [isGmailBrowserOpen, setIsGmailBrowserOpen] = useState(false);
   const [isDrivePickerBusy, setIsDrivePickerBusy] = useState(false);
   const [drivePickerError, setDrivePickerError] = useState<string | null>(null);
+  const [driveNeedsReconnect, setDriveNeedsReconnect] = useState(false);
   const [confirmDisconnectDriveOpen, setConfirmDisconnectDriveOpen] =
     useState(false);
 
@@ -851,6 +855,7 @@ export default function WorkspacePage() {
     }
 
     setDrivePickerError(null);
+    setDriveNeedsReconnect(false);
     setIsDrivePickerBusy(true);
 
     try {
@@ -870,10 +875,40 @@ export default function WorkspacePage() {
           setIsDrivePickerBusy(false);
         },
       });
-    } catch {
+    } catch (error) {
       setIsDrivePickerBusy(false);
+
+      if (isGoogleReconnectRequiredError(error, "drive")) {
+        setDriveNeedsReconnect(true);
+        return;
+      }
+
       setDrivePickerError("Couldn't open Google Drive. Try again.");
     }
+  }
+
+  function handleReconnectDrive() {
+    setDriveNeedsReconnect(false);
+    handleConnectDrive();
+  }
+
+  function handleReconnectGmail() {
+    setIsGmailBrowserOpen(false);
+    handleConnectGmail();
+  }
+
+  function driveImportNeedsReconnect(): boolean {
+    return (
+      importDriveMutation.isError &&
+      isGoogleReconnectRequiredError(importDriveMutation.error, "drive")
+    );
+  }
+
+  function gmailImportNeedsReconnect(): boolean {
+    return (
+      importGmailMutation.isError &&
+      isGoogleReconnectRequiredError(importGmailMutation.error, "gmail")
+    );
   }
 
   function driveImportErrorMessage(): string | null {
@@ -1350,10 +1385,29 @@ export default function WorkspacePage() {
               </StateAlert>
             )}
 
-            {importGmailMutation.isError && (
-              <StateAlert className="mt-3">
-                Import failed. Try again.
-              </StateAlert>
+            {gmailImportNeedsReconnect() ? (
+              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                <p className="text-sm text-ink">
+                  Gmail connection expired.
+                </p>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReconnectGmail}
+                  disabled={connectGmailMutation.isPending}
+                >
+                  {connectGmailMutation.isPending
+                    ? "Connecting..."
+                    : "Reconnect"}
+                </Button>
+              </div>
+            ) : (
+              importGmailMutation.isError && (
+                <StateAlert className="mt-3">
+                  Import failed. Try again.
+                </StateAlert>
+              )
             )}
           </section>
 
@@ -1479,14 +1533,52 @@ export default function WorkspacePage() {
               </StateAlert>
             )}
 
+            {driveNeedsReconnect && (
+              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                <p className="text-sm text-ink">
+                  Google Drive connection expired.
+                </p>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReconnectDrive}
+                  disabled={connectDriveMutation.isPending}
+                >
+                  {connectDriveMutation.isPending
+                    ? "Connecting..."
+                    : "Reconnect"}
+                </Button>
+              </div>
+            )}
+
             {drivePickerError && (
               <StateAlert className="mt-3">{drivePickerError}</StateAlert>
             )}
 
-            {driveImportErrorMessage() && (
-              <StateAlert className="mt-3">
-                {driveImportErrorMessage()}
-              </StateAlert>
+            {driveImportNeedsReconnect() ? (
+              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                <p className="text-sm text-ink">
+                  Google Drive connection expired.
+                </p>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReconnectDrive}
+                  disabled={connectDriveMutation.isPending}
+                >
+                  {connectDriveMutation.isPending
+                    ? "Connecting..."
+                    : "Reconnect"}
+                </Button>
+              </div>
+            ) : (
+              driveImportErrorMessage() && (
+                <StateAlert className="mt-3">
+                  {driveImportErrorMessage()}
+                </StateAlert>
+              )
             )}
           </section>
 
@@ -1863,7 +1955,8 @@ export default function WorkspacePage() {
             <DialogTitle>Disconnect Gmail?</DialogTitle>
 
             <DialogDescription>
-              Imported emails stay. This can&apos;t be undone.
+              Imported emails stay. Your Google Drive connection is
+              unaffected. This can&apos;t be undone.
             </DialogDescription>
           </DialogHeader>
 
@@ -1898,7 +1991,8 @@ export default function WorkspacePage() {
             <DialogTitle>Disconnect Google Drive?</DialogTitle>
 
             <DialogDescription>
-              Imported files stay. This can&apos;t be undone.
+              Imported files stay. Your Gmail connection is unaffected.
+              This can&apos;t be undone.
             </DialogDescription>
           </DialogHeader>
 
@@ -1934,6 +2028,7 @@ export default function WorkspacePage() {
             }}
             onImport={handleImportGmailMessages}
             isImporting={importGmailMutation.isPending}
+            onReconnect={handleReconnectGmail}
           />
         </Suspense>
       )}

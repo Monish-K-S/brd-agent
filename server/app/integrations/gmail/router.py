@@ -8,6 +8,7 @@ from app.auth.dependencies import CurrentUser, get_current_user
 from app.core.config import settings
 from app.db.session import get_db
 from app.integrations.gmail.import_service import GmailImportService
+from app.integrations.google_oauth_store import GoogleReconnectRequiredError
 from app.integrations.gmail.mapper import GmailEmailMapper
 from app.integrations.gmail.schemas import (
     GmailImportedDocument,
@@ -379,6 +380,16 @@ def recent_gmail_messages(
             "messages": summaries,
         }
 
+    except GoogleReconnectRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "reconnect_required": True,
+                "connector": "gmail",
+            },
+        )
+
     except Exception as exc:
         raise HTTPException(
             status_code=400,
@@ -425,6 +436,16 @@ def search_gmail_messages(
         return {
             "messages": summaries,
         }
+
+    except GoogleReconnectRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "reconnect_required": True,
+                "connector": "gmail",
+            },
+        )
 
     except Exception as exc:
         raise HTTPException(
@@ -474,6 +495,16 @@ def import_gmail_messages(
         return GmailImportResponse(
             imported=imported,
             skipped_message_ids=skipped_message_ids,
+        )
+
+    except GoogleReconnectRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "reconnect_required": True,
+                "connector": "gmail",
+            },
         )
 
     except ValueError as exc:

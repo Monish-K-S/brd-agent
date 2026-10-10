@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.db.session import get_db
 from app.integrations.drive.import_service import DriveImportService
+from app.integrations.google_oauth_store import GoogleReconnectRequiredError
 from app.integrations.drive.schemas import (
     DriveFileImportRequest,
     DriveFileImportResponse,
@@ -360,6 +361,19 @@ def drive_picker_token(
             "access_token": access_token,
         }
 
+    except GoogleReconnectRequiredError as exc:
+        # Dead grant (expired/revoked refresh token): the Picker must
+        # offer "Reconnect", not a cryptic open failure. 409, never 401
+        # — the client reserves 401 for Supabase session refresh.
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "reconnect_required": True,
+                "connector": "drive",
+            },
+        )
+
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
@@ -414,6 +428,16 @@ def import_drive_file(
         return DriveFileImportResponse(
             imported=imported,
             skipped_file_ids=skipped_file_ids,
+        )
+
+    except GoogleReconnectRequiredError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "reconnect_required": True,
+                "connector": "drive",
+            },
         )
 
     except ValueError as exc:

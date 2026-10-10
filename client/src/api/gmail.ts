@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import { throwIfGoogleReconnectRequired } from "./googleReconnect";
 
 export type GmailStatus = {
   connected: boolean;
@@ -74,38 +75,53 @@ export async function disconnectGmail(): Promise<void> {
 export async function getRecentGmailMessages(): Promise<
   GmailMessageSummary[]
 > {
-  const response = await apiClient.get<GmailMessageListResponse>(
-    "/integrations/gmail/messages/recent",
-  );
+  try {
+    const response = await apiClient.get<GmailMessageListResponse>(
+      "/integrations/gmail/messages/recent",
+    );
 
-  return response.data.messages;
+    return response.data.messages;
+  } catch (error) {
+    throwIfGoogleReconnectRequired(error, "gmail");
+    throw error;
+  }
 }
 
 export async function searchGmailMessages(
   query: string,
 ): Promise<GmailMessageSummary[]> {
-  const response = await apiClient.get<GmailMessageListResponse>(
-    "/integrations/gmail/messages/search",
-    {
-      params: {
-        q: query,
+  try {
+    const response = await apiClient.get<GmailMessageListResponse>(
+      "/integrations/gmail/messages/search",
+      {
+        params: {
+          q: query,
+        },
       },
-    },
-  );
+    );
 
-  return response.data.messages;
+    return response.data.messages;
+  } catch (error) {
+    throwIfGoogleReconnectRequired(error, "gmail");
+    throw error;
+  }
 }
 
 export async function importGmailMessages(
   workspaceId: string,
   messageIds: string[],
 ): Promise<GmailImportResponse> {
-  const response = await apiClient.post<GmailImportResponse>(
-    `/integrations/gmail/workspaces/${workspaceId}/messages/import`,
-    {
-      message_ids: messageIds,
-    },
-  );
+  try {
+    const response = await apiClient.post<GmailImportResponse>(
+      `/integrations/gmail/workspaces/${workspaceId}/messages/import`,
+      {
+        message_ids: messageIds,
+      },
+    );
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    throwIfGoogleReconnectRequired(error, "gmail");
+    throw error;
+  }
 }

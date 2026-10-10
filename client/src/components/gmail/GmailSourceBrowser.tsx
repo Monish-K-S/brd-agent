@@ -12,17 +12,20 @@ import {
   searchGmailMessages,
   type GmailMessageSummary,
 } from "@/api/gmail";
+import { isGoogleReconnectRequiredError } from "@/api/googleReconnect";
 
 type GmailSourceBrowserProps = {
   onClose: () => void;
   onImport: (messageIds: string[]) => void;
   isImporting: boolean;
+  onReconnect: () => void;
 };
 
 export function GmailSourceBrowser({
   onClose,
   onImport,
   isImporting,
+  onReconnect,
 }: GmailSourceBrowserProps) {
   const [search, setSearch] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
@@ -52,6 +55,14 @@ export function GmailSourceBrowser({
 
   const isError =
     activeSearch === "" ? recentQuery.isError : searchQuery.isError;
+
+  const activeError =
+    activeSearch === "" ? recentQuery.error : searchQuery.error;
+
+  const needsReconnect = isGoogleReconnectRequiredError(
+    activeError,
+    "gmail",
+  );
 
   function handleSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -162,21 +173,31 @@ export function GmailSourceBrowser({
 
           {isError && (
             <div className="flex items-center justify-between gap-3 border-y border-hairline py-3">
-              <p className="text-sm text-ink">Couldn&apos;t load emails.</p>
+              <p className="text-sm text-ink">
+                {needsReconnect
+                  ? "Gmail connection expired."
+                  : "Couldn't load emails."}
+              </p>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (activeSearch === "") {
-                    recentQuery.refetch();
-                  } else {
-                    searchQuery.refetch();
-                  }
-                }}
-              >
-                Retry
-              </Button>
+              {needsReconnect ? (
+                <Button variant="ghost" size="sm" onClick={onReconnect}>
+                  Reconnect
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (activeSearch === "") {
+                      recentQuery.refetch();
+                    } else {
+                      searchQuery.refetch();
+                    }
+                  }}
+                >
+                  Retry
+                </Button>
+              )}
             </div>
           )}
 

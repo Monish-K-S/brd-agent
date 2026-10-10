@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import { throwIfGoogleReconnectRequired } from "./googleReconnect";
 
 export type DriveStatus = {
   connected: boolean;
@@ -59,23 +60,33 @@ export async function disconnectDrive(): Promise<void> {
 }
 
 export async function getDrivePickerToken(): Promise<string> {
-  const response = await apiClient.get<{ access_token: string }>(
-    "/integrations/drive/picker-token",
-  );
+  try {
+    const response = await apiClient.get<{ access_token: string }>(
+      "/integrations/drive/picker-token",
+    );
 
-  return response.data.access_token;
+    return response.data.access_token;
+  } catch (error) {
+    throwIfGoogleReconnectRequired(error, "drive");
+    throw error;
+  }
 }
 
 export async function importDriveFiles(
   workspaceId: string,
   driveFileIds: string[],
 ): Promise<DriveImportResponse> {
-  const response = await apiClient.post<DriveImportResponse>(
-    `/integrations/drive/workspaces/${workspaceId}/files/import`,
-    {
-      drive_file_ids: driveFileIds,
-    },
-  );
+  try {
+    const response = await apiClient.post<DriveImportResponse>(
+      `/integrations/drive/workspaces/${workspaceId}/files/import`,
+      {
+        drive_file_ids: driveFileIds,
+      },
+    );
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    throwIfGoogleReconnectRequired(error, "drive");
+    throw error;
+  }
 }

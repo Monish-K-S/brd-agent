@@ -9,7 +9,7 @@
 
 ## 1. Executive summary
 
-The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. **M-3** has since been fixed (2026-10-10, commit `916a50b`) — 8 mediums remain open. **H-1** and **H-2** were fixed later the same day (uncommitted working tree at time of writing) — 1 high (H-3) remains open. The dominant theme:
+The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. **M-3** has since been fixed (2026-10-10, commit `916a50b`) — 8 mediums remain open. **H-1** and **H-2** were fixed later the same day (uncommitted working tree at time of writing) — 1 high (H-3) remains open. **M-4** was fixed the same day by connector separation (see entry). The dominant theme:
 
 > **Export integrity and job lifecycle are the two weak surfaces.** A crash-class bug still exists in the PDF path (incomplete unicode normalization + a validation/mapper mismatch that lets structurally-broken BRD data reach both exporters), and generation jobs can wedge a workspace permanently after a server restart. Both are cheap to fix.
 
@@ -94,7 +94,10 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 - **Verified:** each document carries up to 500k chars; the sources rail in `client/src/pages/WorkspacePage.tsx` renders only title/type/metadata/count — the content is never displayed. A 10-source workspace can ship multi-MB JSON on every mount and every post-upload/delete invalidation.
 - **Fix:** add a list-projection endpoint (or `include_content=false` query param; repository-level deferred column) and use it from the client's `getDocuments`. Keep the per-document endpoint (also currently unused by the UI — see L-1) for full content.
 
-### 🟠 M-4 — Disconnecting Drive silently kills Gmail (and connecting Drive grants `gmail.readonly`)
+### ✅ M-4 — Disconnecting Drive silently kills Gmail (and connecting Drive grants `gmail.readonly`) — FIXED 2026-10-10
+
+- **Status:** fixed by separation (uncommitted working tree at time of writing). Gmail and Drive each own their `google_connections` row (`provider` `"gmail"`/`"drive"`, migration `f7a1c9e4b206`, pre-split rows wiped — no real users); storage/refresh shared via `GoogleOAuthStore`, connect/disconnect/status per connector. `DRIVE_SCOPES` narrowed to `drive.file`-only. Dead grants (e.g. Testing-mode 7-day refresh expiry behind the reported picker failure) raise `GoogleReconnectRequiredError` → 409 `{"reconnect_required": True, "connector": ...}` on picker-token, both imports, and Gmail browse; client shows a Reconnect CTA (Drive picker/import, Gmail browser/import) instead of cryptic errors. Disconnect dialogs now state the other connector is unaffected. Locked by `server/tests/test_google_connections.py` (11 tests, SQLite). Verified: pytest 61 passed, `npm run build` + `npm run lint` clean, migration applied to local DB (single head `f7a1c9e4b206`).
+- **Original finding (for the record):**
 
 - **Where:** `server/app/integrations/drive/service.py` (`delete_connection`/`revoke_connection` delegate to the shared `google_connections` row; `DRIVE_SCOPES` includes `GMAIL_READONLY_SCOPE`)
 - **Verified:** last-connect-wins sharing is documented in AGENTS.md, but the client disconnect dialog ("Disconnect Google Drive?") never says it also disconnects Gmail and revokes the shared grant — a real user-facing surprise. Conversely a Drive-only user ends up with Gmail read access they never asked for in the Drive flow.
@@ -191,7 +194,7 @@ AGENTS.md: skills are "supporting expertise only — never `--persist` them into
 3. **M-1** — rate-limit key on verified user id (`request.state`), not token hash.
 4. **M-6 + M-8 + M-9** — fresh-clone green tests, README truth, kill/redirect the root requirements file (this restores "CI-less manual verification" trust).
 5. **M-2 / M-7** — pipeline caps + deploy posture doc note (M-3 list projection done 2026-10-10).
-6. **M-4 / M-5** — design-decision items (disconnect-dialog copy; coral contrast token pick).
+6. **M-5** — design-decision item (coral contrast token pick; M-4 resolved by separation 2026-10-10).
 7. **L-1…L-10** — batch hygiene pass (all small; keep diffs per AGENTS.md conventions, restart backend after `server/` changes).
 
 ## 6. Notes on process

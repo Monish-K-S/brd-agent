@@ -1,7 +1,14 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -15,6 +22,12 @@ class GoogleConnection(Base):
             "user_id",
             "provider",
             name="uq_google_connections_user_provider",
+        ),
+        # Matches ck_google_connections_provider (migration f7a1c9e4b206):
+        # each connector owns its row, "gmail" or "drive".
+        CheckConstraint(
+            "provider IN ('gmail', 'drive')",
+            name="ck_google_connections_provider",
         ),
     )
 
