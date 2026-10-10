@@ -1346,32 +1346,33 @@ export default function WorkspacePage() {
             {!isGmailStatusLoading &&
               !isGmailStatusError &&
               gmailStatus?.connected && (
-                <>
-                  <p className="mt-3 truncate text-xs text-steel">
-                    {gmailStatus.email}
-                  </p>
-
-                  {emailDocuments.length > 0 && (
-                    <div className="mt-1 divide-y divide-hairline border-t border-hairline">
-                      {emailDocuments.map((document) => (
-                        <SourceCard
-                          key={document.id}
-                          icon={<Mail size={16} />}
-                          title={document.title || "No subject"}
-                          badge={document.source_type}
-                          subtitle={document.author}
-                          documentId={document.id}
-                          isDeleting={
-                            deleteMutation.isPending &&
-                            deleteMutation.variables === document.id
-                          }
-                          onDelete={handleDeleteDocument}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
+                <p className="mt-3 truncate text-xs text-steel">
+                  {gmailStatus.email}
+                </p>
               )}
+
+            {/* Imported emails live in the documents table and render
+                regardless of connection status — only the Import action
+                needs a live grant. */}
+            {!isGmailStatusLoading && emailDocuments.length > 0 && (
+              <div className="mt-1 divide-y divide-hairline border-t border-hairline">
+                {emailDocuments.map((document) => (
+                  <SourceCard
+                    key={document.id}
+                    icon={<Mail size={16} />}
+                    title={document.title || "No subject"}
+                    badge={document.source_type}
+                    subtitle={document.author}
+                    documentId={document.id}
+                    isDeleting={
+                      deleteMutation.isPending &&
+                      deleteMutation.variables === document.id
+                    }
+                    onDelete={handleDeleteDocument}
+                  />
+                ))}
+              </div>
+            )}
 
             {connectGmailMutation.isError && (
               <StateAlert className="mt-3">
@@ -1494,32 +1495,33 @@ export default function WorkspacePage() {
             {!isDriveStatusLoading &&
               !isDriveStatusError &&
               driveStatus?.connected && (
-                <>
-                  <p className="mt-3 truncate text-xs text-steel">
-                    {driveStatus.email}
-                  </p>
-
-                  {driveDocuments.length > 0 && (
-                    <div className="mt-1 divide-y divide-hairline border-t border-hairline">
-                      {driveDocuments.map((document) => (
-                        <SourceCard
-                          key={document.id}
-                          icon={<FileText size={16} />}
-                          title={document.title || "Untitled source"}
-                          badge={document.source_type}
-                          subtitle={document.author}
-                          documentId={document.id}
-                          isDeleting={
-                            deleteMutation.isPending &&
-                            deleteMutation.variables === document.id
-                          }
-                          onDelete={handleDeleteDocument}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </>
+                <p className="mt-3 truncate text-xs text-steel">
+                  {driveStatus.email}
+                </p>
               )}
+
+            {/* Imported Drive files live in the documents table and render
+                regardless of connection status — only Choose files needs
+                a live grant. */}
+            {!isDriveStatusLoading && driveDocuments.length > 0 && (
+              <div className="mt-1 divide-y divide-hairline border-t border-hairline">
+                {driveDocuments.map((document) => (
+                  <SourceCard
+                    key={document.id}
+                    icon={<FileText size={16} />}
+                    title={document.title || "Untitled source"}
+                    badge={document.source_type}
+                    subtitle={document.author}
+                    documentId={document.id}
+                    isDeleting={
+                      deleteMutation.isPending &&
+                      deleteMutation.variables === document.id
+                    }
+                    onDelete={handleDeleteDocument}
+                  />
+                ))}
+              </div>
+            )}
 
             {connectDriveMutation.isError && (
               <StateAlert className="mt-3">
