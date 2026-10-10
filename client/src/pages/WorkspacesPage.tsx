@@ -144,6 +144,9 @@ export default function WorkspacesPage() {
     queryFn: getWorkspaces,
     // List only changes via create/delete, both of which invalidate.
     staleTime: 60_000,
+    // Keep the list cached across longer absences so revisits render
+    // instantly; background refetch keeps it fresh.
+    gcTime: 30 * 60_000,
   });
 
   const createMutation = useMutation({
