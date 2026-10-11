@@ -285,6 +285,15 @@ export default function WorkspacePage() {
         brdStatus.regeneration_required),
   );
 
+  // Watchdog: the active step hasn't advanced in 20 minutes. Step
+  // clocks reset on every real phase change, so a stalled step means
+  // no server heartbeat either (the server reaps such jobs at 15
+  // minutes) — offer a safe retry instead of an eternal spinner.
+  const generationStalled =
+    generationStep !== "idle" &&
+    stepStartedAt !== null &&
+    generationNow - stepStartedAt > 20 * 60 * 1000;
+
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => uploadDocuments(id!, files),
     onSuccess: () => {
@@ -519,13 +528,19 @@ export default function WorkspacePage() {
     }
   }
 
-  async function handleGenerateBRD() {
+  async function handleGenerateBRD(options?: { retry?: boolean }) {
     if (
       !id ||
       !canGenerateBRD ||
-      generationStep !== "idle" ||
       generatingRef.current
     ) {
+      return;
+    }
+
+    // The watchdog retry calls this in the same tick as endGeneration:
+    // state is stale but the ref is already clear, so allow it to
+    // proceed past the idle check explicitly.
+    if (generationStep !== "idle" && !options?.retry) {
       return;
     }
 
@@ -557,6 +572,14 @@ export default function WorkspacePage() {
         queryKey: ["brd-status", id],
       });
     }
+  }
+
+  // Watchdog retry: abandon the stalled local tracking and start a
+  // fresh run. endGeneration() clears the ref synchronously, so the
+  // guarded handler proceeds in the same tick via the retry flag.
+  async function handleRetryGeneration() {
+    endGeneration();
+    await handleGenerateBRD({ retry: true });
   }
 
   // Follow the server-reported phase while tracking a job. The local
@@ -1722,9 +1745,26 @@ export default function WorkspacePage() {
                 })}
               </ol>
 
-              <p className="mt-4 text-xs leading-5 text-steel">
-                Large workspaces can take a couple of minutes.
-              </p>
+              {generationStalled ? (
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className="text-xs leading-5 text-steel">
+                    Taking longer than usual — retrying is safe and starts
+                    a fresh run.
+                  </p>
+
+                  <Button
+                    className="h-7 shrink-0 px-3 text-xs"
+                    onClick={() => void handleRetryGeneration()}
+                    variant="outline"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              ) : (
+                <p className="mt-4 text-xs leading-5 text-steel">
+                  Large workspaces can take a couple of minutes.
+                </p>
+              )}
             </div>
           )}
 
@@ -1777,7 +1817,7 @@ export default function WorkspacePage() {
                   brdStatus.has_sources ? (
                     <Button
                       variant="accent"
-                      onClick={handleGenerateBRD}
+                      onClick={() => void handleGenerateBRD()}
                       disabled={generationStep !== "idle"}
                     >
                       {generationStep !== "idle" ? "Generating..." : "Generate"}
@@ -1812,7 +1852,7 @@ export default function WorkspacePage() {
 
                   <Button
                     variant="accent"
-                    onClick={handleGenerateBRD}
+                    onClick={() => void handleGenerateBRD()}
                     disabled={generationStep !== "idle"}
                   >
                     Regenerate

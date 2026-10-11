@@ -38,6 +38,8 @@ class Settings(BaseSettings):
     max_extracted_chars: int = 500_000
     max_pdf_pages: int = 200
 
+    generation_job_timeout_minutes: int = 15
+
     rate_limit_enabled: bool = True
     rate_limit_brd_generate: str = "5/hour"
     rate_limit_consolidate: str = "10/hour"

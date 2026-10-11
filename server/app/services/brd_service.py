@@ -321,6 +321,16 @@ class BRDService:
             workspace_id,
         )
 
+        # Reap ghost jobs orphaned by a server restart before reading
+        # active state, so a dead row never wedges the workspace. Local
+        # import: generation_job_service imports BRDService at module
+        # level, so a top-level import here would be circular.
+        from app.services.generation_job_service import (
+            GenerationJobService,
+        )
+
+        GenerationJobService(self.db).reap_stale_jobs(workspace_id)
+
         has_sources = (
             self.standard_document_repository.has_by_workspace_id(
                 workspace_id,

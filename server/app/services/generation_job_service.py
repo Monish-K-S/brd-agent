@@ -1,7 +1,10 @@
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.models.generation_job import GenerationJob
 from app.db.session import SessionLocal
 from app.repositories.generation_job_repository import (
@@ -31,6 +34,8 @@ PHASE_PROCESSING_SOURCES = "processing_sources"
 PHASE_PREPARING_KNOWLEDGE = "preparing_knowledge"
 PHASE_GENERATING_BRD = "generating_brd"
 
+STALE_JOB_MESSAGE = "Server restarted mid-run — please regenerate."
+
 
 class GenerationJobService:
     def __init__(self, db: Session):
@@ -55,38 +60,104 @@ class GenerationJobService:
         if workspace is None:
             return None
 
-        active_job = (
-            self.generation_job_repository.get_active_by_workspace_id(
-                workspace_id,
+        # Ghost jobs (queued/running rows orphaned by a server restart)
+        # would otherwise block every future generate: reap them first so
+        # the active-check below sees the true state.
+        self.reap_stale_jobs(workspace_id)
+
+        for _ in range(2):
+            active_job = (
+                self.generation_job_repository.get_active_by_workspace_id(
+                    workspace_id,
+                )
             )
-        )
 
-        if active_job is not None:
-            return active_job
+            if active_job is not None:
+                return active_job
 
-        job = GenerationJob(
-            workspace_id=workspace_id,
-            user_id=user_id,
-            status=STATUS_QUEUED,
-            source_revision=workspace.source_revision,
-        )
-
-        try:
-            created_job = self.generation_job_repository.create(job)
-
-            self._prune_jobs(
+            job = GenerationJob(
                 workspace_id=workspace_id,
-                keep=MAX_JOBS_PER_WORKSPACE,
+                user_id=user_id,
+                status=STATUS_QUEUED,
+                source_revision=workspace.source_revision,
             )
 
-            self.db.commit()
+            try:
+                created_job = self.generation_job_repository.create(job)
 
-            self.db.refresh(created_job)
+                self._prune_jobs(
+                    workspace_id=workspace_id,
+                    keep=MAX_JOBS_PER_WORKSPACE,
+                )
 
-            return created_job
-        except Exception:
-            self.db.rollback()
-            raise
+                self.db.commit()
+
+                self.db.refresh(created_job)
+
+                return created_job
+            except IntegrityError:
+                # Lost the create-vs-create race against a concurrent
+                # generate: the partial unique index kept exactly one
+                # active job — loop back and adopt it instead of 409ing.
+                self.db.rollback()
+                continue
+            except Exception:
+                self.db.rollback()
+                raise
+
+        return self.generation_job_repository.get_active_by_workspace_id(
+            workspace_id,
+        )
+
+    def reap_stale_jobs(
+        self,
+        workspace_id: UUID,
+    ) -> int:
+        """Terminalize orphaned jobs: queued/running rows untouched longer
+        than the timeout (the in-process worker died — typically a server
+        restart mid-run). Returns the number of jobs reaped."""
+
+        cutoff = datetime.now(timezone.utc) - timedelta(
+            minutes=settings.generation_job_timeout_minutes,
+        )
+
+        reaped = 0
+
+        while True:
+            active_job = (
+                self.generation_job_repository.get_active_by_workspace_id(
+                    workspace_id,
+                )
+            )
+
+            if active_job is None or not self._is_stale(
+                active_job,
+                cutoff,
+            ):
+                return reaped
+
+            self._fail_job(
+                active_job,
+                STALE_JOB_MESSAGE,
+            )
+
+            reaped += 1
+
+    @staticmethod
+    def _is_stale(
+        job: GenerationJob,
+        cutoff: datetime,
+    ) -> bool:
+        seen_at = job.updated_at or job.created_at
+
+        if seen_at is None:
+            # Never persisted (no heartbeat yet) — treat as fresh.
+            return False
+
+        if seen_at.tzinfo is None:
+            seen_at = seen_at.replace(tzinfo=timezone.utc)
+
+        return seen_at < cutoff
 
     def execute_job(
         self,

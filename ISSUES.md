@@ -62,7 +62,9 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
   2. Wrap `brd_mapper.map()` in the two export methods and return a clean 422/409 with a "regenerate required" hint when the stored document is malformed.
   3. Make mapper field reads `.get()`-tolerant with empty defaults (weakest — hides corruption rather than flagging it).
 
-### 🔴 H-3 — `generation_jobs` have no timeout/reaper → workspace wedged after restart; also a create-vs-create race
+### ✅ H-3 — `generation_jobs` have no timeout/reaper → workspace wedged after restart; also a create-vs-create race — FIXED 2026-10-11
+
+- **Status:** fixed. `GenerationJobService.reap_stale_jobs()` (timeout `generation_job_timeout_minutes=15`) runs lazily per workspace in `create_job_for_user` + `get_brd_status_for_user`; partial unique index (migration `b8c9d0e1f2a3`, applied, reversible) closes the race with IntegrityError-adopt; client shows a Retry watchdog after 20 min stalled. Locked by 9 new tests (incl. real-SQLite ghost drill); 70 passed, build/lint green.
 
 - **Where:** `server/app/api/routes/brd.py:112` (`if job.status == "queued"` — only queued jobs ever get a background task), `server/app/services/generation_job_service.py` (no staleness handling anywhere), `GenerationJobRepository.get_active_by_workspace_id` (`status not in ("succeeded","failed")`)
 - **Verified in code:** the pipeline runs in an in-process `BackgroundTasks` task. If the uvicorn process dies/restarts while a job is `queued`/`running`, the row is never terminalized. Every subsequent `POST /generate` finds that dead job "active", returns it with **status `running`**, and never starts work — while the frontend's reload-resume effect (`client/src/pages/WorkspacePage.tsx` ~line 633) adopts the ghost job and polls it every 2 s forever (no client-side timeout either). The workspace can never regenerate without manual DB surgery.
@@ -190,7 +192,7 @@ AGENTS.md: skills are "supporting expertise only — never `--persist` them into
 ## 5. Suggested fix order (when edits are authorized)
 
 1. ~~**H-1 + H-2**~~ done 2026-10-10 (export integrity: latin-1 safety net + shape-validating `PUT` / export-side 422, with crash-regression tests).
-2. **H-3** — startup/status stale-job reaper + one-active-job partial unique index (migration) + optional client watchdog.
+2. ~~**H-3**~~ done 2026-10-11 (lazy per-workspace stale-job reaper + partial unique index + client watchdog, with reaper/race/ghost-drill tests).
 3. **M-1** — rate-limit key on verified user id (`request.state`), not token hash.
 4. **M-6 + M-8 + M-9** — fresh-clone green tests, README truth, kill/redirect the root requirements file (this restores "CI-less manual verification" trust).
 5. **M-2 / M-7** — pipeline caps + deploy posture doc note (M-3 list projection done 2026-10-10).
