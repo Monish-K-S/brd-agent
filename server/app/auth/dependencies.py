@@ -2,7 +2,7 @@ from functools import lru_cache
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -30,6 +30,7 @@ def get_jwks_client() -> jwt.PyJWKClient:
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(
         security,
     ),
@@ -79,6 +80,11 @@ def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication token",
             )
+
+        # Verified sub (signature/audience/issuer checked above) — exposed
+        # for the rate-limit key function so limits follow the user, not a
+        # rotatable bearer token.
+        request.state.user_id = user_id
 
         return CurrentUser(
             id=UUID(user_id),

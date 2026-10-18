@@ -1,5 +1,3 @@
-import hashlib
-
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.requests import Request
@@ -8,15 +6,10 @@ from app.core.config import settings
 
 
 def rate_limit_key(request: Request) -> str:
-    authorization = request.headers.get("authorization")
+    user_id = getattr(request.state, "user_id", None)
 
-    if authorization:
-        scheme, _, token = authorization.partition(" ")
-
-        if scheme.lower() == "bearer" and token.strip():
-            digest = hashlib.sha256(token.strip().encode()).hexdigest()
-
-            return f"user:{digest}"
+    if user_id is not None:
+        return f"user:{user_id}"
 
     return get_remote_address(request)
 

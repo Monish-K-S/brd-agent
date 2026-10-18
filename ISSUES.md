@@ -9,7 +9,7 @@
 
 ## 1. Executive summary
 
-The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. **M-3** has since been fixed (2026-10-10, commit `916a50b`) — 8 mediums remain open. **H-1** and **H-2** were fixed later the same day (uncommitted working tree at time of writing) — 1 high (H-3) remains open. **M-4** was fixed the same day by connector separation (see entry). The dominant theme:
+The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. All 3 highs are closed (H-1/H-2 on 2026-10-10, H-3 on 2026-10-11). **M-3** fixed 2026-10-10 (commit `916a50b`), **M-4** fixed 2026-10-10 by connector separation, **M-1** fixed 2026-10-18 (verified-user rate-limit keying) — **6 mediums (M-2, M-5…M-9) and all 10 lows remain open.** The dominant theme:
 
 > **Export integrity and job lifecycle are the two weak surfaces.** A crash-class bug still exists in the PDF path (incomplete unicode normalization + a validation/mapper mismatch that lets structurally-broken BRD data reach both exporters), and generation jobs can wedge a workspace permanently after a server restart. Both are cheap to fix.
 
@@ -76,11 +76,12 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 
 ---
 
-### 🟠 M-1 — Rate limiting is keyed on the bearer token hash, so it's trivially bypassed by refreshing
+### ✅ M-1 — Rate limiting is keyed on the bearer token hash, so it's trivially bypassed by refreshing — FIXED 2026-10-18
 
-- **Where:** `server/app/core/rate_limit.py:17` — `digest = sha256(token)` → `user:<digest>`
-- **Verified:** Supabase access tokens rotate on every refresh (~hourly automatically, on demand via `refreshSession`), so the same user gets a **fresh counter per token**. The `5/hour` BRD-generate limit (the expensive LLM path) is defeatable by simply refreshing the session — or by the built-in 401-refresh-retry path in `client/src/api/client.ts`.
-- **Fix:** resolve the user from the JWT `sub` claim in the key function (decode without verification *only* to read `sub` is unsafe for keying; better: the dependency already verifies — stash `user.id` on `request.state` in `get_current_user` and key on that, falling back to remote address).
+- **Status:** fixed. `get_current_user` now stashes the verified JWT `sub` on `request.state.user_id` (after signature/audience/issuer checks — an unverified `sub` is never trusted, so forged tokens can't aim a bucket at another user) and `rate_limit_key` keys on `user:<sub>`, falling back to remote address for headerless requests (Google OAuth callbacks — same bucketing as before). The `sha256(token)` key is gone: rotating/refreshing a token no longer resets a bucket. Verified safe by reading the installed slowapi source: for decorated routes the middleware defers to the endpoint decorator, which runs *after* FastAPI resolves `Depends(get_current_user)`, so the stash is always populated before the key func reads it. Locked by `server/tests/test_rate_limit.py` (5 tests: rotated-token regression, per-user bucket isolation, IP fallback, state-over-token keying, stash contract). Verified: pytest 75 passed.
+- **Where (original):** `server/app/core/rate_limit.py:17` — `digest = sha256(token)` → `user:<digest>`
+- **Verified (original):** Supabase access tokens rotate on every refresh (~hourly automatically, on demand via `refreshSession`), so the same user gets a **fresh counter per token**. The `5/hour` BRD-generate limit (the expensive LLM path) is defeatable by simply refreshing the session — or by the built-in 401-refresh-retry path in `client/src/api/client.ts`.
+- **Fix (original):** resolve the user from the JWT `sub` claim in the key function (decode without verification *only* to read `sub` is unsafe for keying; better: the dependency already verifies — stash `user.id` on `request.state` in `get_current_user` and key on that, falling back to remote address).
 
 ### 🟠 M-2 — Gmail / Drive imports bypass the extraction-size caps (and Drive buffers the whole file in RAM)
 
@@ -193,7 +194,7 @@ AGENTS.md: skills are "supporting expertise only — never `--persist` them into
 
 1. ~~**H-1 + H-2**~~ done 2026-10-10 (export integrity: latin-1 safety net + shape-validating `PUT` / export-side 422, with crash-regression tests).
 2. ~~**H-3**~~ done 2026-10-11 (lazy per-workspace stale-job reaper + partial unique index + client watchdog, with reaper/race/ghost-drill tests).
-3. **M-1** — rate-limit key on verified user id (`request.state`), not token hash.
+3. ~~**M-1**~~ done 2026-10-18 (rate-limit key on verified `sub` stashed on `request.state`, not token hash; 5 regression tests).
 4. **M-6 + M-8 + M-9** — fresh-clone green tests, README truth, kill/redirect the root requirements file (this restores "CI-less manual verification" trust).
 5. **M-2 / M-7** — pipeline caps + deploy posture doc note (M-3 list projection done 2026-10-10).
 6. **M-5** — design-decision item (coral contrast token pick; M-4 resolved by separation 2026-10-10).
