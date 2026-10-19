@@ -38,3 +38,8 @@ dist/
 #AGENTS
 .pi
 PLAN.md
+
+# Agent skills are per-machine support, never project content — see AGENTS.md
+# ("supporting expertise only — never --persist them into the project").
+client/.agents/
+client/skills-lock.json

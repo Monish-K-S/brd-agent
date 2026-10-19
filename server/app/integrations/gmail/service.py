@@ -202,3 +202,87 @@ class GmailService:
             )
             .execute()
         )
+
+    def get_messages(
+        self,
+        user_id: UUID,
+        message_ids: list[str],
+    ) -> list[dict]:
+        """Fetch several messages in one HTTP round trip (L-9).
+
+        The browse/search routes used to call ``get_message`` per id, and
+        every call re-read credentials (DB + Fernet, sometimes a refresh)
+        and rebuilt the discovery client — up to 20 serial round trips
+        plus 42 setup calls. Here credentials and client are built **once**
+        and every ``messages.get`` rides a single
+        ``new_batch_http_request``: two calls total.
+
+        Results come back in the order of ``message_ids``. A failed
+        sub-response propagates, exactly as the old loop's exception did
+        (routes map it to 400 — no behavior change). If the batch request
+        itself fails, the same ids are fetched sequentially on the **same**
+        built client, so batch trouble degrades to slower rather than
+        broken, and credentials are still read only once.
+        """
+        if not message_ids:
+            return []
+
+        credentials = self.get_credentials(user_id)
+
+        from googleapiclient.discovery import build
+
+        gmail = build(
+            "gmail",
+            "v1",
+            credentials=credentials,
+        )
+
+        results: dict[str, dict] = {}
+        failures: dict[str, Exception] = {}
+
+        def collect(request_id, response, exception):
+            if exception is not None:
+                failures[request_id] = exception
+            else:
+                results[request_id] = response
+
+        try:
+            batch = gmail.new_batch_http_request(
+                callback=collect,
+            )
+
+            for message_id in message_ids:
+                batch.add(
+                    gmail.users()
+                    .messages()
+                    .get(
+                        userId="me",
+                        id=message_id,
+                        format="full",
+                    ),
+                    request_id=message_id,
+                )
+
+            batch.execute()
+        except Exception:
+            return [
+                gmail.users()
+                .messages()
+                .get(
+                    userId="me",
+                    id=message_id,
+                    format="full",
+                )
+                .execute()
+                for message_id in message_ids
+            ]
+
+        ordered: list[dict] = []
+
+        for message_id in message_ids:
+            if message_id in failures:
+                raise failures[message_id]
+
+            ordered.append(results[message_id])
+
+        return ordered

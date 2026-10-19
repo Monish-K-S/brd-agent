@@ -366,15 +366,17 @@ def recent_gmail_messages(
             max_results=5,
         )
 
-        summaries = []
+        # One batched fetch for every listed id (L-9) — the old per-id loop
+        # re-read credentials and rebuilt the client on each call.
+        full_messages = gmail_service.get_messages(
+            user_id=current_user.id,
+            message_ids=[message["id"] for message in messages],
+        )
 
-        for message in messages:
-            full_message = gmail_service.get_message(
-                user_id=current_user.id,
-                message_id=message["id"],
-            )
-
-            summaries.append(mapper.to_message_summary(full_message))
+        summaries = [
+            mapper.to_message_summary(message)
+            for message in full_messages
+        ]
 
         return {
             "messages": summaries,
@@ -423,15 +425,17 @@ def search_gmail_messages(
             max_results=max_results,
         )
 
-        summaries = []
+        # One batched fetch for every listed id (L-9) — the old per-id loop
+        # re-read credentials and rebuilt the client on each call.
+        full_messages = gmail_service.get_messages(
+            user_id=current_user.id,
+            message_ids=[message["id"] for message in messages],
+        )
 
-        for message in messages:
-            full_message = gmail_service.get_message(
-                user_id=current_user.id,
-                message_id=message["id"],
-            )
-
-            summaries.append(mapper.to_message_summary(full_message))
+        summaries = [
+            mapper.to_message_summary(message)
+            for message in full_messages
+        ]
 
         return {
             "messages": summaries,
