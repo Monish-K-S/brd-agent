@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import text
+from starlette.middleware.gzip import DEFAULT_EXCLUDED_CONTENT_TYPES
 
 from app.api.routes.auth import router as auth_router
 from app.api.routes.brd import router as brd_router
@@ -30,6 +32,23 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
+
+# Added first, so it sits closest to the routes. The BaseHTTPMiddleware
+# layers above re-stream response bodies, which would defeat
+# ``minimum_size`` if gzip wrapped them instead — it would then gzip even
+# a 43-byte /health body. PDF/DOCX exports are excluded outright: they are
+# already compressed, and gzipping them would also drop Content-Length.
+app.add_middleware(
+    GZipMiddleware,
+    minimum_size=1000,
+    exclude_content_types=(
+        *DEFAULT_EXCLUDED_CONTENT_TYPES,
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument."
+        "wordprocessingml.document",
+    ),
+)
+
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 app.add_middleware(

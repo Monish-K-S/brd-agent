@@ -1,10 +1,16 @@
 import json
+import logging
+import math
 import os
 import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 from sarvamai import SarvamAI
+
+from app.core.config import settings
+
+logger = logging.getLogger("brd-agent.extraction")
 
 
 class SarvamExtractor:
@@ -21,6 +27,7 @@ class SarvamExtractor:
     def __init__(
         self,
         schema_path: str | Path,
+        timeout_seconds: int | None = None,
     ) -> None:
         load_dotenv()
 
@@ -36,6 +43,24 @@ class SarvamExtractor:
         )
 
         self.schema_path = Path(schema_path)
+
+        # Ceiling for one extraction job. Configurable because a large
+        # aggregate PDF can legitimately exceed the old hardcoded 60x2s;
+        # timing it out there lost the whole generation (P-3).
+        self.timeout_seconds = (
+            timeout_seconds
+            if timeout_seconds is not None
+            else settings.sarvam_timeout_seconds
+        )
+
+    @property
+    def max_attempts(self) -> int:
+        return max(
+            1,
+            math.ceil(
+                self.timeout_seconds / self.POLL_INTERVAL_SECONDS
+            ),
+        )
 
     def extract(
         self,
@@ -59,6 +84,12 @@ class SarvamExtractor:
         job = self._create_job(
             pdf_path=pdf_path,
             schema=schema,
+        )
+
+        logger.info(
+            "Submitted Sarvam extraction job %s (%s)",
+            job.job_id,
+            pdf_path.name,
         )
 
         self._wait_for_completion(
@@ -100,31 +131,56 @@ class SarvamExtractor:
         self,
         job_id: str,
     ) -> None:
-        max_attempts = 60  # ~2 min at default interval
-        for attempt in range(max_attempts):
+        max_attempts = self.max_attempts
+        started = time.perf_counter()
+
+        for attempt in range(1, max_attempts + 1):
             status = self.client.doc_ai.get_status(
                 job_id=job_id,
             )
 
             if status.status == "completed":
+                logger.info(
+                    "Sarvam job %s completed after %s poll(s) in %.1fs",
+                    job_id,
+                    attempt,
+                    time.perf_counter() - started,
+                )
+
                 return
 
             if status.status in {
                 "failed",
                 "cancelled",
             }:
+                logger.warning(
+                    "Sarvam job %s ended as %s after %s poll(s)",
+                    job_id,
+                    status.status,
+                    attempt,
+                )
+
                 raise RuntimeError(
                     f"Sarvam extraction failed. "
                     f"Job ID: {job_id}, "
                     f"Status: {status.status}"
                 )
 
-            time.sleep(
-                self.POLL_INTERVAL_SECONDS,
-            )
+            if attempt < max_attempts:
+                time.sleep(
+                    self.POLL_INTERVAL_SECONDS,
+                )
+
+        logger.warning(
+            "Sarvam job %s timed out after %s poll(s) (~%ss)",
+            job_id,
+            max_attempts,
+            self.timeout_seconds,
+        )
 
         raise TimeoutError(
-            f"Sarvam extraction timed out. Job ID: {job_id}"
+            f"Sarvam extraction timed out after "
+            f"{self.timeout_seconds}s. Job ID: {job_id}"
         )
 
     def _get_results(

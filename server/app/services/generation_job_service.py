@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -254,6 +255,8 @@ class GenerationJobService:
             )
         )
 
+        job_started = time.perf_counter()
+
         try:
             if has_new_sources:
                 self._set_phase(
@@ -262,11 +265,19 @@ class GenerationJobService:
                     PHASE_PROCESSING_SOURCES,
                 )
 
+                phase_started = time.perf_counter()
+
                 extraction = (
                     extraction_service.extract_workspace_documents(
                         workspace_id=workspace_id,
                         user_id=user_id,
                     )
+                )
+
+                self._log_phase(
+                    job_id,
+                    PHASE_PROCESSING_SOURCES,
+                    phase_started,
                 )
 
                 if extraction is None:
@@ -283,11 +294,19 @@ class GenerationJobService:
                 PHASE_PREPARING_KNOWLEDGE,
             )
 
+            phase_started = time.perf_counter()
+
             project_knowledge = (
                 project_knowledge_service.consolidate_project_knowledge(
                     workspace_id=workspace_id,
                     user_id=user_id,
                 )
+            )
+
+            self._log_phase(
+                job_id,
+                PHASE_PREPARING_KNOWLEDGE,
+                phase_started,
             )
 
             if project_knowledge is None:
@@ -304,9 +323,17 @@ class GenerationJobService:
                 PHASE_GENERATING_BRD,
             )
 
+            phase_started = time.perf_counter()
+
             brd = brd_service.generate_brd_for_user(
                 workspace_id=workspace_id,
                 user_id=user_id,
+            )
+
+            self._log_phase(
+                job_id,
+                PHASE_GENERATING_BRD,
+                phase_started,
             )
 
             if brd is None:
@@ -322,11 +349,18 @@ class GenerationJobService:
                 STATUS_SUCCEEDED,
                 None,
             )
+
+            logger.info(
+                "Generation job %s succeeded in %.2fs",
+                job_id,
+                time.perf_counter() - job_started,
+            )
         except Exception as exc:
             logger.exception(
-                "Generation job %s failed (workspace %s)",
+                "Generation job %s failed (workspace %s) after %.2fs",
                 job_id,
                 workspace_id,
+                time.perf_counter() - job_started,
             )
 
             self._fail_job(
@@ -341,6 +375,25 @@ class GenerationJobService:
         return self.db.get(
             GenerationJob,
             job_id,
+        )
+
+    @staticmethod
+    def _log_phase(
+        job_id: UUID,
+        phase: str,
+        started: float,
+    ) -> None:
+        """Wall-clock cost of one pipeline phase (observability only).
+
+        Extraction and BRD generation are remote calls, so without this
+        there is no way to tell which stage is slow (or whether the
+        aggregate-PDF build is a factor) from the logs.
+        """
+        logger.info(
+            "Generation job %s phase=%s took %.2fs",
+            job_id,
+            phase,
+            time.perf_counter() - started,
         )
 
     def _set_phase(

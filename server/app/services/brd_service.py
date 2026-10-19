@@ -47,17 +47,28 @@ class BRDService:
 
         self.brd_mapper = BRDMapper()
 
-        self.brd_generator = GeminiBRDGenerator(
-            schema_path=(
-                Path(__file__).resolve().parent.parent
-                / "ai"
-                / "schemas"
-                / "brd_schema.json"
-            ),
+        # Built lazily: constructing the generator allocates a genai
+        # client and requires GEMINI_API_KEY, neither of which the read
+        # paths (status/export/edit) should need (P-5).
+        self._brd_schema_path = (
+            Path(__file__).resolve().parent.parent
+            / "ai"
+            / "schemas"
+            / "brd_schema.json"
         )
+        self._brd_generator: GeminiBRDGenerator | None = None
 
         self.brd_document_builder = BRDDocumentBuilder()
         self.brd_docx_builder = BRDDocxBuilder()
+
+    @property
+    def brd_generator(self) -> GeminiBRDGenerator:
+        if self._brd_generator is None:
+            self._brd_generator = GeminiBRDGenerator(
+                schema_path=self._brd_schema_path,
+            )
+
+        return self._brd_generator
 
     def get_brd_for_user(
         self,
@@ -317,7 +328,7 @@ class BRDService:
         if workspace is None:
             return None
 
-        brd = self.brd_repository.get_by_workspace_id(
+        brd = self.brd_repository.get_summary_by_workspace_id(
             workspace_id,
         )
 

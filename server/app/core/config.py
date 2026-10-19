@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # 500k chars), so the extraction service truncates the tail to fit.
     max_aggregate_chars: int = 1_000_000
 
+    # Ceiling for a single Sarvam Document AI extraction job. Polled every
+    # 2s, so this is also the maximum wait before the job is failed.
+    sarvam_timeout_seconds: int = 180
+
     generation_job_timeout_minutes: int = 15
 
     rate_limit_enabled: bool = True

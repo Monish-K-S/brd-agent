@@ -1,4 +1,6 @@
+import logging
 import tempfile
+import time
 from dataclasses import asdict
 from pathlib import Path
 from uuid import UUID
@@ -30,6 +32,8 @@ from app.repositories.standard_document_repository import (
 from app.repositories.workspace_repository import (
     WorkspaceRepository,
 )
+
+logger = logging.getLogger("brd-agent.extraction")
 
 
 class DocumentExtractionService:
@@ -108,6 +112,7 @@ class DocumentExtractionService:
             return None
 
         temp_path = None
+        build_started = time.perf_counter()
 
         try:
             with tempfile.NamedTemporaryFile(
@@ -121,8 +126,25 @@ class DocumentExtractionService:
                 output_path=str(temp_path),
             )
 
+            logger.info(
+                "Built extraction PDF for workspace %s: %s document(s), "
+                "%s chars in %.2fs",
+                workspace_id,
+                len(ai_documents),
+                sum(len(document.content) for document in ai_documents),
+                time.perf_counter() - build_started,
+            )
+
+            sarvam_started = time.perf_counter()
+
             raw_sarvam_response = self.sarvam_extractor.extract(
                 pdf_path=temp_path,
+            )
+
+            logger.info(
+                "Sarvam extraction for workspace %s finished in %.2fs",
+                workspace_id,
+                time.perf_counter() - sarvam_started,
             )
 
             document_knowledge = self.knowledge_mapper.map(
