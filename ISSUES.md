@@ -9,7 +9,7 @@
 
 ## 1. Executive summary
 
-The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. All 3 highs are closed (H-1/H-2 on 2026-10-10, H-3 on 2026-10-11). **M-3** fixed 2026-10-10 (commit `916a50b`), **M-4** fixed 2026-10-10 by connector separation, **M-1** fixed 2026-10-18 (verified-user rate-limit keying) — **6 mediums (M-2, M-5…M-9) and all 10 lows remain open.** The dominant theme:
+The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. All 3 highs are closed (H-1/H-2 on 2026-10-10, H-3 on 2026-10-11). **M-3** fixed 2026-10-10 (commit `916a50b`), **M-4** fixed 2026-10-10 by connector separation, **M-1** fixed 2026-10-18 (verified-user rate-limit keying), **M-6/M-8/M-9** fixed 2026-10-19 (self-contained parser tests, README truth, root `requirements.txt` removed) — **3 mediums (M-2, M-5, M-7) and all 10 lows remain open.** The dominant theme:
 
 > **Export integrity and job lifecycle are the two weak surfaces.** A crash-class bug still exists in the PDF path (incomplete unicode normalization + a validation/mapper mismatch that lets structurally-broken BRD data reach both exporters), and generation jobs can wedge a workspace permanently after a server restart. Both are cheap to fix.
 
@@ -23,7 +23,7 @@ The project is in good shape overall: authn/authz is consistent, hardening layer
 | Alembic | ✅ single linear head `62d4ff311943`, reversible downgrades |
 | Secrets in git | ✅ none (`server/.env`, `client/.env.local` ignored; only `*.example` tracked) |
 | 429 + `Retry-After` | ✅ reproduced end-to-end (`1/minute → Retry-After: 60`, `1/hour → 3600`) |
-| Fresh-clone test run (datasets/ hidden) | ❌ 3 failures — see **M-6** |
+| Fresh-clone test run | ✅ green — `datasets/` dependency removed, parser tests are self-generating (M-6) |
 
 ---
 
@@ -112,10 +112,11 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 - **Computed (verified by formula):** `#FF5A36` on white = **3.10:1**; hover `#D94324` on white = **4.39:1**. AA needs **4.5:1** for normal text (`text-sm` is below the large-text exemption). Everything else in the system passes: ink-on-canvas 17.0:1, ink-on-surface 18.3:1, steel-on-surface 5.6:1, steel-on-canvas 5.2:1. Disabled state (hairline bg + muted text) is a disabled control, exempt.
 - **Fix options:** darken the action token (any coral ≤ ≈ `#E8431A`-ish crosses 4.5 at small text — needs a quick pick to stay on-brand), or bump accent-button labels to the large-text threshold (≥ 18.66px bold — changes the visual), or add a darker text-on-coral pairing for the small sizes. AGENTS.md locks the accent *direction*, not the exact hex — flag as an explicit design decision either way.
 
-### 🟠 M-6 — Parser tests fail on a fresh clone: they depend on gitignored `datasets/`
+### ✅ M-6 — Parser tests fail on a fresh clone: they depend on gitignored `datasets/` — FIXED 2026-10-19
 
-- **Verified:** moved `datasets/` aside → `3 failed, 28 passed` (`server/tests/test_parsers.py` — txt/pdf/docx end-to-end cases). `.gitignore:2` ignores `datasets/`, so these fixtures exist only on this machine while the test docstring says "checked-in sample datasets". AGENTS.md's "31 tests green" is only true locally. Any CI on a fresh checkout is red.
-- **Fix:** either un-ignore + commit small synthetic fixtures (regenerate tiny txt/pdf/docx into `tests/fixtures/`), or `pytest.mark.skipif` on missing datasets with a loud reason.
+- **Status:** fixed by deleting `datasets/` outright and making the parser tests self-contained. `server/tests/test_parsers.py` now builds its own fixtures at test time from deps the parsers already require (`pymupdf` for the PDF, `python-docx` for the DOCX, a direct write for the TXT), written into a `tmp_path_factory` dir — no binary files in git, no external data. The dead `datasets/` entry was dropped from `.gitignore`. Assertions were also strengthened while rewriting: the old `len >= 1` + non-empty checks became real round-trip assertions (`source_type`, `title`, marker string present in `content`, `metadata` fields, PDF `page_count`), plus previously-untested error paths (missing file ×3, wrong extension ×3, `max_extracted_chars` / `max_pdf_pages` caps via `monkeypatch`, empty DOCX) and transcript detection (attendees/duration extraction + speaker-turn normalization — the docx parser's most complex logic had zero coverage). 3 tests → 14; suite 75 → 86. Verified green with `datasets/` absent.
+- **Verified (original):** moved `datasets/` aside → `3 failed, 28 passed` (`server/tests/test_parsers.py` — txt/pdf/docx end-to-end cases). `.gitignore:2` ignored `datasets/`, so these fixtures existed only on this machine while the test docstring said "checked-in sample datasets". AGENTS.md's "31 tests green" was only true locally. Any CI on a fresh checkout was red.
+- **Fix (original):** either un-ignore + commit small synthetic fixtures (regenerate tiny txt/pdf/docx into `tests/fixtures/`), or `pytest.mark.skipif` on missing datasets with a loud reason.
 
 ### 🟠 M-7 — Single-instance assumptions beyond the documented PKCE note
 
@@ -123,17 +124,19 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 - **Verified:** all fine on one uvicorn process (the current posture). Under N workers/replicas: rate buckets split per worker, a connect initiated on worker A fails its callback on worker B (`Invalid or expired OAuth state`), and long generations are invisible/killable by restarts (compounds **H-3**).
 - **Fix:** document "single worker only" in README deploy section *now*; longer-term move verifiers to Redis/DB and the pipeline to a queue, or pin `--workers 1` with horizontal scale deferred.
 
-### 🟠 M-8 — README setup instructions are wrong/broken as written
+### ✅ M-8 — README setup instructions are wrong/broken as written — FIXED 2026-10-19
 
-- **Verified three mismatches:**
-  1. `README.md:98` env table lists `SUPABASE_ANON_KEY`, but `app/core/config.py:22` requires `SUPABASE_PUBLISHABLE_KEY` (`.env.example` is correct) → copy-pasting README gives a boot validation error.
-  2. `README.md:76` says `pip install -r requirements.txt` — the documented venv has **no pip module** (AGENTS.md: uv only: `uv pip install --python .venv/bin/python -r requirements.txt`).
-  3. `README.md:65` "Python 3.12+" but the shipped venv is **3.11.15** (works fine — so just pick one and align).
-- **Fix:** correct the table, switch install command to the uv form, align the Python version note.
+- **Status:** fixed. The backend env table now matches `app/core/config.py`: `SUPABASE_ANON_KEY` → **`SUPABASE_PUBLISHABLE_KEY`**, plus the four required vars that were missing entirely (`FRONTEND_URL`, `TOKEN_ENCRYPTION_KEY`, `OAUTH_STATE_SECRET`, `GEMINI_API_KEY`) — each with its generate-one-liner, since omitting `TOKEN_ENCRYPTION_KEY` / `OAUTH_STATE_SECRET` is a fail-fast boot error and the old table could not boot the app. A `Required` column was added and the table points at `server/.env.example` for the optional tuning knobs. Install docs are now uv-primary (`uv venv` + `uv pip install --python .venv/bin/python -r requirements.txt`) with a plain `python -m venv` + `pip install` alternative, and "Python 3.12+" became "Python 3.11+" to match the shipped venv (3.11.15). The frontend's `VITE_SUPABASE_ANON_KEY` was left alone — it is correct for Supabase JS. While in the API overview, the two dead routes (`POST /workspaces/{id}/extract`, `POST /workspaces/{id}/knowledge/consolidate`) were dropped per **L-1** (docs-only; the routes themselves are still exposed).
+- **Verified (original):** three mismatches —
+  1. `README.md:98` env table listed `SUPABASE_ANON_KEY`, but `app/core/config.py:22` requires `SUPABASE_PUBLISHABLE_KEY` (`.env.example` was correct) → copy-pasting README gave a boot validation error.
+  2. `README.md:76` said `pip install -r requirements.txt` — the documented venv has **no pip module** (AGENTS.md: uv only: `uv pip install --python .venv/bin/python -r requirements.txt`).
+  3. `README.md:65` said "Python 3.12+" but the shipped venv is **3.11.15** (works fine — so just pick one and align).
+- **Fix (original):** correct the table, switch install command to the uv form, align the Python version note.
 
-### 🟠 M-9 — Stale root `requirements.txt` is an install trap
+### ✅ M-9 — Stale root `requirements.txt` is an install trap — FIXED 2026-10-19
 
-- **Verified:** `requirements.txt` (repo root) is a subset of `server/requirements.txt` missing every integration dep: `google-api-python-client`, `google-auth-oauthlib`, `google-api-core`, `slowapi`, `requests-oauthlib`, `httplib2`, `uritemplate`, `protobuf`, etc. Nothing references it (README's `cd server; pip install -r requirements.txt` resolves to `server/requirements.txt`), but a contributor installing from the root file gets an app that crashes at import. Either delete it or make it a pointer comment (AGENTS.md/docs edit — flagged here since we changed nothing).
+- **Status:** fixed by deleting the file (`git rm requirements.txt`). Verified nothing referenced it — no Dockerfile, CI config, Makefile, or Procfile anywhere in the repo, and the README's install steps already begin with `cd server`, so `server/requirements.txt` was always the one that mattered. A comments-only "pointer" file was rejected on purpose: `pip install -r requirements.txt` would then succeed while installing nothing, which is a worse failure mode than an absent file.
+- **Verified (original):** `requirements.txt` (repo root) was a subset of `server/requirements.txt` missing every integration dep: `google-api-python-client`, `google-auth-oauthlib`, `google-api-core`, `slowapi`, `requests-oauthlib`, `httplib2`, `uritemplate`, `protobuf`, etc. A contributor installing from the root file got an app that crashed at import.
 
 ---
 
@@ -195,7 +198,7 @@ AGENTS.md: skills are "supporting expertise only — never `--persist` them into
 1. ~~**H-1 + H-2**~~ done 2026-10-10 (export integrity: latin-1 safety net + shape-validating `PUT` / export-side 422, with crash-regression tests).
 2. ~~**H-3**~~ done 2026-10-11 (lazy per-workspace stale-job reaper + partial unique index + client watchdog, with reaper/race/ghost-drill tests).
 3. ~~**M-1**~~ done 2026-10-18 (rate-limit key on verified `sub` stashed on `request.state`, not token hash; 5 regression tests).
-4. **M-6 + M-8 + M-9** — fresh-clone green tests, README truth, kill/redirect the root requirements file (this restores "CI-less manual verification" trust).
+4. ~~**M-6 + M-8 + M-9**~~ done 2026-10-19 (self-generating parser fixtures + deleted `datasets/`, README env table/install/Python version corrected, root `requirements.txt` removed — "CI-less manual verification" trust restored).
 5. **M-2 / M-7** — pipeline caps + deploy posture doc note (M-3 list projection done 2026-10-10).
 6. **M-5** — design-decision item (coral contrast token pick; M-4 resolved by separation 2026-10-10).
 7. **L-1…L-10** — batch hygiene pass (all small; keep diffs per AGENTS.md conventions, restart backend after `server/` changes).

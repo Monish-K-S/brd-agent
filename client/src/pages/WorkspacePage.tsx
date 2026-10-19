@@ -1,4 +1,11 @@
-import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
@@ -38,9 +45,7 @@ import {
   loadGooglePicker,
   openDrivePicker,
 } from "@/components/drive/drivePicker";
-import {
-  isGoogleReconnectRequiredError,
-} from "@/api/googleReconnect";
+import { isGoogleReconnectRequiredError } from "@/api/googleReconnect";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -281,8 +286,8 @@ export default function WorkspacePage() {
 
   const canGenerateBRD = Boolean(
     brdStatus &&
-      ((!brdStatus.has_brd && brdStatus.has_sources) ||
-        brdStatus.regeneration_required),
+    ((!brdStatus.has_brd && brdStatus.has_sources) ||
+      brdStatus.regeneration_required),
   );
 
   // Watchdog: the active step hasn't advanced in 20 minutes. Step
@@ -376,8 +381,7 @@ export default function WorkspacePage() {
   });
 
   const importDriveMutation = useMutation({
-    mutationFn: (driveFileIds: string[]) =>
-      importDriveFiles(id!, driveFileIds),
+    mutationFn: (driveFileIds: string[]) => importDriveFiles(id!, driveFileIds),
     onSuccess: (result) => {
       void Promise.all([
         queryClient.invalidateQueries({
@@ -529,11 +533,7 @@ export default function WorkspacePage() {
   }
 
   async function handleGenerateBRD(options?: { retry?: boolean }) {
-    if (
-      !id ||
-      !canGenerateBRD ||
-      generatingRef.current
-    ) {
+    if (!id || !canGenerateBRD || generatingRef.current) {
       return;
     }
 
@@ -614,7 +614,12 @@ export default function WorkspacePage() {
     // beginStep intentionally excluded: stable setState wrappers that
     // would resubscribe pointlessly; phase/step/job drive scheduling.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackedJobId, brdStatus?.active_job?.job_id, brdStatus?.active_job?.phase, generationStep]);
+  }, [
+    trackedJobId,
+    brdStatus?.active_job?.job_id,
+    brdStatus?.active_job?.phase,
+    generationStep,
+  ]);
 
   // Completion: the tracked job left the active slot. last_job names
   // the outcome definitively (no flag heuristics).
@@ -685,7 +690,12 @@ export default function WorkspacePage() {
     };
     // beginStep intentionally excluded (see above).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trackedJobId, generationStep, brdStatus?.active_job?.job_id, brdStatus?.has_new_sources]);
+  }, [
+    trackedJobId,
+    generationStep,
+    brdStatus?.active_job?.job_id,
+    brdStatus?.has_new_sources,
+  ]);
 
   // 1s ticker driving the per-step elapsed display. Runs only while a
   // generation is in flight; cleanup stops it on idle or unmount.
@@ -760,9 +770,7 @@ export default function WorkspacePage() {
       }
 
       if (file.size > MAX_UPLOAD_BYTES) {
-        setUploadValidationError(
-          `File too large: ${file.name} (max 10MB)`,
-        );
+        setUploadValidationError(`File too large: ${file.name} (max 10MB)`);
         return;
       }
     }
@@ -942,9 +950,8 @@ export default function WorkspacePage() {
     const error = importDriveMutation.error;
 
     if (isAxiosError(error)) {
-      const detail = (
-        error.response?.data as { detail?: unknown } | undefined
-      )?.detail;
+      const detail = (error.response?.data as { detail?: unknown } | undefined)
+        ?.detail;
 
       if (typeof detail === "string" && detail) {
         return detail;
@@ -988,9 +995,7 @@ export default function WorkspacePage() {
   const [sourcesOpen, setSourcesOpen] = useState(() =>
     readPanelPreference("brd.sourcesOpen"),
   );
-  const [qaOpen, setQaOpen] = useState(() =>
-    readPanelPreference("brd.qaOpen"),
-  );
+  const [qaOpen, setQaOpen] = useState(() => readPanelPreference("brd.qaOpen"));
 
   function toggleSources() {
     setSourcesOpen((open) => {
@@ -1041,8 +1046,7 @@ export default function WorkspacePage() {
     // users back to /workspaces. Other failures keep retry UI.
     const isNotFound =
       !isWorkspaceError ||
-      (isAxiosError(workspaceError) &&
-        workspaceError.response?.status === 404);
+      (isAxiosError(workspaceError) && workspaceError.response?.status === 404);
 
     if (isNotFound) {
       return (
@@ -1174,100 +1178,221 @@ export default function WorkspacePage() {
                 </button>
               </div>
 
-          <section className="mt-4">
-            <div>
-              {/* Real button (keyboard-operable) driving the hidden file
+              <section className="mt-4">
+                <div>
+                  {/* Real button (keyboard-operable) driving the hidden file
                   input — a label pill alone is not focusable. */}
-              <Button
-                type="button"
-                variant="default"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadMutation.isPending}
-              >
-                <Upload />
-                {uploadMutation.isPending ? "Uploading..." : "Add"}
-              </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    className="w-full"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadMutation.isPending}
+                  >
+                    <Upload />
+                    {uploadMutation.isPending ? "Uploading..." : "Add"}
+                  </Button>
 
-              <input
-                ref={fileInputRef}
-                id="workspace-sources-upload"
-                type="file"
-                multiple
-                accept=".txt,.pdf,.docx"
-                className="sr-only"
-                onChange={handleFileChange}
-                disabled={uploadMutation.isPending}
-                tabIndex={-1}
-                aria-hidden="true"
-              />
-            </div>
+                  <input
+                    ref={fileInputRef}
+                    id="workspace-sources-upload"
+                    type="file"
+                    multiple
+                    accept=".txt,.pdf,.docx"
+                    className="sr-only"
+                    onChange={handleFileChange}
+                    disabled={uploadMutation.isPending}
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  />
+                </div>
 
-            <p className="mt-2 text-xs leading-5 text-steel">
-              .txt, .pdf, .docx
-            </p>
+                <p className="mt-2 text-xs leading-5 text-steel">
+                  .txt, .pdf, .docx
+                </p>
 
-            {isDocumentsLoading && (
-              <div className="mt-4 space-y-2 border-t border-hairline pt-4" aria-label="Loading sources">
-                {[0, 1].map((index) => (
-                  <div key={index} className="py-2.5">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="mt-2 h-3 w-1/3" />
+                {isDocumentsLoading && (
+                  <div
+                    className="mt-4 space-y-2 border-t border-hairline pt-4"
+                    aria-label="Loading sources"
+                  >
+                    {[0, 1].map((index) => (
+                      <div key={index} className="py-2.5">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="mt-2 h-3 w-1/3" />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
 
-            {isDocumentsError && (
-              <div className="mt-4 flex items-center justify-between gap-3 border-y border-hairline py-3">
-                <p className="text-sm text-ink">
-                  Couldn&apos;t load sources.
-                </p>
+                {isDocumentsError && (
+                  <div className="mt-4 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                    <p className="text-sm text-ink">
+                      Couldn&apos;t load sources.
+                    </p>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => refetchDocuments()}
-                >
-                  Retry
-                </Button>
-              </div>
-            )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => refetchDocuments()}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
 
-            {sourcesNoteKey > 0 && (
-              <FlashNote key={sourcesNoteKey} className="mt-4">
-                {sourcesNoteText}
-              </FlashNote>
-            )}
+                {sourcesNoteKey > 0 && (
+                  <FlashNote key={sourcesNoteKey} className="mt-4">
+                    {sourcesNoteText}
+                  </FlashNote>
+                )}
 
-              {!isDocumentsLoading &&
-              !isDocumentsError &&
-              uploadedDocuments.length === 0 &&
-              emailDocuments.length === 0 &&
-              driveDocuments.length === 0 && (
-                <p className="mt-5 border-t border-hairline pt-4 text-sm leading-5 text-steel">
-                  Nothing here yet.
-                </p>
-              )}
+                {!isDocumentsLoading &&
+                  !isDocumentsError &&
+                  uploadedDocuments.length === 0 &&
+                  emailDocuments.length === 0 &&
+                  driveDocuments.length === 0 && (
+                    <p className="mt-5 border-t border-hairline pt-4 text-sm leading-5 text-steel">
+                      Nothing here yet.
+                    </p>
+                  )}
 
-            {!isDocumentsLoading &&
-              !isDocumentsError &&
-              uploadedDocuments.length > 0 && (
-                <>
-                  <p className="mt-5 flex items-baseline gap-2 text-sm font-medium text-ink">
-                    Files
+                {!isDocumentsLoading &&
+                  !isDocumentsError &&
+                  uploadedDocuments.length > 0 && (
+                    <>
+                      <p className="mt-5 flex items-baseline gap-2 text-sm font-medium text-ink">
+                        Files
+                        <span className="text-xs text-steel tabular-nums">
+                          {uploadedDocuments.length}
+                        </span>
+                      </p>
+
+                      <div className="mt-1 divide-y divide-hairline border-t border-hairline">
+                        {uploadedDocuments.map((document) => (
+                          <SourceCard
+                            key={document.id}
+                            icon={<FileText size={16} />}
+                            title={document.title || "Untitled source"}
+                            badge={document.source_type}
+                            documentId={document.id}
+                            isDeleting={
+                              deleteMutation.isPending &&
+                              deleteMutation.variables === document.id
+                            }
+                            onDelete={handleDeleteDocument}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                {uploadValidationError && (
+                  <StateAlert className="mt-4">
+                    {uploadValidationError}
+                  </StateAlert>
+                )}
+
+                {uploadMutation.isError && (
+                  <StateAlert className="mt-4">
+                    Upload failed. Try again.
+                  </StateAlert>
+                )}
+              </section>
+
+              {/* Gmail */}
+              <section className="mt-8 border-t border-hairline pt-5">
+                <h2 className="flex items-baseline gap-2 text-sm font-medium text-ink">
+                  Gmail
+                  {emailDocuments.length > 0 && (
                     <span className="text-xs text-steel tabular-nums">
-                      {uploadedDocuments.length}
+                      {emailDocuments.length}
                     </span>
-                  </p>
+                  )}
+                </h2>
 
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {!isGmailStatusLoading &&
+                    !isGmailStatusError &&
+                    !gmailStatus?.connected && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConnectGmail}
+                        disabled={connectGmailMutation.isPending}
+                      >
+                        {connectGmailMutation.isPending
+                          ? "Connecting..."
+                          : "Connect"}
+                      </Button>
+                    )}
+
+                  {!isGmailStatusLoading &&
+                    !isGmailStatusError &&
+                    gmailStatus?.connected && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsGmailBrowserOpen(true)}
+                        >
+                          Import
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleDisconnectGmail}
+                          disabled={disconnectGmailMutation.isPending}
+                        >
+                          {disconnectGmailMutation.isPending
+                            ? "Disconnecting..."
+                            : "Disconnect"}
+                        </Button>
+                      </>
+                    )}
+                </div>
+
+                {isGmailStatusLoading && (
+                  <p className="mt-3 text-xs text-steel">Checking...</p>
+                )}
+
+                {!isGmailStatusLoading && isGmailStatusError && (
+                  <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                    <p className="text-sm text-ink">
+                      Couldn&apos;t check Gmail.
+                    </p>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => refetchGmailStatus()}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
+
+                {!isGmailStatusLoading &&
+                  !isGmailStatusError &&
+                  gmailStatus?.connected && (
+                    <p className="mt-3 truncate text-xs text-steel">
+                      {gmailStatus.email}
+                    </p>
+                  )}
+
+                {/* Imported emails live in the documents table and render
+                regardless of connection status — only the Import action
+                needs a live grant. */}
+                {!isGmailStatusLoading && emailDocuments.length > 0 && (
                   <div className="mt-1 divide-y divide-hairline border-t border-hairline">
-                    {uploadedDocuments.map((document) => (
+                    {emailDocuments.map((document) => (
                       <SourceCard
                         key={document.id}
-                        icon={<FileText size={16} />}
-                        title={document.title || "Untitled source"}
+                        icon={<Mail size={16} />}
+                        title={document.title || "No subject"}
                         badge={document.source_type}
+                        subtitle={document.author}
                         documentId={document.id}
                         isDeleting={
                           deleteMutation.isPending &&
@@ -1277,405 +1402,285 @@ export default function WorkspacePage() {
                       />
                     ))}
                   </div>
-                </>
-              )}
-
-            {uploadValidationError && (
-              <StateAlert className="mt-4">
-                {uploadValidationError}
-              </StateAlert>
-            )}
-
-            {uploadMutation.isError && (
-              <StateAlert className="mt-4">
-                Upload failed. Try again.
-              </StateAlert>
-            )}
-          </section>
-
-          {/* Gmail */}
-          <section className="mt-8 border-t border-hairline pt-5">
-            <h2 className="flex items-baseline gap-2 text-sm font-medium text-ink">
-              Gmail
-              {emailDocuments.length > 0 && (
-                <span className="text-xs text-steel tabular-nums">
-                  {emailDocuments.length}
-                </span>
-              )}
-            </h2>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {!isGmailStatusLoading &&
-                !isGmailStatusError &&
-                !gmailStatus?.connected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleConnectGmail}
-                    disabled={connectGmailMutation.isPending}
-                  >
-                    {connectGmailMutation.isPending
-                      ? "Connecting..."
-                      : "Connect"}
-                  </Button>
                 )}
 
-              {!isGmailStatusLoading &&
-                !isGmailStatusError &&
-                gmailStatus?.connected && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsGmailBrowserOpen(true)}
-                    >
-                      Import
-                    </Button>
+                {connectGmailMutation.isError && (
+                  <StateAlert className="mt-3">
+                    Connection failed. Try again.
+                  </StateAlert>
+                )}
+
+                {disconnectGmailMutation.isError && (
+                  <StateAlert className="mt-3">
+                    Couldn&apos;t disconnect.
+                  </StateAlert>
+                )}
+
+                {gmailImportNeedsReconnect() ? (
+                  <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                    <p className="text-sm text-ink">
+                      Gmail connection expired.
+                    </p>
 
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleDisconnectGmail}
-                      disabled={disconnectGmailMutation.isPending}
+                      onClick={handleReconnectGmail}
+                      disabled={connectGmailMutation.isPending}
                     >
-                      {disconnectGmailMutation.isPending
-                        ? "Disconnecting..."
-                        : "Disconnect"}
+                      {connectGmailMutation.isPending
+                        ? "Connecting..."
+                        : "Reconnect"}
                     </Button>
-                  </>
+                  </div>
+                ) : (
+                  importGmailMutation.isError && (
+                    <StateAlert className="mt-3">
+                      Import failed. Try again.
+                    </StateAlert>
+                  )
                 )}
-            </div>
+              </section>
 
-            {isGmailStatusLoading && (
-              <p className="mt-3 text-xs text-steel">Checking...</p>
-            )}
+              {/* Google Drive */}
+              <section className="mt-8 border-t border-hairline pt-5">
+                <h2 className="flex items-baseline gap-2 text-sm font-medium text-ink">
+                  Google Drive
+                  {driveDocuments.length > 0 && (
+                    <span className="text-xs text-steel tabular-nums">
+                      {driveDocuments.length}
+                    </span>
+                  )}
+                </h2>
 
-            {!isGmailStatusLoading && isGmailStatusError && (
-              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
-                <p className="text-sm text-ink">
-                  Couldn&apos;t check Gmail.
-                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {!isDriveStatusLoading &&
+                    !isDriveStatusError &&
+                    !driveStatus?.connected && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleConnectDrive}
+                        disabled={connectDriveMutation.isPending}
+                      >
+                        {connectDriveMutation.isPending
+                          ? "Connecting..."
+                          : "Connect"}
+                      </Button>
+                    )}
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => refetchGmailStatus()}
-                >
-                  Retry
-                </Button>
-              </div>
-            )}
+                  {!isDriveStatusLoading &&
+                    !isDriveStatusError &&
+                    driveStatus?.connected && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void handleChooseFromDrive()}
+                          disabled={
+                            isDrivePickerBusy || importDriveMutation.isPending
+                          }
+                        >
+                          {importDriveMutation.isPending
+                            ? "Importing..."
+                            : isDrivePickerBusy
+                              ? "Opening..."
+                              : "Choose files"}
+                        </Button>
 
-            {!isGmailStatusLoading &&
-              !isGmailStatusError &&
-              gmailStatus?.connected && (
-                <p className="mt-3 truncate text-xs text-steel">
-                  {gmailStatus.email}
-                </p>
-              )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleDisconnectDrive}
+                          disabled={disconnectDriveMutation.isPending}
+                        >
+                          {disconnectDriveMutation.isPending
+                            ? "Disconnecting..."
+                            : "Disconnect"}
+                        </Button>
+                      </>
+                    )}
+                </div>
 
-            {/* Imported emails live in the documents table and render
-                regardless of connection status — only the Import action
-                needs a live grant. */}
-            {!isGmailStatusLoading && emailDocuments.length > 0 && (
-              <div className="mt-1 divide-y divide-hairline border-t border-hairline">
-                {emailDocuments.map((document) => (
-                  <SourceCard
-                    key={document.id}
-                    icon={<Mail size={16} />}
-                    title={document.title || "No subject"}
-                    badge={document.source_type}
-                    subtitle={document.author}
-                    documentId={document.id}
-                    isDeleting={
-                      deleteMutation.isPending &&
-                      deleteMutation.variables === document.id
-                    }
-                    onDelete={handleDeleteDocument}
-                  />
-                ))}
-              </div>
-            )}
-
-            {connectGmailMutation.isError && (
-              <StateAlert className="mt-3">
-                Connection failed. Try again.
-              </StateAlert>
-            )}
-
-            {disconnectGmailMutation.isError && (
-              <StateAlert className="mt-3">
-                Couldn&apos;t disconnect.
-              </StateAlert>
-            )}
-
-            {gmailImportNeedsReconnect() ? (
-              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
-                <p className="text-sm text-ink">
-                  Gmail connection expired.
-                </p>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReconnectGmail}
-                  disabled={connectGmailMutation.isPending}
-                >
-                  {connectGmailMutation.isPending
-                    ? "Connecting..."
-                    : "Reconnect"}
-                </Button>
-              </div>
-            ) : (
-              importGmailMutation.isError && (
-                <StateAlert className="mt-3">
-                  Import failed. Try again.
-                </StateAlert>
-              )
-            )}
-          </section>
-
-          {/* Google Drive */}
-          <section className="mt-8 border-t border-hairline pt-5">
-            <h2 className="flex items-baseline gap-2 text-sm font-medium text-ink">
-              Google Drive
-              {driveDocuments.length > 0 && (
-                <span className="text-xs text-steel tabular-nums">
-                  {driveDocuments.length}
-                </span>
-              )}
-            </h2>
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              {!isDriveStatusLoading &&
-                !isDriveStatusError &&
-                !driveStatus?.connected && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleConnectDrive}
-                    disabled={connectDriveMutation.isPending}
-                  >
-                    {connectDriveMutation.isPending
-                      ? "Connecting..."
-                      : "Connect"}
-                  </Button>
+                {isDriveStatusLoading && (
+                  <p className="mt-3 text-xs text-steel">Checking...</p>
                 )}
 
-              {!isDriveStatusLoading &&
-                !isDriveStatusError &&
-                driveStatus?.connected && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void handleChooseFromDrive()}
-                      disabled={
-                        isDrivePickerBusy || importDriveMutation.isPending
-                      }
-                    >
-                      {importDriveMutation.isPending
-                        ? "Importing..."
-                        : isDrivePickerBusy
-                          ? "Opening..."
-                          : "Choose files"}
-                    </Button>
+                {!isDriveStatusLoading && isDriveStatusError && (
+                  <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                    <p className="text-sm text-ink">
+                      Couldn&apos;t check Google Drive.
+                    </p>
 
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={handleDisconnectDrive}
-                      disabled={disconnectDriveMutation.isPending}
+                      onClick={() => refetchDriveStatus()}
                     >
-                      {disconnectDriveMutation.isPending
-                        ? "Disconnecting..."
-                        : "Disconnect"}
+                      Retry
                     </Button>
-                  </>
+                  </div>
                 )}
-            </div>
 
-            {isDriveStatusLoading && (
-              <p className="mt-3 text-xs text-steel">Checking...</p>
-            )}
+                {!isDriveStatusLoading &&
+                  !isDriveStatusError &&
+                  driveStatus?.connected && (
+                    <p className="mt-3 truncate text-xs text-steel">
+                      {driveStatus.email}
+                    </p>
+                  )}
 
-            {!isDriveStatusLoading && isDriveStatusError && (
-              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
-                <p className="text-sm text-ink">
-                  Couldn&apos;t check Google Drive.
-                </p>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => refetchDriveStatus()}
-                >
-                  Retry
-                </Button>
-              </div>
-            )}
-
-            {!isDriveStatusLoading &&
-              !isDriveStatusError &&
-              driveStatus?.connected && (
-                <p className="mt-3 truncate text-xs text-steel">
-                  {driveStatus.email}
-                </p>
-              )}
-
-            {/* Imported Drive files live in the documents table and render
+                {/* Imported Drive files live in the documents table and render
                 regardless of connection status — only Choose files needs
                 a live grant. */}
-            {!isDriveStatusLoading && driveDocuments.length > 0 && (
-              <div className="mt-1 divide-y divide-hairline border-t border-hairline">
-                {driveDocuments.map((document) => (
-                  <SourceCard
-                    key={document.id}
-                    icon={<FileText size={16} />}
-                    title={document.title || "Untitled source"}
-                    badge={document.source_type}
-                    subtitle={document.author}
-                    documentId={document.id}
-                    isDeleting={
-                      deleteMutation.isPending &&
-                      deleteMutation.variables === document.id
-                    }
-                    onDelete={handleDeleteDocument}
-                  />
-                ))}
-              </div>
-            )}
+                {!isDriveStatusLoading && driveDocuments.length > 0 && (
+                  <div className="mt-1 divide-y divide-hairline border-t border-hairline">
+                    {driveDocuments.map((document) => (
+                      <SourceCard
+                        key={document.id}
+                        icon={<FileText size={16} />}
+                        title={document.title || "Untitled source"}
+                        badge={document.source_type}
+                        subtitle={document.author}
+                        documentId={document.id}
+                        isDeleting={
+                          deleteMutation.isPending &&
+                          deleteMutation.variables === document.id
+                        }
+                        onDelete={handleDeleteDocument}
+                      />
+                    ))}
+                  </div>
+                )}
 
-            {connectDriveMutation.isError && (
-              <StateAlert className="mt-3">
-                Connection failed. Try again.
-              </StateAlert>
-            )}
+                {connectDriveMutation.isError && (
+                  <StateAlert className="mt-3">
+                    Connection failed. Try again.
+                  </StateAlert>
+                )}
 
-            {disconnectDriveMutation.isError && (
-              <StateAlert className="mt-3">
-                Couldn&apos;t disconnect.
-              </StateAlert>
-            )}
+                {disconnectDriveMutation.isError && (
+                  <StateAlert className="mt-3">
+                    Couldn&apos;t disconnect.
+                  </StateAlert>
+                )}
 
-            {driveNeedsReconnect && (
-              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
-                <p className="text-sm text-ink">
-                  Google Drive connection expired.
-                </p>
+                {driveNeedsReconnect && (
+                  <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                    <p className="text-sm text-ink">
+                      Google Drive connection expired.
+                    </p>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReconnectDrive}
-                  disabled={connectDriveMutation.isPending}
-                >
-                  {connectDriveMutation.isPending
-                    ? "Connecting..."
-                    : "Reconnect"}
-                </Button>
-              </div>
-            )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReconnectDrive}
+                      disabled={connectDriveMutation.isPending}
+                    >
+                      {connectDriveMutation.isPending
+                        ? "Connecting..."
+                        : "Reconnect"}
+                    </Button>
+                  </div>
+                )}
 
-            {drivePickerError && (
-              <StateAlert className="mt-3">{drivePickerError}</StateAlert>
-            )}
+                {drivePickerError && (
+                  <StateAlert className="mt-3">{drivePickerError}</StateAlert>
+                )}
 
-            {driveImportNeedsReconnect() ? (
-              <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
-                <p className="text-sm text-ink">
-                  Google Drive connection expired.
-                </p>
+                {driveImportNeedsReconnect() ? (
+                  <div className="mt-3 flex items-center justify-between gap-3 border-y border-hairline py-3">
+                    <p className="text-sm text-ink">
+                      Google Drive connection expired.
+                    </p>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReconnectDrive}
-                  disabled={connectDriveMutation.isPending}
-                >
-                  {connectDriveMutation.isPending
-                    ? "Connecting..."
-                    : "Reconnect"}
-                </Button>
-              </div>
-            ) : (
-              driveImportErrorMessage() && (
-                <StateAlert className="mt-3">
-                  {driveImportErrorMessage()}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleReconnectDrive}
+                      disabled={connectDriveMutation.isPending}
+                    >
+                      {connectDriveMutation.isPending
+                        ? "Connecting..."
+                        : "Reconnect"}
+                    </Button>
+                  </div>
+                ) : (
+                  driveImportErrorMessage() && (
+                    <StateAlert className="mt-3">
+                      {driveImportErrorMessage()}
+                    </StateAlert>
+                  )
+                )}
+              </section>
+
+              {deleteMutation.isError && (
+                <StateAlert className="mt-6">
+                  Couldn&apos;t delete it.
                 </StateAlert>
-              )
-            )}
-          </section>
-
-          {deleteMutation.isError && (
-            <StateAlert className="mt-6">
-              Couldn&apos;t delete it.
-            </StateAlert>
-          )}
+              )}
             </>
           )}
         </aside>
 
         <section className="order-1 min-h-0 min-w-0 overflow-y-auto px-4 pb-8 pt-0 print:bg-white print:p-0 sm:px-8 md:order-none">
-          <div
-            className="sticky top-0 z-[5] -mx-4 border-b border-hairline bg-canvas px-4 pb-4 pt-6 print:hidden sm:-mx-8 sm:px-8"
-          >
+          <div className="sticky top-0 z-[5] -mx-4 border-b border-hairline bg-canvas px-4 pb-4 pt-6 print:hidden sm:-mx-8 sm:px-8">
             <div
               className={`mx-auto flex w-full ${docMeasure} flex-wrap items-center justify-between gap-3 transition-[max-width] duration-200`}
             >
-            <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
-              <p className="truncate text-base leading-6 font-medium text-ink">
-                {workspace.name}
-              </p>
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+                <p className="truncate text-base leading-6 font-medium text-ink">
+                  {workspace.name}
+                </p>
 
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-steel">
-                {brdStateLabel && (
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-steel">
-                    <span
-                      aria-hidden="true"
-                      className={
-                        generationStep !== "idle"
-                          ? "size-1.5 animate-pulse rounded-full bg-signal"
-                          : brdStatus?.regeneration_required
-                            ? "size-1.5 rounded-full bg-warning"
-                            : "size-1.5 rounded-full bg-ink"
-                      }
-                    />
-                    {brdStateLabel}
-                  </span>
-                )}
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-steel">
+                  {brdStateLabel && (
+                    <span className="flex items-center gap-1.5 text-xs font-medium text-steel">
+                      <span
+                        aria-hidden="true"
+                        className={
+                          generationStep !== "idle"
+                            ? "size-1.5 animate-pulse rounded-full bg-signal"
+                            : brdStatus?.regeneration_required
+                              ? "size-1.5 rounded-full bg-warning"
+                              : "size-1.5 rounded-full bg-ink"
+                        }
+                      />
+                      {brdStateLabel}
+                    </span>
+                  )}
 
-                {(documents?.length ?? 0) > 0 && (
-                  <span className="text-xs text-steel">
-                    From {documents?.length}{" "}
-                    {documents?.length === 1 ? "source" : "sources"}
-                  </span>
-                )}
-              </p>
-            </div>
+                  {(documents?.length ?? 0) > 0 && (
+                    <span className="text-xs text-steel">
+                      From {documents?.length}{" "}
+                      {documents?.length === 1 ? "source" : "sources"}
+                    </span>
+                  )}
+                </p>
+              </div>
 
-            {brdStatus?.has_brd && (
-              <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button variant="outline">
-                      <Download />
-                      Export
-                    </Button>
-                  }
-                />
+              {brdStatus?.has_brd && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button variant="outline">
+                        <Download />
+                        Export
+                      </Button>
+                    }
+                  />
 
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleDownloadPdf}>
-                    PDF
-                  </DropdownMenuItem>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={handleDownloadPdf}>
+                      PDF
+                    </DropdownMenuItem>
 
-                  <DropdownMenuItem onClick={handleDownloadDocx}>
-                    DOCX
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                    <DropdownMenuItem onClick={handleDownloadDocx}>
+                      DOCX
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
 
@@ -1748,8 +1753,8 @@ export default function WorkspacePage() {
               {generationStalled ? (
                 <div className="mt-4 flex items-center justify-between gap-3">
                   <p className="text-xs leading-5 text-steel">
-                    Taking longer than usual — retrying is safe and starts
-                    a fresh run.
+                    Taking longer than usual — retrying is safe and starts a
+                    fresh run.
                   </p>
 
                   <Button
@@ -1770,8 +1775,7 @@ export default function WorkspacePage() {
 
           {generationStep === "idle" && generationError && (
             <StateAlert className="mb-6 print:hidden">
-              Generation failed.{" "}
-              {generationServerError ?? "Try again."}
+              Generation failed. {generationServerError ?? "Try again."}
             </StateAlert>
           )}
 
@@ -1837,7 +1841,9 @@ export default function WorkspacePage() {
               >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <Eyebrow className="text-signal-text">Needs attention</Eyebrow>
+                    <Eyebrow className="text-signal-text">
+                      Needs attention
+                    </Eyebrow>
                     <p className="mt-1 text-base font-medium text-ink">
                       New sources available.
                     </p>
@@ -1964,53 +1970,54 @@ export default function WorkspacePage() {
           <DialogHeader>
             <DialogTitle>Delete this source?</DialogTitle>
 
-            <DialogDescription>
-              This can&apos;t be undone.
-            </DialogDescription>
+            <DialogDescription>This can&apos;t be undone.</DialogDescription>
           </DialogHeader>
 
           <DialogFooter>
-              <Button
-                type="button"
-                variant="subtle"
-                onClick={() => setPendingDeleteDocumentId(null)}
-                disabled={deleteMutation.isPending}
-              >
-                Cancel
-              </Button>
+            <Button
+              type="button"
+              variant="subtle"
+              onClick={() => setPendingDeleteDocumentId(null)}
+              disabled={deleteMutation.isPending}
+            >
+              Cancel
+            </Button>
 
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleConfirmDeleteDocument}
-                disabled={deleteMutation.isPending}
-              >
-                Delete
-              </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDeleteDocument}
+              disabled={deleteMutation.isPending}
+            >
+              Delete
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={confirmDisconnectOpen} onOpenChange={setConfirmDisconnectOpen}>
+      <Dialog
+        open={confirmDisconnectOpen}
+        onOpenChange={setConfirmDisconnectOpen}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Disconnect Gmail?</DialogTitle>
 
             <DialogDescription>
-              Imported emails stay. Your Google Drive connection is
-              unaffected. This can&apos;t be undone.
+              Imported emails stay. Your Google Drive connection is unaffected.
+              This can&apos;t be undone.
             </DialogDescription>
           </DialogHeader>
 
           <DialogFooter>
-              <Button
-                type="button"
-                variant="subtle"
-                onClick={() => setConfirmDisconnectOpen(false)}
-                disabled={disconnectGmailMutation.isPending}
-              >
-                Cancel
-              </Button>
+            <Button
+              type="button"
+              variant="subtle"
+              onClick={() => setConfirmDisconnectOpen(false)}
+              disabled={disconnectGmailMutation.isPending}
+            >
+              Cancel
+            </Button>
 
             <Button
               type="button"
@@ -2033,8 +2040,8 @@ export default function WorkspacePage() {
             <DialogTitle>Disconnect Google Drive?</DialogTitle>
 
             <DialogDescription>
-              Imported files stay. Your Gmail connection is unaffected.
-              This can&apos;t be undone.
+              Imported files stay. Your Gmail connection is unaffected. This
+              can&apos;t be undone.
             </DialogDescription>
           </DialogHeader>
 

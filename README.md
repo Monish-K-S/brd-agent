@@ -62,7 +62,7 @@ brd-agent/
 ## Prerequisites
 
 - Node.js 20+ and npm
-- Python 3.12+ and venv
+- Python 3.11+ and [uv](https://docs.astral.sh/uv/) (or plain `venv` + `pip`)
 - Postgres database
 - Supabase project with Google OAuth enabled
 - API keys: Supabase, Google OAuth client, Sarvam, Gemini
@@ -71,15 +71,23 @@ brd-agent/
 
 ```bash
 cd server
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv venv .venv
+uv pip install --python .venv/bin/python -r requirements.txt
 
 cp .env.example .env
 # Fill in the values in .env (see table below)
 
 alembic upgrade head
 uvicorn app.main:app --reload --port 8000
+```
+
+No `uv`? A standard virtualenv works too:
+
+```bash
+cd server
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 Backend runs at `http://localhost:8000`.
@@ -91,18 +99,24 @@ Health checks:
 
 ### Backend environment variables (`server/.env`)
 
-| Variable | Description |
-|---|---|
-| `ENVIRONMENT` | `development` / `production` |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_ANON_KEY` | Supabase publishable/anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
-| `DATABASE_URL` | Postgres connection string |
-| `SARVAM_API_KEY` | Sarvam API key for extraction |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID (shared by Gmail + Drive) |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `GOOGLE_REDIRECT_URI` | Gmail OAuth redirect URI (`.../integrations/gmail/callback`) |
-| `GOOGLE_DRIVE_REDIRECT_URI` | Drive OAuth redirect URI (`.../integrations/drive/callback`) |
+| Variable | Required | Description |
+|---|---|---|
+| `ENVIRONMENT` | no | `development` / `production` (default `development`) |
+| `FRONTEND_URL` | yes | Base URL of the SPA (`http://localhost:5173` locally); OAuth redirects target it |
+| `SUPABASE_URL` | yes | Supabase project URL |
+| `SUPABASE_PUBLISHABLE_KEY` | yes | Supabase publishable (anon) key — used for JWKS-based JWT verification |
+| `SUPABASE_SERVICE_ROLE_KEY` | no | Supabase service role key |
+| `TOKEN_ENCRYPTION_KEY` | yes | Fernet key for stored OAuth tokens. Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` — the app fails fast at boot without it |
+| `OAUTH_STATE_SECRET` | yes | Signs OAuth state JWTs; must differ from `GOOGLE_CLIENT_SECRET`. Generate: `python -c "import secrets; print(secrets.token_urlsafe(32))"` — the app fails fast at boot without it |
+| `DATABASE_URL` | yes | Postgres connection string (`postgresql+psycopg://user:password@host:5432/brd_agent`) |
+| `SARVAM_API_KEY` | yes | Sarvam API key for text extraction |
+| `GEMINI_API_KEY` | yes | Gemini API key for BRD generation |
+| `GOOGLE_CLIENT_ID` | yes | Google OAuth client ID (shared by Gmail + Drive) |
+| `GOOGLE_CLIENT_SECRET` | yes | Google OAuth client secret |
+| `GOOGLE_REDIRECT_URI` | yes | Gmail OAuth redirect URI (`.../integrations/gmail/callback`) |
+| `GOOGLE_DRIVE_REDIRECT_URI` | yes | Drive OAuth redirect URI (`.../integrations/drive/callback`) |
+
+`server/.env.example` also documents optional tuning knobs (upload caps, rate limits, generation-job timeout, CORS, `ALLOWED_HOSTS`) — copy it to `.env` and edit rather than starting from scratch.
 
 ## Run the frontend
 
@@ -160,8 +174,6 @@ All workspace routes require a Supabase JWT `Authorization: Bearer <token>` head
 - `POST /workspaces` / `GET /workspaces` — create and list workspaces
 - `GET /workspaces/{id}` / `DELETE /workspaces/{id}` — workspace detail
 - `POST /workspaces/{id}/documents` / `GET /workspaces/{id}/documents` — upload and list sources
-- `POST /workspaces/{id}/extract` — extract text from new sources
-- `POST /workspaces/{id}/knowledge/consolidate` — build project knowledge
 - `POST /workspaces/{id}/brd/generate` — generate BRD (202 + background job)
 - `GET /workspaces/{id}/brd` — fetch BRD JSON
 - `PUT /workspaces/{id}/brd` — save inline section edits
