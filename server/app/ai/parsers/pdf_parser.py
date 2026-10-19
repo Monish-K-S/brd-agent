@@ -62,6 +62,11 @@ class PdfParser(BaseParser):
 
             content = "\n\n".join(pages)
 
+            if not content.strip():
+                raise ValueError(
+                    f"No readable text found in: {file_path.name}"
+                )
+
             return [
                 StandardDocument(
                     source_type="pdf",

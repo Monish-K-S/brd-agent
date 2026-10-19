@@ -183,3 +183,40 @@ All workspace routes require a Supabase JWT `Authorization: Bearer <token>` head
 - `GET /workspaces/{id}/brd/export/docx` — download DOCX
 - `GET /integrations/gmail/*` — Gmail OAuth and import
 - `GET /integrations/drive/connect|callback|status|picker-token`, `DELETE /integrations/drive`, `POST /workspaces/{id}/files/import` — Drive OAuth (shared Google client, `drive.file` scope) and Picker file import
+
+## Deploy
+
+The backend is a **single-process** application. Run exactly one worker:
+
+```bash
+uvicorn app.main:app --port 8000
+```
+
+Do not pass `--workers N` or run several replicas. Three pieces of state live
+in process memory rather than a shared store, so horizontal scaling would
+silently misbehave:
+
+- **Rate-limit buckets** (slowapi in-memory storage) — limits would be counted
+  per worker instead of globally, so a user gets N× the intended quota.
+- **OAuth state / PKCE verifier storage** — a connect started on one process
+  fails its callback on another (`Invalid or expired OAuth state`).
+- **BRD generation** runs as an in-process `BackgroundTasks` task, so a restart
+  terminates any in-flight run. Orphaned jobs are auto-failed after
+  `GENERATION_JOB_TIMEOUT_MINUTES`, so a workspace can never be wedged — but
+  the user has to regenerate.
+
+Scaling to N workers means moving rate limits, OAuth verifiers, and the
+generation pipeline onto shared infrastructure (Redis or the database). Until
+then, pin `--workers 1` and scale vertically.
+
+### Production settings
+
+| Setting | Why it matters |
+|---|---|
+| `ALLOWED_HOSTS` | Defaults to `["*"]` when unset, which makes `TrustedHostMiddleware` a **no-op**. Set your real hostname(s), otherwise Host-header spoofing is unmitigated. |
+| `ENVIRONMENT=production` | Enables HSTS and gates `/health/database` behind `EXPOSE_DB_HEALTH`. |
+| `CORS_ORIGINS` | Defaults to `http://localhost:5173`; set your real frontend origin(s). |
+
+Security headers for the SPA (CSP, HSTS, `X-Frame-Options`) are configured at
+the static host (`vercel.json` / `netlify.toml`), not in this repo — the API is
+JSON-only and sets its own headers server-side via `SecurityHeadersMiddleware`.

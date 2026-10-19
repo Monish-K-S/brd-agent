@@ -82,6 +82,45 @@ def transcript_path(tmp_path_factory) -> Path:
     return path
 
 
+@pytest.fixture
+def empty_txt_path(tmp_path: Path) -> Path:
+    """A 0-byte .txt — stored silently before this guard existed."""
+    path = tmp_path / "empty.txt"
+    path.write_text("", encoding="utf-8")
+
+    return path
+
+
+@pytest.fixture
+def blank_txt_path(tmp_path: Path) -> Path:
+    """Whitespace-only: passes every size check, extracts to nothing."""
+    path = tmp_path / "blank.txt"
+    path.write_text("   \n\t\n   ", encoding="utf-8")
+
+    return path
+
+
+@pytest.fixture
+def image_only_pdf_path(tmp_path: Path) -> Path:
+    """A page with no text layer (a scan) extracts zero characters."""
+    path = tmp_path / "image-only.pdf"
+
+    document = pymupdf.open()
+    document.new_page()
+    document.save(str(path))
+    document.close()
+
+    return path
+
+
+@pytest.fixture
+def empty_docx_path(tmp_path: Path) -> Path:
+    path = tmp_path / "empty.docx"
+    Document().save(str(path))
+
+    return path
+
+
 @pytest.mark.parametrize(
     ("fixture_name", "parser_cls", "source_type"),
     [
@@ -166,9 +205,23 @@ def test_pdf_page_cap_raises(pdf_path: Path, monkeypatch):
         PdfParser().parse(str(pdf_path))
 
 
-def test_docx_empty_raises(tmp_path: Path):
-    path = tmp_path / "empty.docx"
-    Document().save(str(path))
+@pytest.mark.parametrize(
+    ("fixture_name", "parser_cls"),
+    [
+        ("empty_txt_path", TxtParser),
+        ("blank_txt_path", TxtParser),
+        ("image_only_pdf_path", PdfParser),
+        ("empty_docx_path", DocxParser),
+    ],
+)
+def test_empty_content_raises(fixture_name: str, parser_cls, request):
+    """Every parser rejects content-less sources (L-5).
+
+    Previously only ``DocxParser`` guarded this, so a 0-byte txt or an
+    image-only pdf was stored and marked extractable while the project
+    PDF carried an empty section — the BRD silently lacked that source.
+    """
+    path = request.getfixturevalue(fixture_name)
 
     with pytest.raises(ValueError, match="No readable text"):
-        DocxParser().parse(str(path))
+        parser_cls().parse(str(path))

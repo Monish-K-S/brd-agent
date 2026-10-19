@@ -9,7 +9,7 @@
 
 ## 1. Executive summary
 
-The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. All 3 highs are closed (H-1/H-2 on 2026-10-10, H-3 on 2026-10-11). **M-3** fixed 2026-10-10 (commit `916a50b`), **M-4** fixed 2026-10-10 by connector separation, **M-1** fixed 2026-10-18 (verified-user rate-limit keying), **M-6/M-8/M-9** fixed 2026-10-19 (self-contained parser tests, README truth, root `requirements.txt` removed), **M-2** fixed 2026-10-19 (Gmail content cap, streamed Drive download with a byte ceiling, aggregate extraction budget) — **2 mediums (M-5, M-7) and all 10 lows remain open.** The dominant theme:
+The project is in good shape overall: authn/authz is consistent, hardening layers (upload caps, magic sniffing, rate limits, Fernet, RLS, OAuth PKCE/state) are real and tested, and the frontend is clean (lint green, build green). The audit found **3 high**, **9 medium**, and **10 low/hygiene** issues. **All 3 highs and all 9 mediums are now closed.** H-1/H-2 (2026-10-10), H-3 (2026-10-11); M-3 (2026-10-10, `916a50b`), M-4 (2026-10-10, connector separation), M-1 (2026-10-18, verified-user rate-limit keying), M-6/M-8/M-9 (2026-10-19, self-contained parser tests, README truth, root `requirements.txt` removed), M-2 (2026-10-19, Gmail cap + streamed Drive download + aggregate extraction budget), M-5 (verified 2026-10-19 — the 2026-10-01 rebrand had already switched accent buttons to ink-on-coral, 5.95:1) and M-7 (2026-10-19, single-worker deploy documented). **5 lows (L-4, L-6, L-7, L-8, L-9) remain open** — L-10 and L-1/L-2/L-3/L-5 all closed 2026-10-19 (the last four in one A+B hygiene batch: dead API surface deleted, stray test file moved, `aria-expanded` pair completed, empty-content guards added to the txt/pdf parsers). The dominant theme:
 
 > **Export integrity and job lifecycle are the two weak surfaces.** A crash-class bug still exists in the PDF path (incomplete unicode normalization + a validation/mapper mismatch that lets structurally-broken BRD data reach both exporters), and generation jobs can wedge a workspace permanently after a server restart. Both are cheap to fix.
 
@@ -111,11 +111,12 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 - **Verified:** last-connect-wins sharing is documented in AGENTS.md, but the client disconnect dialog ("Disconnect Google Drive?") never says it also disconnects Gmail and revokes the shared grant — a real user-facing surprise. Conversely a Drive-only user ends up with Gmail read access they never asked for in the Drive flow.
 - **Fix (UX-only, keeps single-row posture):** mention the shared connection in both disconnect dialogs and the connect confirm; optionally, on Drive connect for an existing Gmail connection, keep scopes as-is but surface the account email union in the Sources rail.
 
-### 🟠 M-5 — Coral primary buttons fail WCAG AA contrast (stated project goal)
+### ✅ M-5 — Coral primary buttons fail WCAG AA contrast (stated project goal) — FIXED (by the 2026-10-01 rebrand; verified + closed 2026-10-19)
 
+- **Status:** closed. The finding applied to the pre-rebrand `accent` variant (`bg-accent-action text-white`). That token no longer exists — the Sourcify rebrand changed the accent button to **ink-on-coral**: `bg-signal text-ink` (`client/src/components/ui/button.tsx:21`) with `--color-signal: #ff5c3b` and `--color-ink: #151515` (`client/src/index.css:27,41`). Recomputed: `#151515` on `#FF5C3B` = **5.95:1**, comfortably past AA's 4.5:1 for `text-sm`. Hover (`--color-signal-deep: #e0431f`) is darker, so contrast only improves. AGENTS.md already records the governing rule ("Filled coral takes black labels — white-on-coral fails AA"). No code change was needed for this close.
+- **Original finding (for the record):**
 - **Where:** `client/src/index.css:43` tokens; `client/src/components/ui/button.tsx:21` (`accent` variant: `bg-accent-action text-white`, labels at `text-sm font-semibold`)
-- **Computed (verified by formula):** `#FF5A36` on white = **3.10:1**; hover `#D94324` on white = **4.39:1**. AA needs **4.5:1** for normal text (`text-sm` is below the large-text exemption). Everything else in the system passes: ink-on-canvas 17.0:1, ink-on-surface 18.3:1, steel-on-surface 5.6:1, steel-on-canvas 5.2:1. Disabled state (hairline bg + muted text) is a disabled control, exempt.
-- **Fix options:** darken the action token (any coral ≤ ≈ `#E8431A`-ish crosses 4.5 at small text — needs a quick pick to stay on-brand), or bump accent-button labels to the large-text threshold (≥ 18.66px bold — changes the visual), or add a darker text-on-coral pairing for the small sizes. AGENTS.md locks the accent *direction*, not the exact hex — flag as an explicit design decision either way.
+- **Computed (verified by formula):** `#FF5A36` on white = **3.10:1**; hover `#D94324` on white = **4.39:1**. AA needs **4.5:1** for normal text (`text-sm` is below the large-text exemption). Everything else in the system passed: ink-on-canvas 17.0:1, ink-on-surface 18.3:1, steel-on-surface 5.6:1, steel-on-canvas 5.2:1. Disabled state (hairline bg + muted text) is a disabled control, exempt.
 
 ### ✅ M-6 — Parser tests fail on a fresh clone: they depend on gitignored `datasets/` — FIXED 2026-10-19
 
@@ -123,11 +124,11 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 - **Verified (original):** moved `datasets/` aside → `3 failed, 28 passed` (`server/tests/test_parsers.py` — txt/pdf/docx end-to-end cases). `.gitignore:2` ignored `datasets/`, so these fixtures existed only on this machine while the test docstring said "checked-in sample datasets". AGENTS.md's "31 tests green" was only true locally. Any CI on a fresh checkout was red.
 - **Fix (original):** either un-ignore + commit small synthetic fixtures (regenerate tiny txt/pdf/docx into `tests/fixtures/`), or `pytest.mark.skipif` on missing datasets with a loud reason.
 
-### 🟠 M-7 — Single-instance assumptions beyond the documented PKCE note
+### ✅ M-7 — Single-instance assumptions beyond the documented PKCE note — FIXED 2026-10-19 (documented)
 
-- **Where:** in-memory slowapi storage (`core/rate_limit.py`), two in-memory OAuth verifier dicts (`integrations/gmail/router.py`, `integrations/drive/router.py` — the PKCE one is commented), in-process `BackgroundTasks` pipeline (`api/routes/brd.py` + `generation_job_service.run_generation_job`).
-- **Verified:** all fine on one uvicorn process (the current posture). Under N workers/replicas: rate buckets split per worker, a connect initiated on worker A fails its callback on worker B (`Invalid or expired OAuth state`), and long generations are invisible/killable by restarts (compounds **H-3**).
-- **Fix:** document "single worker only" in README deploy section *now*; longer-term move verifiers to Redis/DB and the pipeline to a queue, or pin `--workers 1` with horizontal scale deferred.
+- **Status:** fixed by documenting the constraint, as the entry's own fix recommended. The README gained a **Deploy** section stating the backend is single-process (`uvicorn app.main:app`, no `--workers N`, no replicas), naming the three in-memory surfaces and what breaks under scaling (rate buckets counted per worker → N× the intended quota; OAuth state/PKCE verifier mismatch → `Invalid or expired OAuth state` on callback; `BackgroundTasks` generation killed by restart), and spelling out the migration path (rate limits + verifiers + pipeline onto Redis or the DB, until then pin `--workers 1` and scale vertically). The same section documents the production settings that were no-ops as configured (`ALLOWED_HOSTS`, `ENVIRONMENT`, `CORS_ORIGINS`) — see **L-10**. The code posture is unchanged and correct for the documented single-worker deployment.
+- **Where (original):** in-memory slowapi storage (`core/rate_limit.py`), two in-memory OAuth verifier dicts (`integrations/gmail/router.py`, `integrations/drive/router.py` — the PKCE one is commented), in-process `BackgroundTasks` pipeline (`api/routes/brd.py` + `generation_job_service.run_generation_job`).
+- **Verified (original):** all fine on one uvicorn process (the current posture). Under N workers/replicas: rate buckets split per worker, a connect initiated on worker A fails its callback on worker B (`Invalid or expired OAuth state`), and long generations are invisible/killable by restarts (compounds **H-3**).
 
 ### ✅ M-8 — README setup instructions are wrong/broken as written — FIXED 2026-10-19
 
@@ -145,20 +146,29 @@ Severity key: **H** = high (data-integrity / crash / availability / security-adj
 
 ---
 
-### 🟡 L-1 — Dead API surface: client + server
-`client/src/api/extractions.ts` and `client/src/api/projectKnowledge.ts` are imported nowhere (verified repo-wide grep); the matching server routes (`POST /workspaces/{id}/extractions`, `POST /workspaces/{id}/project-knowledge/consolidate`) remain exposed (rate-limited, authenticated) although the pipeline now owns those steps internally via `generation_jobs`. Harmless today; drift risk later. Consider deleting the client modules (and either hiding the routes with `include_in_schema=False` or keeping them deliberately for ops).
+### ✅ L-1 — Dead API surface: client + server — FIXED 2026-10-19
 
-### 🟡 L-2 — `server/test_models.py` sits outside the `tests/` package
-Corrected during final re-check: it **is** collected and passing (`test_models.py::test_models_and_relationships_load`, one model/relationship smoke test that `tests/` does not duplicate). Not dead code — only a layout inconsistency: it's the sole test file living at the server root instead of `tests/`. Optional: move it to `tests/test_models.py` for a single test home.
+- **Status:** fixed by deleting the dead surface rather than hiding it. Client: `client/src/api/extractions.ts` + `client/src/api/projectKnowledge.ts` removed (repo-wide grep confirmed zero imports outside their own definitions). Server: the two routers (`app/api/routes/document_extraction.py`, `app/api/routes/project_knowledge.py`), their now-unused response schemas (`app/schemas/document_extraction.py`, `app/schemas/project_knowledge.py`), the `main.py` imports/`include_router` lines, and the settings only they consumed (`rate_limit_extract`, `rate_limit_consolidate` + the two `RATE_LIMIT_*` lines in `.env.example`) are gone. Nothing called them — the generation pipeline invokes `DocumentExtractionService` / `ProjectKnowledgeService` **directly** (`tests/test_generation_jobs.py` mocks the services on `job_module`, never the routes), and no test hit the URLs. Verified after removal: app boots, OpenAPI has **27 paths** with `extractions` / `project-knowledge` absent; remaining `document_extraction`/`project_knowledge` matches are all the DB/AI **models** the pipeline still needs. The DB tables, RLS policies, and services are untouched — only the HTTP surface went.
+- **Original finding (for the record):** `client/src/api/extractions.ts` and `client/src/api/projectKnowledge.ts` were imported nowhere; the matching server routes remained exposed (rate-limited, authenticated) although the pipeline now owns those steps internally via `generation_jobs`. Harmless today; drift risk later.
 
-### 🟡 L-3 — `aria-expanded` static values
-`client/src/pages/WorkspacePage.tsx:1107` and `client/src/components/brd/BRDQAPanel.tsx:130` hardcode `aria-expanded="true"` on the *collapse* buttons, and the collapsed-state *expand* buttons carry no `aria-expanded` at all. Screen readers get a constant "expanded" signal. One-line fix each.
+### ✅ L-2 — `server/test_models.py` sits outside the `tests/` package — FIXED 2026-10-19
+
+- **Status:** fixed with `git mv server/test_models.py server/tests/test_models.py`. `tests/` already has `__init__.py`, so it imports as `tests.test_models` with `server/` as basedir and the `app.*` imports resolve unchanged (suite run from `server/` per AGENTS.md). `server/` root now has zero stray `.py` files. Test still collected and passing — no assertion changes.
+- **Original finding (for the record):** it **was** collected and passing (`test_models.py::test_models_and_relationships_load`, one model/relationship smoke test that `tests/` does not duplicate) — not dead code, only a layout inconsistency: the sole test file living at the server root.
+
+### ✅ L-3 — `aria-expanded` static values — FIXED 2026-10-19
+
+- **Status:** fixed by completing the disclosure pair. The two *expand* buttons were the real gap — `Show sources` (`WorkspacePage.tsx` sources rail) and `Show Q&A` (`WorkspacePage.tsx` Q&A rail) now carry `aria-expanded="false"`. The two *collapse* buttons keep `aria-expanded="true"` (`WorkspacePage.tsx` sources, `BRDQAPanel.tsx` header) — that value is **correct, not stale**, because each button is conditionally rendered: the "Hide …" button only exists while its panel is open, so `true` is the live state of the region it controls. The original complaint (screen readers hearing a constant "expanded") was really the missing `false` on the collapsed-state buttons, since those were the only ones reachable while a panel was shut. No styling impact: these are raw `<button>`s with hand-written classes, so no `aria-expanded:` variant from `button.tsx` is involved.
+- **Original finding (for the record):** `WorkspacePage.tsx:1107` and `BRDQAPanel.tsx:130` hardcoded `aria-expanded="true"` on the collapse buttons, and the collapsed-state expand buttons carried no `aria-expanded` at all.
 
 ### 🟡 L-4 — Mobile Q&A auto-scroll can't work below `md`
 `BRDQAPanel` (`:90` aside, `md:h-[calc(100vh-65px)]`, `flex min-h-0 flex-col`) only gets a height constraint from `md:` up; on phones the whole page scrolls, so `scrollRef.current?.scrollTo(...)` on the unbounded `flex-1 overflow-y-auto` div is a no-op — new answers don't scroll into view on mobile. Fix with a `max-h-[...]`/dvh mobile variant or `scrollIntoView` on the last message node (visual-only, allowed by the redesign rule).
 
-### 🟡 L-5 — Empty/scanned sources pass silently
-Only `docx_parser` raises "No readable text found". A 0-byte `.txt` or an image-only PDF (0 extracted chars) is stored and marked extractable; the Sarvam project-PDF then carries an empty section and the BRD silently lacks that source. Add the same empty-content guard to txt/pdf parsers (or at ingestion-service level).
+### ✅ L-5 — Empty/scanned sources pass silently — FIXED 2026-10-19
+
+- **Status:** fixed at the parser level, matching `docx_parser`'s existing guard. `TxtParser` now raises `ValueError("No readable text found in: …")` after reading (covers 0-byte **and** whitespace-only files, checked before the char cap exactly like docx), and `PdfParser` raises the same message when the joined page text is empty (covers image-only/scanned PDFs with no text layer). Both routes that run parsers already map `ValueError` → **400** (`standard_document.py` upload handler and the Drive import handler, which 413s only when the message says "too large"), so an unextractable upload now fails loudly instead of being stored, marked extractable, and carried as an empty section into the Sarvam project PDF.
+- **Tests:** `test_docx_empty_raises` generalized into parametrized `test_empty_content_raises` over four fixtures — `empty_txt_path` (0-byte), `blank_txt_path` (whitespace-only), `image_only_pdf_path` (page with no text layer), `empty_docx_path` — asserting the same `No readable text` message from all three parsers.
+- **Original finding (for the record):** only `docx_parser` raised "No readable text found". A 0-byte `.txt` or an image-only PDF (0 extracted chars) was stored and marked extractable; the project PDF then carried an empty section and the BRD silently lacked that source.
 
 ### 🟡 L-6 — Raw provider exception strings reach the client and audit
 `generation_job_service._fail_job(str(exc))` stores library/SDK messages (`google-genai`, `sarvamai`) that are returned verbatim in `GET /brd/status` and rendered at `client/src/pages/WorkspacePage.tsx:1631` (`generationServerError ?? "Try again."`). Small internal-detail leak + scary UX. Map known errors to friendly text; keep the raw in logs only.
@@ -172,10 +182,16 @@ AGENTS.md: skills are "supporting expertise only — never `--persist` them into
 ### 🟡 L-9 — Gmail browse is N+1 sequential Google API calls
 `recent_gmail_messages` / `search_gmail_messages` do `messages.list` then a `messages.get` **per result** (up to 20), each rebuilding the client. Worst-case latency ≈ 20 RTTs at 30/min. Batch with `batchExecute` or fetch `format=metadata` in one pass.
 
-### 🟡 L-10 — Small deploy-posture notes
-- `allowed_hosts` defaults to `["*"]` and `server/.env` doesn't set `ALLOWED_HOSTS` → `TrustedHostMiddleware` is a no-op as configured; set it in prod `.env`.
-- No CSP on API responses (fine for API-only backend; noted for completeness).
-- `calc(100vh-65px)` (WorkspacePage:1077, BRDQAPanel:90) hardcodes the TopBar height — a future header tweak silently breaks the rails' scroll area.
+### ✅ L-10 — Small deploy-posture notes — FIXED 2026-10-19
+
+- **Status:** closed.
+  1. **`ALLOWED_HOSTS` no-op** — now documented in the README's new Deploy section (with a `Production settings` table explaining that empty defaults to `["*"]`, making `TrustedHostMiddleware` a no-op and leaving Host-header spoofing unmitigated) and warned about in `server/.env.example`. The value itself belongs in the operator's prod `.env`, which is gitignored and not ours to set.
+  2. **No CSP on API responses** — documented as intentional: the API is JSON-only and sets its own headers via `SecurityHeadersMiddleware`; SPA headers (CSP/HSTS/`X-Frame-Options`) belong at the static host (`vercel.json`/`netlify.toml`), which `client/.env.example` already noted.
+  3. **Hardcoded `calc(100vh-65px)`** — **already fixed** by the 2026-10-01 Sourcify rebrand, before this entry was re-checked. `--shell-chrome: 3.5625rem` is defined at `client/src/index.css:88` and used by all three sites (`TopBar.tsx:14`, `WorkspacePage.tsx:1144`, `BRDQAPanel.tsx:89`) — a header-height tweak now propagates everywhere. Verified by grep; no change needed.
+- **Original (for the record):**
+  - `allowed_hosts` defaulted to `["*"]` and `server/.env` didn't set `ALLOWED_HOSTS` → `TrustedHostMiddleware` was a no-op as configured.
+  - No CSP on API responses (fine for API-only backend; noted for completeness).
+  - `calc(100vh-65px)` (WorkspacePage:1077, BRDQAPanel:90) hardcoded the TopBar height.
 
 ---
 
@@ -205,8 +221,9 @@ AGENTS.md: skills are "supporting expertise only — never `--persist` them into
 3. ~~**M-1**~~ done 2026-10-18 (rate-limit key on verified `sub` stashed on `request.state`, not token hash; 5 regression tests).
 4. ~~**M-6 + M-8 + M-9**~~ done 2026-10-19 (self-generating parser fixtures + deleted `datasets/`, README env table/install/Python version corrected, root `requirements.txt` removed — "CI-less manual verification" trust restored).
 5. ~~**M-2**~~ done 2026-10-19 (Gmail `max_extracted_chars` reject → 413, Drive streamed with a hard byte ceiling, `max_aggregate_chars` budget on the Sarvam project PDF; 7 tests). **M-7** — deploy posture doc note (M-3 list projection done 2026-10-10).
-6. **M-5** — design-decision item (coral contrast token pick; M-4 resolved by separation 2026-10-10).
-7. **L-1…L-10** — batch hygiene pass (all small; keep diffs per AGENTS.md conventions, restart backend after `server/` changes).
+6. ~~**M-5**~~ closed 2026-10-19 (verified: the 2026-10-01 rebrand already moved accent buttons to ink-on-coral `#151515`/`#FF5C3B` = 5.95:1, past AA; M-4 resolved by separation 2026-10-10).
+7. ~~**M-7 + L-10**~~ done 2026-10-19 (new README Deploy section: single-worker posture + `ALLOWED_HOSTS`/`ENVIRONMENT`/`CORS_ORIGINS` production table; L-10 item 3 was already fixed by the rebrand's `--shell-chrome` token).
+8. ~~**L-1, L-2, L-3, L-5**~~ done 2026-10-19 (Batch A+B: deleted the dead client modules + their two server routers/schemas/unused rate-limit settings, `git mv`'d `test_models.py` into `tests/`, completed the `aria-expanded` disclosure pair, added empty-content guards to txt/pdf parsers + 4 parametrized tests). Remaining: **L-4, L-6, L-7, L-8, L-9** — awaiting the user's call for Batch C.
 
 ## 6. Notes on process
 

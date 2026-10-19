@@ -1149,6 +1149,7 @@ export default function WorkspacePage() {
               type="button"
               onClick={toggleSources}
               aria-label="Show sources"
+              aria-expanded="false"
               title="Show sources"
               className="flex size-9 items-center justify-center rounded-full border border-hairline bg-surface text-ink transition-colors duration-200 max-md:size-11 hover:bg-soft"
             >
@@ -1949,6 +1950,7 @@ export default function WorkspacePage() {
                 type="button"
                 onClick={toggleQa}
                 aria-label="Show Q&A"
+                aria-expanded="false"
                 title="Show Q&A"
                 className="flex size-9 items-center justify-center rounded-full border border-hairline bg-surface text-ink transition-colors duration-200 max-md:size-11 hover:bg-soft"
               >

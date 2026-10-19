@@ -48,8 +48,6 @@ class Settings(BaseSettings):
 
     rate_limit_enabled: bool = True
     rate_limit_brd_generate: str = "5/hour"
-    rate_limit_consolidate: str = "10/hour"
-    rate_limit_extract: str = "10/hour"
     rate_limit_brd_ask: str = "30/minute"
     rate_limit_brd_export: str = "20/hour"
     rate_limit_upload: str = "30/hour"

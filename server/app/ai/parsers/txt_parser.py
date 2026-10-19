@@ -36,6 +36,11 @@ class TxtParser(BaseParser):
             encoding="utf-8"
         )
 
+        if not content.strip():
+            raise ValueError(
+                f"No readable text found in: {file_path.name}"
+            )
+
         if len(content) > settings.max_extracted_chars:
             raise ValueError(
                 f"File content too large: {file_path.name} "
