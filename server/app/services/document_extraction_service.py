@@ -15,6 +15,7 @@ from app.ai.extractors.sarvam_knowledge_mapper import (
 from app.ai.models.standard_document import (
     StandardDocument as AIStandardDocument,
 )
+from app.core.config import settings
 from app.db.models.document_extraction import DocumentExtraction
 from app.db.models.standard_document import (
     StandardDocument as DBStandardDocument,
@@ -32,6 +33,12 @@ from app.repositories.workspace_repository import (
 
 
 class DocumentExtractionService:
+    # Appended to the last document when the aggregate budget cuts it off,
+    # so the omission is visible in the generated project PDF.
+    TRUNCATION_MARKER = (
+        "\n\n[Content truncated to fit the extraction budget.]"
+    )
+
     def __init__(self, db: Session):
         self.db = db
 
@@ -86,6 +93,20 @@ class DocumentExtractionService:
             for document in documents
         ]
 
+        # Per-document caps leave the aggregate unbounded (N docs x
+        # 500k chars), so bound what actually goes to Sarvam (M-2).
+        ai_documents = self._fit_to_aggregate_budget(
+            ai_documents,
+        )
+
+        included_ids = {
+            document.id
+            for document in ai_documents
+        }
+
+        if not included_ids:
+            return None
+
         temp_path = None
 
         try:
@@ -125,11 +146,15 @@ class DocumentExtractionService:
 
                 self.document_extraction_repository.link_source_documents(
                     extraction_id=created_extraction.id,
-                    document_ids=[document.id for document in documents],
+                    document_ids=sorted(included_ids),
                 )
 
+                # Mark only what was actually fed to Sarvam. Documents
+                # dropped by the budget stay unextracted and are picked up
+                # by a later run once the budget frees up.
                 for document in documents:
-                    document.is_extracted = True
+                    if document.id in included_ids:
+                        document.is_extracted = True
 
                 self.db.commit()
 
@@ -178,3 +203,38 @@ class DocumentExtractionService:
             content=document.content,
             metadata=document.metadata_,
         )
+
+    def _fit_to_aggregate_budget(
+        self,
+        documents: list[AIStandardDocument],
+    ) -> list[AIStandardDocument]:
+        """
+        Bound the total content handed to the project PDF builder.
+
+        Documents are included in order until the budget is exhausted.
+        The one that crosses the boundary is truncated with an explicit
+        marker; anything after it is dropped from this run so it remains
+        unextracted for a later pass.
+        """
+
+        budget = settings.max_aggregate_chars
+        total = 0
+        fitted: list[AIStandardDocument] = []
+
+        for document in documents:
+            remaining = budget - total
+
+            if remaining <= 0:
+                break
+
+            content = document.content
+
+            if len(content) > remaining:
+                document.content = (
+                    content[:remaining] + self.TRUNCATION_MARKER
+                )
+
+            total += len(document.content)
+            fitted.append(document)
+
+        return fitted

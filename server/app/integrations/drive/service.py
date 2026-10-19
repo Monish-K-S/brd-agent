@@ -1,9 +1,11 @@
+import io
 from uuid import UUID
 
 from app.core.config import settings
 from app.integrations.google_oauth_store import GoogleOAuthStore
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
+from googleapiclient.http import MediaIoBaseDownload
 from sqlalchemy.orm import Session
 
 
@@ -197,13 +199,48 @@ class DriveService:
         self,
         user_id: UUID,
         file_id: str,
+        max_bytes: int | None = None,
     ) -> bytes:
+        """
+        Download a Drive file as bytes, aborting as soon as the byte
+        ceiling is exceeded.
+
+        The download is streamed chunk-by-chunk instead of buffered with
+        a single `.execute()`, so an oversized (or mis-declared) file is
+        rejected without ever being fully resident in memory. The
+        metadata size field is advisory only and cannot be trusted to
+        bound the transfer.
+        """
+
         drive = self._drive_client(user_id)
 
-        return (
-            drive.files()
-            .get_media(
-                fileId=file_id,
-            )
-            .execute()
+        limit = (
+            max_bytes
+            if max_bytes is not None
+            else settings.max_upload_bytes
         )
+
+        request = drive.files().get_media(
+            fileId=file_id,
+        )
+
+        buffer = io.BytesIO()
+
+        downloader = MediaIoBaseDownload(
+            buffer,
+            request,
+            chunksize=256 * 1024,
+        )
+
+        done = False
+
+        while not done:
+            _, done = downloader.next_chunk()
+
+            if buffer.tell() > limit:
+                raise ValueError(
+                    "File too large: maximum file size is "
+                    f"{limit // (1024 * 1024)} MB."
+                )
+
+        return buffer.getvalue()

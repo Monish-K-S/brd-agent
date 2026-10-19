@@ -508,9 +508,17 @@ def import_gmail_messages(
         )
 
     except ValueError as exc:
+        message = str(exc)
+
+        if "too large" in message.lower():
+            raise HTTPException(
+                status_code=413,
+                detail=message,
+            )
+
         raise HTTPException(
             status_code=400,
-            detail=str(exc),
+            detail=message,
         )
 
     except Exception as exc:

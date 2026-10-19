@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from app.core.config import settings
 from app.integrations.gmail.mapper import GmailEmailMapper
 from app.integrations.gmail.service import GmailService
 from app.repositories.standard_document_repository import (
@@ -57,6 +58,17 @@ class GmailImportService:
             document = self.mapper.to_standard_document(
                 message,
             )
+
+            # Gmail bodies arrive with no size ceiling of their own, so
+            # the upload path's per-document cap is enforced here too.
+            # A single oversized message aborts the import (413) rather
+            # than storing unbounded text.
+            if len(document.content) > settings.max_extracted_chars:
+                raise ValueError(
+                    f"Message too large: {message_id}. "
+                    "Maximum extracted size is "
+                    f"{settings.max_extracted_chars} characters."
+                )
 
             imported_documents.append(document)
 

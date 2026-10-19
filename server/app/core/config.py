@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     max_extracted_chars: int = 500_000
     max_pdf_pages: int = 200
 
+    # Total character budget across every source in a workspace when they
+    # are concatenated into the single project PDF handed to Sarvam.
+    # Per-document caps alone leave this aggregate unbounded (N docs x
+    # 500k chars), so the extraction service truncates the tail to fit.
+    max_aggregate_chars: int = 1_000_000
+
     generation_job_timeout_minutes: int = 15
 
     rate_limit_enabled: bool = True
