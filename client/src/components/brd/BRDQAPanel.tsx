@@ -19,17 +19,20 @@ type BRDQAPanelProps = {
 export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
 
   const askMutation = useMutation({
     mutationFn: (value: string) => askBRD(workspaceId, value),
   });
 
-  // Latest message (or the spinner) is always in view.
+  // Latest message (or the spinner) is always in view. `scrollIntoView` on
+  // the end sentinel works at every breakpoint: it scrolls this container on
+  // desktop and the *page* below `md`, where the panel has no height bound
+  // and the old scrollTo() was a silent no-op (L-4). Omitting `behavior`
+  // lets html's motion-safe `scroll-behavior` decide smooth vs instant;
+  // `block: "nearest"` skips the scroll when the end is already visible.
   useEffect(() => {
-    scrollRef.current?.scrollTo({
-      top: scrollRef.current.scrollHeight,
-    });
+    endRef.current?.scrollIntoView({ block: "nearest" });
   }, [messages, askMutation.isPending]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -125,7 +128,7 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
         </div>
       </div>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
           <p className="border-b border-hairline pb-4 text-sm leading-6 text-steel">
             Ask about requirements, decisions, or where something came from.
@@ -221,6 +224,10 @@ export function BRDQAPanel({ workspaceId, onCollapse }: BRDQAPanelProps) {
             </p>
           </div>
         )}
+
+        {/* End anchor for the auto-scroll effect — 1px, aria-hidden, never
+            affects layout. */}
+        <div ref={endRef} aria-hidden="true" className="h-px" />
       </div>
 
       <form

@@ -1,3 +1,5 @@
+import logging
+import re
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -22,6 +24,8 @@ from app.services.project_knowledge_service import (
 )
 from app.services.workspace_service import WorkspaceService
 
+logger = logging.getLogger("brd-agent.generation")
+
 
 MAX_JOBS_PER_WORKSPACE = 3
 
@@ -35,6 +39,72 @@ PHASE_PREPARING_KNOWLEDGE = "preparing_knowledge"
 PHASE_GENERATING_BRD = "generating_brd"
 
 STALE_JOB_MESSAGE = "Server restarted mid-run — please regenerate."
+
+GENERIC_FAILURE_MESSAGE = (
+    "Something went wrong while generating the BRD. "
+    "Please try again."
+)
+BUSY_MESSAGE = (
+    "The AI service is busy right now — try again "
+    "in a few minutes."
+)
+SAFETY_MESSAGE = (
+    "The request was blocked by the AI safety filters — "
+    "try rephrasing your question or removing "
+    "restricted content."
+)
+UNREACHABLE_MESSAGE = (
+    "Couldn't reach the AI service — check your "
+    "connection and try again."
+)
+CONFIG_MESSAGE = (
+    "The AI service isn't configured correctly on this "
+    "server — please contact the operator."
+)
+
+
+def public_error_message(exc: Exception) -> str:
+    """User-safe failure text for ``job.error``.
+
+    Raw ``str(exc)`` from google-genai / sarvamai / SQLAlchemy is persisted on
+    the job and rendered verbatim by the client, so it must never leave the
+    server — the detail belongs in the log instead (see ``execute_job``).
+    Known conditions map to friendly copy; anything unrecognized falls back
+    to the generic message. Bare status codes are matched with word
+    boundaries so an id or path containing "429" cannot misfire.
+    """
+    text = f"{type(exc).__name__} {exc}".lower()
+
+    if re.search(
+        r"\b429\b|rate[ _-]?limit|quota"
+        r"|resource[ _-]?exhausted|too many requests",
+        text,
+    ):
+        return BUSY_MESSAGE
+
+    if re.search(
+        r"safety|prohibited|content[ _-]?filter"
+        r"|blocked by|recitation",
+        text,
+    ):
+        return SAFETY_MESSAGE
+
+    if isinstance(exc, (TimeoutError, ConnectionError)) or re.search(
+        r"timeout|timed out|deadline|unavailable"
+        r"|connection (?:refused|reset|error)|max retries",
+        text,
+    ):
+        return UNREACHABLE_MESSAGE
+
+    if re.search(
+        r"api[ _-]?key|not set|unauthorized"
+        r"|permission denied|permission_denied"
+        r"|forbidden|unauthenticated",
+        text,
+    ):
+        return CONFIG_MESSAGE
+
+    return GENERIC_FAILURE_MESSAGE
 
 
 class GenerationJobService:
@@ -253,9 +323,15 @@ class GenerationJobService:
                 None,
             )
         except Exception as exc:
+            logger.exception(
+                "Generation job %s failed (workspace %s)",
+                job_id,
+                workspace_id,
+            )
+
             self._fail_job(
                 job,
-                str(exc) or "Generation failed",
+                public_error_message(exc),
             )
 
     def _get_job(

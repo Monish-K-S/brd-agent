@@ -167,6 +167,22 @@ function SourceCard({
   );
 }
 
+/** Server `detail` from an axios error, when it is a plain string. */
+function errorDetail(error: unknown): string | null {
+  if (!isAxiosError(error)) {
+    return null;
+  }
+
+  const detail = (error.response?.data as { detail?: unknown } | undefined)
+    ?.detail;
+
+  return typeof detail === "string" ? detail : null;
+}
+
+type DuplicateMatch =
+  | { kind: "batch"; fileName: string }
+  | { kind: "stored"; fileName: string; documentId: string };
+
 export default function WorkspacePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -777,19 +793,32 @@ export default function WorkspacePage() {
 
     const duplicate = findDuplicateUpload(files);
 
-    if (duplicate) {
+    if (duplicate?.kind === "batch") {
       setUploadValidationError(
-        `Duplicate file: ${duplicate}. A file with the same name, type, and size already exists in this workspace`,
+        `Duplicate file: ${duplicate.fileName}. The same file appears more than once in this selection`,
       );
+      return;
+    }
+
+    if (duplicate?.kind === "stored") {
+      setReplaceError(null);
+      setPendingReplace({
+        documentId: duplicate.documentId,
+        fileName: duplicate.fileName,
+        files,
+      });
       return;
     }
 
     uploadMutation.mutate(files);
   }
 
-  // Hard-block client-side mirror of the server triple check
-  // (file name + extension + byte size). The server re-validates.
-  function findDuplicateUpload(files: File[]): string | null {
+  // Client-side mirror of the server triple check (file name + extension +
+  // byte size) — the server re-validates. An in-batch repeat stays a hard
+  // error (there is nothing to replace); a match against a stored source
+  // gets a Replace offer, so an edited file that kept its name and size is
+  // no longer un-addable (L-7).
+  function findDuplicateUpload(files: File[]): DuplicateMatch | null {
     const seen = new Set<string>();
 
     for (const file of files) {
@@ -797,12 +826,12 @@ export default function WorkspacePage() {
       const key = `${file.name}|${suffix}|${file.size}`;
 
       if (seen.has(key)) {
-        return file.name;
+        return { kind: "batch", fileName: file.name };
       }
 
       seen.add(key);
 
-      const alreadyStored = (documents ?? []).some((document) => {
+      const match = (documents ?? []).find((document) => {
         const metadata = document.metadata ?? {};
 
         return (
@@ -812,8 +841,12 @@ export default function WorkspacePage() {
         );
       });
 
-      if (alreadyStored) {
-        return file.name;
+      if (match) {
+        return {
+          kind: "stored",
+          fileName: file.name,
+          documentId: match.id,
+        };
       }
     }
 
@@ -823,6 +856,14 @@ export default function WorkspacePage() {
   const [pendingDeleteDocumentId, setPendingDeleteDocumentId] = useState<
     string | null
   >(null);
+  // L-7: a stored source whose (name, type, size) triple matches an incoming
+  // file is offered a Replace instead of a dead-end hard block.
+  const [pendingReplace, setPendingReplace] = useState<{
+    documentId: string;
+    fileName: string;
+    files: File[];
+  } | null>(null);
+  const [replaceError, setReplaceError] = useState<string | null>(null);
   const [confirmDisconnectOpen, setConfirmDisconnectOpen] = useState(false);
 
   function handleDeleteDocument(documentId: string) {
@@ -836,6 +877,36 @@ export default function WorkspacePage() {
 
     deleteMutation.mutate(pendingDeleteDocumentId);
     setPendingDeleteDocumentId(null);
+  }
+
+  function handleConfirmReplace() {
+    if (
+      !pendingReplace ||
+      deleteMutation.isPending ||
+      uploadMutation.isPending
+    ) {
+      return;
+    }
+
+    const { documentId, fileName, files } = pendingReplace;
+
+    setReplaceError(null);
+
+    // Sequential on purpose: the server re-checks the dedup triple against
+    // committed rows, so the upload must not race the delete.
+    deleteMutation
+      .mutateAsync(documentId)
+      .then(() => {
+        setPendingReplace(null);
+        uploadMutation.mutate(files);
+      })
+      .catch((error: unknown) => {
+        // Keep the old source (and this dialog) — nothing has been lost.
+        setReplaceError(
+          errorDetail(error) ??
+            `Couldn't remove the stored copy of ${fileName}. Try again.`,
+        );
+      });
   }
 
   function handleConnectGmail() {
@@ -1296,7 +1367,8 @@ export default function WorkspacePage() {
 
                 {uploadMutation.isError && (
                   <StateAlert className="mt-4">
-                    Upload failed. Try again.
+                    {errorDetail(uploadMutation.error) ??
+                      "Upload failed. Try again."}
                   </StateAlert>
                 )}
               </section>
@@ -1992,6 +2064,57 @@ export default function WorkspacePage() {
               disabled={deleteMutation.isPending}
             >
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={pendingReplace !== null}
+        onOpenChange={(open) => {
+          if (
+            !open &&
+            !deleteMutation.isPending &&
+            !uploadMutation.isPending
+          ) {
+            setPendingReplace(null);
+            setReplaceError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Replace this source?</DialogTitle>
+
+            <DialogDescription>
+              {pendingReplace?.fileName} already exists in this workspace with
+              the same name, type, and size. Replacing removes the stored copy
+              and adds the file you selected.
+            </DialogDescription>
+          </DialogHeader>
+
+          {replaceError && <StateAlert>{replaceError}</StateAlert>}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="subtle"
+              onClick={() => {
+                setPendingReplace(null);
+                setReplaceError(null);
+              }}
+              disabled={deleteMutation.isPending}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
+              variant="default"
+              onClick={handleConfirmReplace}
+              disabled={deleteMutation.isPending || uploadMutation.isPending}
+            >
+              Replace
             </Button>
           </DialogFooter>
         </DialogContent>

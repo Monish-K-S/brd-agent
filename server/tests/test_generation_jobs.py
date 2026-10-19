@@ -2,22 +2,31 @@
 
 Covers the async BRD pipeline without a database: schema backward
 compatibility (old 5-field status payloads still parse), the
-server-side concurrent guard, prune-to-latest-3, and the unified
-worker pipeline with phase transitions — all with mocked sessions.
+server-side concurrent guard, prune-to-latest-3, the unified
+worker pipeline with phase transitions — all with mocked sessions —
+and L-6 error sanitization (friendly text stored, raw logged).
 """
 
+import logging
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+import pytest
 from sqlalchemy.exc import IntegrityError
 
 import app.db.models.google_connection  # noqa: F401 — registers mapper
 from app.db.models.generation_job import GenerationJob
 from app.services.generation_job_service import (
     GenerationJobService,
+    BUSY_MESSAGE,
+    CONFIG_MESSAGE,
+    GENERIC_FAILURE_MESSAGE,
     MAX_JOBS_PER_WORKSPACE,
+    SAFETY_MESSAGE,
     STALE_JOB_MESSAGE,
+    UNREACHABLE_MESSAGE,
+    public_error_message,
 )
 
 
@@ -510,3 +519,85 @@ def test_ghost_drill_real_sqlite_roundtrip():
         assert live_row.phase == "processing_sources"
     finally:
         db.close()
+
+
+# --- L-6: provider exception text never reaches the client ---
+
+
+@pytest.mark.parametrize(
+    ("exc", "expected"),
+    [
+        (RuntimeError("429 RESOURCE_EXHAUSTED: quota exceeded"), BUSY_MESSAGE),
+        (RuntimeError('generate_content blocked by "SAFETY"'), SAFETY_MESSAGE),
+        (TimeoutError("request timed out"), UNREACHABLE_MESSAGE),
+        (ConnectionError("connection refused"), UNREACHABLE_MESSAGE),
+        (RuntimeError("GEMINI_API_KEY is not set"), CONFIG_MESSAGE),
+        (ValueError("something no one predicted"), GENERIC_FAILURE_MESSAGE),
+    ],
+)
+def test_public_error_message_maps_known_conditions(exc, expected):
+    assert public_error_message(exc) == expected
+
+    # The raw provider text must never survive into the returned copy.
+    assert str(exc) not in expected
+
+
+def test_public_error_message_ignores_status_codes_inside_ids():
+    """`\b429\b` must not fire on an id/path that merely contains 429."""
+    exc = RuntimeError("failed for workspace abc429def0123456")
+
+    assert public_error_message(exc) == GENERIC_FAILURE_MESSAGE
+
+
+def _run_job_that_raises(service, job, exc):
+    """Shared arrange: pipeline blows up inside consolidate_project_knowledge."""
+    service.db.get = MagicMock(return_value=job)
+    service.standard_document_repository.has_unextracted_by_workspace_id = (
+        MagicMock(return_value=False)
+    )
+
+    import app.services.generation_job_service as job_module
+
+    job_module.DocumentExtractionService = MagicMock()
+    job_module.ProjectKnowledgeService = MagicMock()
+    job_module.BRDService = MagicMock()
+
+    try:
+        knowledge_service = job_module.ProjectKnowledgeService.return_value
+        knowledge_service.consolidate_project_knowledge = MagicMock(
+            side_effect=exc,
+        )
+
+        service.execute_job(job.id)
+    finally:
+        import importlib
+
+        importlib.reload(job_module)
+
+
+def test_execute_job_stores_friendly_error_not_raw_provider_text():
+    service = make_service()
+    job = make_job()
+    raw = "429 RESOURCE_EXHAUSTED: quota exceeded for projects/abc123"
+
+    _run_job_that_raises(service, job, RuntimeError(raw))
+
+    assert job.status == "failed"
+    assert job.error == BUSY_MESSAGE
+    assert "RESOURCE_EXHAUSTED" not in (job.error or "")
+    assert raw not in (job.error or "")
+
+
+def test_execute_job_logs_raw_error_server_side(caplog):
+    """The detail moves to the log — it is not simply dropped."""
+    service = make_service()
+    job = make_job()
+    raw = "google.genai internal error: exploded in /v1beta/models/gemini"
+
+    with caplog.at_level(logging.ERROR, logger="brd-agent.generation"):
+        _run_job_that_raises(service, job, RuntimeError(raw))
+
+    assert job.status == "failed"
+    assert job.error == GENERIC_FAILURE_MESSAGE
+    assert raw not in (job.error or "")
+    assert raw in caplog.text
