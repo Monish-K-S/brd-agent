@@ -1,13 +1,19 @@
 import json
+import logging
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
 from app.ai.models.knowledge.project_knowledge import (
     ProjectKnowledge,
 )
+from app.core.config import settings
+
+logger = logging.getLogger("brd-agent.generation")
 
 
 class GeminiBRDGenerator:
@@ -17,9 +23,17 @@ class GeminiBRDGenerator:
 
     MODEL = "gemini-2.5-flash"
 
+    # The SDK retries by default (5 attempts on 408/429/5xx). Set an
+    # explicit, smaller budget instead: bounded worst-case latency, and
+    # no compounding with a hand-rolled loop.
+    RETRY_ATTEMPTS = 2
+    RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504]
+
     def __init__(
         self,
         schema_path: str | Path,
+        timeout_seconds: int | None = None,
+        thinking_budget: int | None = None,
     ) -> None:
         load_dotenv()
 
@@ -28,11 +42,37 @@ class GeminiBRDGenerator:
         if not api_key:
             raise RuntimeError("GEMINI_API_KEY is not set")
 
-        self.client = genai.Client(
-            api_key=api_key,
+        self.schema_path = Path(schema_path)
+
+        self.timeout_seconds = (
+            timeout_seconds
+            if timeout_seconds is not None
+            else settings.gemini_timeout_seconds
         )
 
-        self.schema_path = Path(schema_path)
+        # 0 = no thinking. Exposed rather than hardcoded so the budget can
+        # be raised without a code change if output quality ever regresses.
+        self.thinking_budget = (
+            thinking_budget
+            if thinking_budget is not None
+            else settings.gemini_thinking_budget
+        )
+
+        self.http_options = types.HttpOptions(
+            # google-genai expresses this in milliseconds.
+            timeout=self.timeout_seconds * 1000,
+            retry_options=types.HttpRetryOptions(
+                attempts=self.RETRY_ATTEMPTS,
+                initial_delay=1.0,
+                max_delay=8.0,
+                http_status_codes=list(self.RETRYABLE_STATUS_CODES),
+            ),
+        )
+
+        self.client = genai.Client(
+            api_key=api_key,
+            http_options=self.http_options,
+        )
 
     def generate(
         self,
@@ -55,13 +95,23 @@ class GeminiBRDGenerator:
             project_knowledge_json,
         )
 
+        started = time.perf_counter()
+
         response = self.client.models.generate_content(
             model=self.MODEL,
             contents=prompt,
             config={
                 "response_mime_type": "application/json",
                 "response_json_schema": schema,
+                "thinking_config": types.ThinkingConfig(
+                    thinking_budget=self.thinking_budget,
+                ),
             },
+        )
+
+        self._log_usage(
+            response,
+            time.perf_counter() - started,
         )
 
         if not response.text:
@@ -70,6 +120,33 @@ class GeminiBRDGenerator:
             )
 
         return json.loads(response.text)
+
+    def _log_usage(
+        self,
+        response,
+        elapsed_seconds: float,
+    ) -> None:
+        """Token split for one generation call.
+
+        ``thoughts_token_count`` is the hidden reasoning the user never
+        sees but pays latency (and output-token rates) for. Without this
+        line, "why is BRD generation slow" is unanswerable from logs.
+        """
+        usage = getattr(response, "usage_metadata", None)
+
+        if usage is None:
+            return
+
+        logger.info(
+            "Gemini BRD generation in %.2fs (model=%s, prompt=%s tokens, "
+            "output=%s tokens, thoughts=%s tokens, total=%s tokens)",
+            elapsed_seconds,
+            self.MODEL,
+            getattr(usage, "prompt_token_count", None),
+            getattr(usage, "candidates_token_count", None),
+            getattr(usage, "thoughts_token_count", None),
+            getattr(usage, "total_token_count", None),
+        )
 
     def _load_schema(self) -> dict:
         if not self.schema_path.exists():

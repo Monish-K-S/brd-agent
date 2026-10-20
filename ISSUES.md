@@ -4,8 +4,8 @@
 - **Scope:** the end-to-end pipeline — source upload → extraction → knowledge consolidation → BRD generation — plus the latency of the surfaces that sit on that path (status polling, exports, Q&A reads).
 - **Method:** static read of every stage in the request path, checked against the installed dependency versions (`server/.venv`, Python 3.11.15, google-genai 2.22.0). **No file was modified.** No profiling run exists in the repo, so every severity below is **structural, not measured** — §6 defines the measurement that would confirm it.
 - **Prior audit state:** 3 high, 9 medium, 10 low — **all closed**. Their one-line outcomes are preserved in §1.
-- **This pass:** 9 new pipeline findings (P-1…P-9). **Batch E (2026-10-19) fixed four of them** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation needed to size the rest — see §5. P-1, P-2, P-6, P-8, P-9 remain open.
-- **Also logged 2026-10-19, deferred by request:** **R-1** (§8) — the ~1 s `/workspaces` load is Supabase region latency (project sits in **Seoul**, ~120 ms per round trip × 3–4 round trips per request), not React. Measured end-to-end against the dev database; deliberately **not** fixed.
+- **This pass:** 9 new pipeline findings (P-1…P-9). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. P-2, P-6, P-8, P-9 remain open.
+- **Also logged 2026-10-19, resolved 2026-10-20:** **R-1** (§8) — the ~1 s `/workspaces` load was Supabase region latency (Seoul, ~120 ms/round trip). The project has since been moved to a fresh **Mumbai (`ap-south-1`)** project with no data migrated; measured TTFB dropped to the ~150–250 ms range. §8 keeps the measurements for the record.
 
 ---
 
@@ -72,11 +72,23 @@ Structurally sound: one Sarvam job for all new docs (not per-doc), consolidation
 
 Severity key: **M** = medium (measurable slowdown or failure risk on the main path) · **L** = low / hygiene. Every item lists the **safe change** that would not alter routes, schemas, status codes, or client contracts.
 
-### 🟡 P-1 — BRD generation runs Gemini 2.5 Flash with default *thinking*, and with no timeout or retry
-- **Where:** `server/app/ai/generators/gemini_brd_generator.py:58-65` (config sets only `response_mime_type` + `response_json_schema`); model pinned at line 18.
-- **Why it costs time:** Gemini 2.5 Flash performs dynamic *thinking* by default. This task is a constrained restructuring ("ProjectKnowledge JSON → BRD JSON under a fixed schema", ~250-line instruction block), not open reasoning, so hidden thinking tokens add latency before the first output token without buying much quality. The call is also **non-streaming** and has **no explicit timeout and no retry** — a single transient 503/429 fails the whole run, which costs one of the `5/hour` generates (`config.py:50`) and forces a manual retry.
-- **Impact:** likely the single largest controllable chunk of the BRD stage. Unquantified until §6 is run.
-- **Safe change:** pass `thinking_config=types.ThinkingConfig(thinking_budget=0)` (confirmed available in the installed google-genai 2.22.0) and set a request timeout + one retry in `http_options`. **Verify output quality on one real workspace before committing** — thinking-off may thin out the synthesis-quality sections (executive summary, derived scope). No API/schema change.
+### ✅ P-1 — BRD generation ran Gemini 2.5 Flash with default *thinking*, and with no timeout or retry — FIXED 2026-10-20
+
+- **Status:** fixed, and the benchmark made the case stronger than the original estimate. Measured on the largest real `ProjectKnowledge` row (14,875 chars, 11 sections) against the live API:
+
+  | Model | Thinking | Time | Thought tokens |
+  |---|---|---|---|
+  | `gemini-2.5-flash` (was prod) | default | **17.0–22.8 s** | **3,319** |
+  | `gemini-2.5-flash` | `thinking_budget=0` | **6.0–6.7 s** | 0 |
+  | `gemini-flash-lite-latest` | `thinking_level=MINIMAL` | 37.7 s | 0 |
+  | `gemini-flash-latest` | `thinking_budget=0` | 107.5 s | — |
+  | `gemini-flash-latest` | default | 278.8 s | — |
+  | `gemini-3.1-flash-lite` | `thinking_level=MINIMAL` | **503 ×2** | — |
+
+  Thinking was **68% of the generated tokens** (3,319 of 4,851). **Newer ≠ faster for this task**: the 3.x reasoning-oriented models were 18–46× slower, and 3.1 Flash-Lite was unavailable twice. The fix is therefore the model we already use with reasoning disabled — not a model swap.
+- **Quality A/B (same payload, per-section chars):** default 5,949 vs off 5,900 total, **−0.8%**. Eight of eleven sections were byte-identical; `executive_summary` grew +51 and `business_requirements` shrank −112. All 11 sections still populated. End-to-end after the change: **6.72 s**, `thoughts=None`, 11/11 sections, 6,148 chars.
+- **Implementation:** new settings `gemini_thinking_budget` (default **0**) and `gemini_timeout_seconds` (default **120**) — budget is config-driven so it can be raised to e.g. 1024 without a code change if quality regresses. `GeminiBRDGenerator` now sends `thinking_config=ThinkingConfig(thinking_budget=...)`, logs the token split (`prompt/output/thoughts/total` + elapsed) on the `brd-agent.generation` logger, and sets `http_options` with a millisecond timeout plus an **explicit 2-attempt retry** on `408/429/500/502/503/504`. The explicit value matters: the SDK retries **5 times by default** (verified in `_api_client.py:905`), so leaving it implicit meant unbounded worst-case latency.
+- **Original finding (for the record):** `gemini_brd_generator.py:58-65` sent only `response_mime_type` + `response_json_schema`; model pinned at line 18. No timeout, no retry — a single transient 503 cost one of the `5/hour` generates.
 
 ### 🟡 P-2 — The aggregate extraction PDF is built as one giant `multi_cell`
 - **Where:** `server/app/ai/builders/project_document_builder.py:159-163` — a single `pdf.multi_cell(...)` call receives `document.content` verbatim; budget is `max_aggregate_chars = 1,000,000` (`config.py:45`).
@@ -146,17 +158,29 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 4. ~~**P-7**~~ `GZipMiddleware` (innermost, exports excluded).
 5. ~~**P-5**~~ lazy Gemini generator (also decouples status from `GEMINI_API_KEY`).
 
-**Next — measured, one workspace at a time**
-6. **P-1** (thinking budget + timeout/retry) — run the §6 timing first, then A/B it and confirm output quality on one real workspace.
-7. **P-8** (indexes, reversible migration — no dependency on the above).
+**Batch F — done 2026-10-20** (contract-safe, server-only)
+6. ~~**P-1**~~ Gemini `thinking_budget=0` via `gemini_thinking_budget` (default 0) + `gemini_timeout_seconds` (120) + explicit 2-attempt retry + token-split logging. **17–23 s → 6.7 s, output within 0.8%.** Model benchmark (§P-1) also ruled out the 3.x family for this task (18–46× slower; 3.1 Flash-Lite 503s).
+7. ~~**P-8** pending~~ — deferred; superseded in priority by the R-1 region move, which resolved the latency that made it visible.
+
+**Next — measured**
+8. **P-8** (indexes, reversible migration — still the cheapest remaining insurance; `workspaces.user_id` is already covered).
+9. **P-2** — only if §6 shows the aggregate-PDF build is material; the Batch E instrumentation now answers that from logs.
 
 **Conditional / deferred**
-8. **P-2** — only if §6 shows the PDF build is material; then chunk the `multi_cell` or lower the aggregate budget.
-9. **P-6** (background ingestion needs a processing state + contract change).
-10. **P-9** (Q&A summary-first scoring — low payoff until workspaces get large).
-11. **R-1** (§8, logged 2026-10-19) — Supabase region round trips behind the ~1 s `/workspaces` load. **Deferred by user request** ("we will look at this later"); measurements and the three options are recorded in §8 so it can be picked up without re-measuring.
+10. **P-6** (background ingestion needs a processing state + contract change).
+11. **P-9** (Q&A summary-first scoring — low payoff until workspaces get large).
+12. ~~**R-1**~~ (§8) — **resolved 2026-10-20** by moving to a fresh Mumbai project; no code change needed.
 
-**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (126 after Batch E), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
+**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (136 after Batch F), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
+
+---
+
+## 5c. Batch F results (2026-10-20)
+
+- **Suite:** 126 → **136 passed** (+10 in new `server/tests/test_gemini_generator.py`; no existing test changed).
+- **Diff:** `ai/generators/gemini_brd_generator.py`, `core/config.py`, `.env.example`, 1 new test file, docs. **Zero client diff.**
+- **Measured end-to-end (real API, real ProjectKnowledge):** 6.72 s, `thoughts=None`, 11/11 sections, 6,148 chars — vs 17.0–22.8 s and 3,319 thought tokens before.
+- **Still open:** P-2, P-6, P-8, P-9.
 
 ---
 
@@ -191,11 +215,13 @@ Only after that should P-2's severity be settled — it is the one item where a 
 
 ---
 
-## 8. R-1 — `/workspaces` takes ~1 s because of Supabase round trips (measured, **deferred 2026-10-19**)
+## 8. R-1 — `/workspaces` took ~1 s because of Supabase round trips (measured 2026-10-19, **RESOLVED 2026-10-20**)
 
 **Symptom reported:** the workspaces page takes about a second to load.
 
 **Verdict:** not React, not the query, not the payload. It is **network round-trip count to a database in another region**. Measured on this checkout against the live dev database (`DATABASE_URL` → `aws-0-ap-northeast-2.pooler.supabase.com`, i.e. **Seoul**) while the user is in India. **No file was modified** — this section is a record so the work can be picked up later without re-measuring.
+
+**Resolution (2026-10-20):** the project was moved to a fresh **`ap-south-1` (Mumbai)** Supabase project — schema rebuilt from `alembic upgrade head`, **no data or auth users migrated**. TTFB dropped into the ~150–250 ms range. No application code changed; only `DATABASE_URL`, `SUPABASE_URL`, and the client's `VITE_SUPABASE_*` values. Two findings from that cutover are worth keeping: `psql` requires `postgresql://` while SQLAlchemy requires `postgresql+psycopg://` (only psycopg 3 is installed, so a bare scheme raises `ModuleNotFoundError: psycopg2`), and Google's `redirect_uri_mismatch` for a new project is fixed by adding `https://<ref>.supabase.co/auth/v1/callback` to the OAuth client **and saving it**.
 
 ### 8.1 Per-hop costs
 

@@ -48,6 +48,20 @@ class Settings(BaseSettings):
     # 2s, so this is also the maximum wait before the job is failed.
     sarvam_timeout_seconds: int = 180
 
+    # Thinking budget for the single Gemini BRD call. 0 disables the
+    # model's reasoning pass: the task is a constrained restructuring
+    # (ProjectKnowledge JSON -> BRD JSON under a fixed schema), so
+    # planning tokens cost latency without buying output quality.
+    # Measured 2026-10-20 on a 14.9k-char ProjectKnowledge: 3,319 thought
+    # tokens and 17-23s at the default, 0 tokens and ~6s at 0, with the
+    # output within 1% of the same size and all 11 sections still filled.
+    # Raise this (e.g. 1024) only if the synthesized sections start thinning.
+    gemini_thinking_budget: int = 0
+
+    # Per-attempt HTTP ceiling for that call. One retry happens on
+    # 408/429/5xx (see GeminiBRDGenerator), so worst case is 2x this.
+    gemini_timeout_seconds: int = 120
+
     generation_job_timeout_minutes: int = 15
 
     rate_limit_enabled: bool = True
