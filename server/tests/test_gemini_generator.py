@@ -87,10 +87,12 @@ def _generator(monkeypatch, **kwargs):
 # ------------------------------------------------- config hygiene
 
 
-def test_thinking_budget_defaults_to_zero():
+def test_thinking_budget_default_is_not_disabled():
+    # 0 disables reasoning entirely; the default keeps a real pass because
+    # judging near-duplicate requirements is the model's job (P-10).
     assert (
         Settings.model_fields["gemini_thinking_budget"].default
-        == 0
+        == 2048
     )
 
 
@@ -111,7 +113,10 @@ def test_thinking_config_is_sent_with_the_configured_budget(
 
     config = fake.models.calls[0]["config"]
 
-    assert config["thinking_config"].thinking_budget == 0
+    assert (
+        config["thinking_config"].thinking_budget
+        == settings.gemini_thinking_budget
+    )
     assert config["response_mime_type"] == "application/json"
     assert config["response_json_schema"]
 

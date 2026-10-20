@@ -4,7 +4,7 @@
 - **Scope:** the end-to-end pipeline — source upload → extraction → knowledge consolidation → BRD generation — plus the latency of the surfaces that sit on that path (status polling, exports, Q&A reads).
 - **Method:** static read of every stage in the request path, checked against the installed dependency versions (`server/.venv`, Python 3.11.15, google-genai 2.22.0). **No file was modified.** No profiling run exists in the repo, so every severity below is **structural, not measured** — §6 defines the measurement that would confirm it.
 - **Prior audit state:** 3 high, 9 medium, 10 low — **all closed**. Their one-line outcomes are preserved in §1.
-- **This pass:** 9 new pipeline findings (P-1…P-9). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. P-2, P-6, P-8, P-9 remain open.
+- **This pass:** 9 new pipeline findings (P-1…P-9). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. **Batch G (2026-10-20) added P-10**: the consolidator was handing Gemini 52–60% byte-identical duplicates, so reasoning was being spent on mechanical reconciliation. P-2, P-6, P-8, P-9 remain open.
 - **Also logged 2026-10-19, resolved 2026-10-20:** **R-1** (§8) — the ~1 s `/workspaces` load was Supabase region latency (Seoul, ~120 ms/round trip). The project has since been moved to a fresh **Mumbai (`ap-south-1`)** project with no data migrated; measured TTFB dropped to the ~150–250 ms range. §8 keeps the measurements for the record.
 
 ---
@@ -135,6 +135,16 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 - **Impact:** up to ~5 MB read and scored in Python per question, discarded down to ≤96 KB. The Gemini call still dominates the user-visible time, so this is low severity.
 - **Safe change:** score from summaries/metadata (the same deferred-content projection as P-4/M-3), then fetch content only for the selected ids.
 
+### ✅ P-10 — ProjectKnowledge carried 52–60% byte-identical duplicates, so Gemini was paid to reconcile them — FIXED 2026-10-20
+
+- **Where:** `server/app/ai/consolidators/knowledge_consolidator.py::_merge_documents` — its docstring stated *"No deduplication or conflict resolution is performed"*, and it simply `extend`ed every field.
+- **Why it cost time:** the BRD prompt explicitly forbids merging "separate requirements merely because they relate to the same feature", so Gemini had to decide, item by item, which repeats were genuine duplicates and which were merely similar. That is hidden thinking-token work spent on a mechanical problem.
+- **Measured on both real workspaces** (each is one aggregate extraction over several documents, so the duplicates are *inside a single extraction*, not only across documents): **147 → 71 items (−76, 52%)** and **120 → 48 (−72, 60%)**.
+- **Effect on the BRD call** (14.9k-char payload): prompt **5,010 → 3,125 tokens**; with dynamic thinking **4,201 → 2,755** thought tokens and **22.8 s → 18.1 s**; with `gemini_thinking_budget=2048` **14.4 s**. `functional_requirements` = **15 in every configuration tested** (dynamic / 2048 / 1024 / 0).
+- **Fix:** `_canonical_key` (dataclass → `asdict` → dict/list recursion → whitespace-collapse + lowercase → sorted-key JSON) and `_dedupe` (first-seen order). Applied to **both** the single-document and merge paths, driven by one `_LIST_FIELDS` tuple so a newly added field cannot silently skip dedup.
+- **Deliberately *not* done:** fuzzy or semantic dedup. Normalization never touches digits or punctuation, so a changed threshold (`"3.5 seconds"` vs `"35 seconds"`) or actor keeps both items, and near-duplicates still reach Gemini. 12 tests pin both sides of that line, including the must-not-merge cases.
+- **Note:** existing `project_knowledge` rows keep their duplicates until that workspace is regenerated.
+
 ---
 
 ## 4. Checked and found fine (do not "optimize" these)
@@ -162,16 +172,30 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 6. ~~**P-1**~~ Gemini `thinking_budget=0` via `gemini_thinking_budget` (default 0) + `gemini_timeout_seconds` (120) + explicit 2-attempt retry + token-split logging. **17–23 s → 6.7 s, output within 0.8%.** Model benchmark (§P-1) also ruled out the 3.x family for this task (18–46× slower; 3.1 Flash-Lite 503s).
 7. ~~**P-8** pending~~ — deferred; superseded in priority by the R-1 region move, which resolved the latency that made it visible.
 
+**Batch G — done 2026-10-20** (contract-safe, server-only)
+8. ~~**P-10**~~ deterministic dedup in `KnowledgeConsolidator` — identical items dropped at consolidation, near-duplicates kept for Gemini. **52–60% of items were duplicates; BRD call 22.8 s → 14.4 s at `thinking_budget=2048`, prompt 5,010 → 3,125 tokens.**
+9. ~~**`gemini_thinking_budget` default**~~ raised `0` → **`2048`**, so the reasoning pass is restored now that the input is clean (see P-10).
+
 **Next — measured**
-8. **P-8** (indexes, reversible migration — still the cheapest remaining insurance; `workspaces.user_id` is already covered).
-9. **P-2** — only if §6 shows the aggregate-PDF build is material; the Batch E instrumentation now answers that from logs.
+10. **P-8** (indexes, reversible migration — still the cheapest remaining insurance; `workspaces.user_id` is already covered).
+11. **P-2** — only if §6 shows the aggregate-PDF build is material; the Batch E instrumentation now answers that from logs.
 
 **Conditional / deferred**
-10. **P-6** (background ingestion needs a processing state + contract change).
-11. **P-9** (Q&A summary-first scoring — low payoff until workspaces get large).
-12. ~~**R-1**~~ (§8) — **resolved 2026-10-20** by moving to a fresh Mumbai project; no code change needed.
+12. **P-6** (background ingestion needs a processing state + contract change).
+13. **P-9** (Q&A summary-first scoring — low payoff until workspaces get large).
+14. ~~**R-1**~~ (§8) — **resolved 2026-10-20** by moving to a fresh Mumbai project; no code change needed.
 
-**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (136 after Batch F), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
+**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (148 after Batch G), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
+
+---
+
+## 5d. Batch G results (2026-10-20)
+
+- **Suite:** 136 → **148 passed** (+12 in new `server/tests/test_knowledge_consolidator.py`; 2 assertions in `test_gemini_generator.py` updated for the new default).
+- **Diff:** `ai/consolidators/knowledge_consolidator.py`, `core/config.py`, `.env.example`, 1 new test file, docs. **Zero client diff.**
+- **Real-data verification (both existing workspaces, run through the patched consolidator):** `147 → 71 items (−76, 52%)` and `120 → 48 (−72, 60%)`.
+- **Timings (same 14.9k-char payload):** dynamic 22.8 s → deduped 18.1 s; deduped + `2048` **14.4 s**; deduped + `1024` 10.6 s. Functional requirements = **15 in every configuration**.
+- **Still open:** P-2, P-6, P-8, P-9.
 
 ---
 

@@ -48,15 +48,16 @@ class Settings(BaseSettings):
     # 2s, so this is also the maximum wait before the job is failed.
     sarvam_timeout_seconds: int = 180
 
-    # Thinking budget for the single Gemini BRD call. 0 disables the
-    # model's reasoning pass: the task is a constrained restructuring
-    # (ProjectKnowledge JSON -> BRD JSON under a fixed schema), so
-    # planning tokens cost latency without buying output quality.
-    # Measured 2026-10-20 on a 14.9k-char ProjectKnowledge: 3,319 thought
-    # tokens and 17-23s at the default, 0 tokens and ~6s at 0, with the
-    # output within 1% of the same size and all 11 sections still filled.
-    # Raise this (e.g. 1024) only if the synthesized sections start thinning.
-    gemini_thinking_budget: int = 0
+    # Thinking budget for the single Gemini BRD call. Not 0: the call is
+    # a constrained restructuring, but deciding whether two
+    # differently-worded requirements are the same genuinely needs
+    # reasoning, and that is the only dedup layer in the pipeline.
+    # Measured 2026-10-20 on a real 9-document workspace, after the
+    # consolidator started dropping exact duplicates (147 -> 71 items,
+    # prompt 5,010 -> 3,125 tokens): dynamic thinking 18.1s, 2048 14.4s,
+    # 1024 10.6s, 0 6.1s -- with 15 functional requirements in every case.
+    # Raise for messier inputs, lower to 1024 for speed, 0 disables it.
+    gemini_thinking_budget: int = 2048
 
     # Per-attempt HTTP ceiling for that call. One retry happens on
     # 408/429/5xx (see GeminiBRDGenerator), so worst case is 2x this.
