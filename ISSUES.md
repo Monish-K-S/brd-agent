@@ -5,6 +5,7 @@
 - **Method:** static read of every stage in the request path, checked against the installed dependency versions (`server/.venv`, Python 3.11.15, google-genai 2.22.0). **No file was modified.** No profiling run exists in the repo, so every severity below is **structural, not measured** — §6 defines the measurement that would confirm it.
 - **Prior audit state:** 3 high, 9 medium, 10 low — **all closed**. Their one-line outcomes are preserved in §1.
 - **This pass:** 9 new pipeline findings (P-1…P-9). **Batch E (2026-10-19) fixed four of them** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation needed to size the rest — see §5. P-1, P-2, P-6, P-8, P-9 remain open.
+- **Also logged 2026-10-19, deferred by request:** **R-1** (§8) — the ~1 s `/workspaces` load is Supabase region latency (project sits in **Seoul**, ~120 ms per round trip × 3–4 round trips per request), not React. Measured end-to-end against the dev database; deliberately **not** fixed.
 
 ---
 
@@ -112,7 +113,8 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 - **Original finding (for the record):** `server/app/main.py` had no gzip middleware — the full 11-section BRD JSON and every status/document payload shipped uncompressed.
 
 ### 🟢 P-8 — No index on `workspace_id` for the workspace-scoped tables
-- **Where:** only `generation_jobs` has indexes (`db/models/generation_job.py:26,45` + migration `d4e5f6a7b8c9`). `standard_documents`, `brds`, `project_knowledge`, `document_extractions`, and `workspaces.user_id` carry FKs with **no** index — Postgres does not auto-index foreign keys.
+- **Where:** only `generation_jobs` has indexes (`db/models/generation_job.py:26,45` + migration `d4e5f6a7b8c9`). `standard_documents`, `brds`, `project_knowledge`, `document_extractions` carry FKs with **no** index — Postgres does not auto-index foreign keys.
+- **Correction (2026-10-19, verified via `pg_indexes` while measuring R-1):** `workspaces.user_id` is **not** unindexed — `uq_workspaces_user_lower_name ON workspaces (user_id, lower(name))` has `user_id` as its leading column, so `WHERE user_id = ?` can use it. Drop that table from the migration; the other four still need it.
 - **Impact:** every status poll (see P-4), Q&A ask, extraction run, and document listing filters on `workspace_id` → sequential scan once the tables grow. Negligible at demo scale, a real cost beyond it.
 - **Safe change:** one Alembic migration adding five indexes (reversible downgrade, no data change).
 
@@ -152,6 +154,7 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 8. **P-2** — only if §6 shows the PDF build is material; then chunk the `multi_cell` or lower the aggregate budget.
 9. **P-6** (background ingestion needs a processing state + contract change).
 10. **P-9** (Q&A summary-first scoring — low payoff until workspaces get large).
+11. **R-1** (§8, logged 2026-10-19) — Supabase region round trips behind the ~1 s `/workspaces` load. **Deferred by user request** ("we will look at this later"); measurements and the three options are recorded in §8 so it can be picked up without re-measuring.
 
 **Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (126 after Batch E), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
 
@@ -185,3 +188,75 @@ Only after that should P-2's severity be settled — it is the one item where a 
 - This pass was **read-only**; `git status` showed only the pre-existing uncommitted Batch D changes.
 - Severities assume the documented single-process deployment (`uvicorn app.main:app`, no `--workers`). Under multi-worker, P-4/P-5 overhead multiplies and the in-process job posture already fails (M-7).
 - Line numbers refer to the working tree as of 2026-10-19 and will drift after edits.
+
+---
+
+## 8. R-1 — `/workspaces` takes ~1 s because of Supabase round trips (measured, **deferred 2026-10-19**)
+
+**Symptom reported:** the workspaces page takes about a second to load.
+
+**Verdict:** not React, not the query, not the payload. It is **network round-trip count to a database in another region**. Measured on this checkout against the live dev database (`DATABASE_URL` → `aws-0-ap-northeast-2.pooler.supabase.com`, i.e. **Seoul**) while the user is in India. **No file was modified** — this section is a record so the work can be picked up later without re-measuring.
+
+### 8.1 Per-hop costs
+
+| Hop | Measured |
+|---|---|
+| DNS resolve | 3 ms |
+| TCP connect to Seoul | 119–123 ms |
+| `psycopg.connect` (TCP + TLS + auth) | **792–2165 ms** |
+| One `SELECT 1` on an already-open connection | ~118 ms |
+| One statement + explicit `COMMIT` | ~360–400 ms |
+
+So: a statement in an open transaction costs ~120 ms (one RTT), while the pooler charges roughly 2–3× that for transaction boundaries (BEGIN / COMMIT / ROLLBACK).
+
+### 8.2 The actual `/workspaces` request (the page's one `GET`)
+
+`GET /workspaces` issues a **single** list query — there is no N+1 on this page. But FastAPI's `get_current_db_user` dependency adds a `users` PK lookup, and the `Session` wraps both in a transaction that is rolled back on close:
+
+| Stage | Measured (6 runs) |
+|---|---|
+| Session checkout (warm pool) | ~0 ms |
+| `users` SELECT — first statement of the request | **388–550 ms** |
+| `workspaces` SELECT | 124–223 ms |
+| implicit `ROLLBACK` on `db.close()` | 120–198 ms |
+| **backend total** | **623–895 ms** |
+
+With 4 workspace rows, data volume is irrelevant — it is pure latency × round trips. Adding browser/JS overhead lands on the ~1 s the user sees.
+
+**Why it sometimes feels worse than 1 s:** `db/session.py` sets `pool_recycle=300`. Every 5 minutes of idleness retires the pooled connection, so the next request also pays the 0.8–2.1 s handshake above.
+
+### 8.3 What each fix would buy (measured, not estimated)
+
+| Variant | Measured |
+|---|---|
+| **A.** Current path (2 SELECTs + implicit ROLLBACK) | 623–697 ms |
+| **B.** Drop the per-request `users` SELECT (cache user existence in-process) | ~486 ms |
+| **C.** Read-only **AUTOCOMMIT** session — no BEGIN, no ROLLBACK | **122–141 ms** |
+
+C's first call was 2585 ms because that probe used its own cold engine (that number *is* the handshake cost).
+
+### 8.4 Options, in order of payoff
+
+1. **Move the Supabase project to `ap-south-1` (Mumbai).** ~120 ms → ~25 ms per RTT, so it improves *every* surface at once: workspaces, the 2 s generation-status poll, Q&A, document lists, uploads. **No code change** — new project + `pg_dump`/restore + env swap + the two migrations re-applied. Needs a maintenance window, not a refactor.
+2. **Co-locate the backend with the DB** (deploy in `ap-northeast-2`). No data migration at all; app→DB drops to ~1–2 ms, so a request becomes ~130–250 ms. Trade-off: every browser request then pays the India→Seoul hop instead. Cheapest to try, worst steady-state for India users.
+3. **Cut round trips in code** (no infrastructure change, complementary to either of the above):
+   - read-only GET routes on an AUTOCOMMIT session → the C number above;
+   - cache the per-request `users` existence check → saves ~150–200 ms;
+   - optionally one combined user + workspaces query → saves another RTT.
+
+   **Caveat for (3):** GET routes are not purely read-only — `ensure_user_exists` inserts on first login and `GET /brd/status` runs the stale-job reaper. This needs a dedicated read-only dependency (or explicit handling of those two writers), not a flag flipped on the global engine.
+
+### 8.5 Before acting on this
+
+Confirm the attribution in devtools: if `GET /workspaces` shows **TTFB ≈ 650–900 ms** and the remainder is quick, this section is the explanation. If TTFB is low and the time is in JS/module loading, the cause is the **Vite dev server** compiling modules on first navigation (a dev-only, once-per-session cost) — a different fix entirely. That check was not run.
+
+### 8.6 Incidental observation (unverified through the API, low)
+
+While reproducing the request path, calling `UserService.ensure_user_exists()` with a `CurrentUser` whose `email` is `None` raised a 500-class error instead of failing cleanly:
+
+```
+psycopg.errors.NotNullViolation: null value in column "email" of relation "users" violates not-null constraint
+INSERT INTO users (id, email, name) VALUES (..., NULL, NULL)
+```
+
+Google sign-in always supplies an `email` claim, so this is latent rather than live: a token without one (different auth method, or a claim change on Supabase's side) would 500 on the first request instead of returning a 4xx. It was **not** reproduced through HTTP and no data was written (the statement failed at flush and rolled back). Worth a guard if the auth surface ever widens.
