@@ -1,4 +1,6 @@
+import logging
 import tempfile
+import time
 import zipfile
 from pathlib import Path
 from typing import Annotated
@@ -37,6 +39,9 @@ router = APIRouter(
     prefix="/workspaces/{workspace_id}/documents",
     tags=["Documents"],
 )
+
+
+logger = logging.getLogger("brd-agent.upload")
 
 
 _CHUNK_SIZE = 64 * 1024
@@ -167,6 +172,13 @@ def upload_documents(
 
     all_documents = []
 
+    # Parsing happens inside this request (see P-6), so the request
+    # ceiling is what the user actually waits on. Logged per request so
+    # a slow upload can be explained without guessing.
+    upload_started = time.perf_counter()
+    parse_seconds = 0.0
+    total_bytes = 0
+
     if len(files) > settings.max_upload_files:
         raise HTTPException(
             status_code=413,
@@ -233,6 +245,8 @@ def upload_documents(
                         detail=str(exc),
                     )
 
+                total_bytes += size_bytes
+
                 if not _validate_file_magic(temp_path, suffix):
                     raise HTTPException(
                         status_code=400,
@@ -264,9 +278,14 @@ def upload_documents(
                 seen_keys.add(incoming_key)
 
                 try:
+                    parse_started = time.perf_counter()
+
                     documents = ingestion_service.ingest(
                         temp_path,
                     )
+
+                    parse_seconds += time.perf_counter() - parse_started
+
                 except _FileTooLargeError as exc:
                     raise HTTPException(
                         status_code=413,
@@ -317,6 +336,14 @@ def upload_documents(
                 status_code=404,
                 detail="Workspace not found",
             )
+
+        logger.info(
+            "upload: %s file(s), %s bytes, parse %.2fs, total %.2fs",
+            len(files),
+            total_bytes,
+            parse_seconds,
+            time.perf_counter() - upload_started,
+        )
 
         return [
             StandardDocumentSummary(

@@ -118,6 +118,19 @@ Health checks:
 
 `server/.env.example` also documents optional tuning knobs (upload caps, rate limits, generation-job timeout, CORS, `ALLOWED_HOSTS`) — copy it to `.env` and edit rather than starting from scratch.
 
+### Upload limits
+
+| Limit | Default | Setting |
+|---|---|---|
+| Files per request | 10 | `MAX_UPLOAD_FILES` |
+| Bytes per file | 10 MB | `MAX_UPLOAD_BYTES` |
+| PDF pages per file | 200 | `MAX_PDF_PAGES` |
+| Extracted characters per file | 500,000 | `MAX_EXTRACTED_CHARS` |
+
+Parsing happens **inside** the upload request, so a very large batch is slower to respond. Measured worst case (10 × 200-page PDFs) is about **3.3 s** of parsing — the cap that actually binds for text-dense PDFs is `MAX_EXTRACTED_CHARS`, not the page count. For large uploads the file transfer itself, not parsing, is what dominates the request.
+
+Every upload logs `brd-agent.upload: upload: N file(s), B bytes, parse Xs, total Ys`, and each file logs `brd-agent.ingestion: parsed .pdf in Xs -> N document(s), M chars`, so a slow upload can be diagnosed from the log without guessing.
+
 ## Run the frontend
 
 ```bash

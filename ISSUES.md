@@ -4,7 +4,7 @@
 - **Scope:** the end-to-end pipeline — source upload → extraction → knowledge consolidation → BRD generation — plus the latency of the surfaces that sit on that path (status polling, exports, Q&A reads).
 - **Method:** static read of every stage in the request path, checked against the installed dependency versions (`server/.venv`, Python 3.11.15, google-genai 2.22.0). **No file was modified.** No profiling run exists in the repo, so every severity below is **structural, not measured** — §6 defines the measurement that would confirm it.
 - **Prior audit state:** 3 high, 9 medium, 10 low — **all closed**. Their one-line outcomes are preserved in §1.
-- **This pass:** 10 new pipeline findings (P-1…P-10). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. **Batch G (2026-10-20) added and fixed P-10**: the consolidator was handing Gemini 52–60% byte-identical duplicates, so reasoning was being spent on mechanical reconciliation. **Batch H (2026-10-21) fixed P-8** (indexes) and **measured P-2 into closure** — the aggregate PDF build is 0.09 s, i.e. 0.5% of the 20 s extraction phase, so the "one giant `multi_cell`" concern does not apply at real scale. **Batch I (2026-10-21) resolved P-9**: Q&A scoring no longer builds a per-document word set (72 ms → 54 ms, **peak allocation 10.1 MB → 0.5 MB**) and is proven bit-identical; at real workspace sizes it is 0.2 ms either way, so it is cheap insurance, not a visible win. **P-6 is the last open finding.**
+- **This pass:** 10 new pipeline findings (P-1…P-10). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. **Batch G (2026-10-20) added and fixed P-10**: the consolidator was handing Gemini 52–60% byte-identical duplicates, so reasoning was being spent on mechanical reconciliation. **Batch H (2026-10-21) fixed P-8** (indexes) and **measured P-2 into closure** — the aggregate PDF build is 0.09 s, i.e. 0.5% of the 20 s extraction phase, so the "one giant `multi_cell`" concern does not apply at real scale. **Batch I (2026-10-21) resolved P-9**: Q&A scoring no longer builds a per-document word set (72 ms → 54 ms, **peak allocation 10.1 MB → 0.5 MB**) and is proven bit-identical; at real workspace sizes it is 0.2 ms either way, so it is cheap insurance, not a visible win. **Batch J (2026-10-21) closed P-6 by measurement**: the 10 × 200-page worst case parses in **3.3 s**, so background ingestion would remove 3.3 s from a request dominated by the transfer itself — the fix would not pay for itself. **This is the last finding in v2: all 10 are now closed or resolved.**
 - **Also logged 2026-10-19, resolved 2026-10-20:** **R-1** (§8) — the ~1 s `/workspaces` load was Supabase region latency (Seoul, ~120 ms/round trip). The project has since been moved to a fresh **Mumbai (`ap-south-1`)** project with no data migrated; measured TTFB dropped to the ~150–250 ms range. §8 keeps the measurements for the record.
 
 ---
@@ -111,10 +111,23 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 - **Status:** fixed by making the generator lazy. `BRDService.__init__` now stores the schema path and `brd_generator` is a cached property that builds `GeminiBRDGenerator` on first use; `generate_brd_for_user` is unchanged. Read paths (status / exports / edit) no longer allocate a genai client, and — as a side effect — `GET /brd/status` no longer 500s when `GEMINI_API_KEY` is missing.
 - **Original finding (for the record):** `api/routes/brd.py:138` → `BRDService.__init__` eagerly built `GeminiBRDGenerator` (`brd_service.py:50`), which calls `genai.Client(...)` and raises if the key is absent — 30 allocations/minute per polling client, plus a read endpoint that depended on an AI credential.
 
-### 🟡 P-6 — Upload parsing is synchronous, up to 10 files × 200 pages per request
-- **Where:** `server/app/api/routes/standard_document.py:199-299` — decode → magic → parse → normalize loop inside the request handler, then one `create_documents_from_ingestion` commit.
-- **Impact:** worst-case request is tens of seconds (10 × a large PDF); the client shows only "Uploading…", and a proxy/ingress timeout can kill a request whose parse work is already done, forcing a re-upload. Each in-flight upload also occupies one threadpool worker for its whole duration.
-- **Safe change:** the honest fix is background ingestion + a processing state, which **changes the API contract** — out of scope unless explicitly authorized. Until then: document the ceiling and consider a lower files-per-request cap. The per-file caps themselves are already correct (chunked copy, magic sniff, parse caps before heavy work).
+### ✅ P-6 — Upload parsing is synchronous — CLOSED 2026-10-21, **not material**
+- **Original concern:** `standard_document.py` runs decode → magic → parse → normalize **inside** the request handler (then one commit). The worry was that a 10 × 200-page batch takes "tens of seconds", so a proxy/ingress timeout could kill a request whose parse work was already paid for, and each in-flight upload would pin one threadpool worker for its duration.
+- **Measured 2026-10-21 (Batch J) — the premise was ~10× off:**
+
+| Case | Size | Parse |
+|---|---|---|
+| Real workspace (10.7k chars, txt) | 0.01 MB | **0.000 s** |
+| One 200-page PDF (441,745 chars — the accepted maximum) | 1.4 MB | **0.33 s** |
+| **10 × that = per-request worst case** | 14 MB | **3.3 s** |
+| 200-page PDF over the char cap | 2.1 MB | 0.36 s, then a correct 413 |
+| txt at the 500k char cap | 0.44 MB | **0.013 s** |
+| docx over the char cap | 0.04 MB | 0.05 s, then 413 |
+
+- **A cap ordering worth knowing:** the **500k-char cap binds before the 200-page cap** for text-dense PDFs. A 200-page document hits `max_extracted_chars` and is rejected by design — so "200 pages" is not the practical ceiling, characters are.
+- **Verdict: closed with no contract change.** The worst case is **3.3 s of CPU**, inside ordinary proxy timeouts, and the parse is not what makes a big upload slow — the **transfer of up to 100 MB is**, and that happens inside the request in *any* design. Background ingestion would therefore remove at most 3.3 s from the critical path while adding a `pending` state, a reaper, a `409 sources_processing` guard and client polling. **The honest fix would not pay for itself.**
+- **What shipped instead (Track A):** parse timing per file (`brd-agent.ingestion`, `parsed .txt in 0.01fs -> 1 document(s), N chars`) and a per-request total (`brd-agent.upload`, `upload: N file(s), B bytes, parse Xs, total Ys`). A slow upload can now be explained from logs instead of guessed at, which is what made this closure possible.
+- **Reopen condition:** if `max_upload_bytes`/`max_upload_files` are ever raised, or uploads start timing out in production, Track B becomes real. Start from the new log lines — they already separate transfer from parse.
 
 ### ✅ P-7 — No response compression on the API — FIXED 2026-10-19
 
@@ -187,13 +200,13 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 **Batch I — done 2026-10-21** (contract-safe, server-only)
 12. ~~**P-9**~~ Q&A scoring scans for the question's terms instead of tokenizing each document into a word set. **Bit-identical selection** (oracle-tested), **72 ms → 54 ms** and **10.1 MB → 0.5 MB peak** at the cap; irrelevant at today's sizes, kept as cheap insurance.
 
-**Next — measured**
-13. **P-6** (background ingestion needs a processing state + contract change). This is the **last open finding**; Batch J proposes instrumenting it first (Track A) and only building Track B once upload time is measured.
+**Batch J — done 2026-10-21** (contract-safe, server-only)
+13. ~~**P-6**~~ **measured into closure — not material.** Worst case (10 × 200-page PDFs) parses in **3.3 s**; the transfer, not the parse, is what makes a big upload slow. Shipped instrumentation only, no contract change.
 
-**Resolved / out of scope**
+**No open findings remain.**
 14. ~~**R-1**~~ (§8) — **resolved 2026-10-20** by moving to a fresh Mumbai project; no code change needed.
 
-**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (183 after Batch I), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
+**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (186 after Batch J), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
 
 ---
 
@@ -218,6 +231,17 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 - **Rejected:** scoring from titles/summaries (`MIN_RELEVANCE_SCORE = 2` means a content-only document can always qualify, so no pruning is safe) and a substring prefilter (every term appears in every document with a realistic question).
 - **Incidental fix:** `app/db/models/__init__.py` was missing `GoogleConnection`, so `import app.db.models` produced an incomplete mapper registry — any script touching an ORM entity without also importing the integrations died with `KeyError: 'GoogleConnection'`. It bit two measurement scripts the same day. One line, now complete.
 - **Still open:** P-6 only.
+
+---
+
+## 5g. Batch J results (2026-10-21)
+
+- **Suite:** 183 → **186 passed** (+3 in new `server/tests/test_ingestion_timing.py`). App boots, 27 OpenAPI paths; `npm run lint` clean, `npm run build` green; **zero client diff**.
+- **Diff:** `app/services/document_ingestion_service.py`, `app/api/routes/standard_document.py`, 1 new test file, README, docs.
+- **Decision gate outcome:** worst case 3.3 s < the 5 s threshold, so **P-6 closed with no contract change** and Track B stays unbuilt. The gate was written down before measuring, which is why the answer was allowed to be "no".
+- **Measurements:** real 10.7k-char txt 0.000 s · one 200-page PDF (441,745 chars, the accepted max) 0.33 s · **×10 = 3.3 s** · txt at the 500k cap 0.013 s · over-cap PDF/docx reject correctly at 413 after ≤0.36 s.
+- **Unexpected finding:** the **character cap binds before the page cap** for text-dense PDFs — \"200 pages\" is not the practical ceiling, 500k chars is.
+- **No open findings remain in v2.**
 
 ---
 
