@@ -36,6 +36,11 @@ class DocumentExtractionDocument(Base):
             ondelete="CASCADE",
         ),
         nullable=False,
+        # The composite unique above leads with document_extraction_id,
+        # so it cannot serve lookups by standard_document_id alone —
+        # which is exactly what the ORM cascade issues when a document
+        # is deleted.
+        index=True,
     )
 
     document_extraction: Mapped["DocumentExtraction"] = relationship(

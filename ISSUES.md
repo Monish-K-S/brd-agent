@@ -4,7 +4,7 @@
 - **Scope:** the end-to-end pipeline — source upload → extraction → knowledge consolidation → BRD generation — plus the latency of the surfaces that sit on that path (status polling, exports, Q&A reads).
 - **Method:** static read of every stage in the request path, checked against the installed dependency versions (`server/.venv`, Python 3.11.15, google-genai 2.22.0). **No file was modified.** No profiling run exists in the repo, so every severity below is **structural, not measured** — §6 defines the measurement that would confirm it.
 - **Prior audit state:** 3 high, 9 medium, 10 low — **all closed**. Their one-line outcomes are preserved in §1.
-- **This pass:** 9 new pipeline findings (P-1…P-9). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. **Batch G (2026-10-20) added P-10**: the consolidator was handing Gemini 52–60% byte-identical duplicates, so reasoning was being spent on mechanical reconciliation. P-2, P-6, P-8, P-9 remain open.
+- **This pass:** 10 new pipeline findings (P-1…P-10). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. **Batch G (2026-10-20) added and fixed P-10**: the consolidator was handing Gemini 52–60% byte-identical duplicates, so reasoning was being spent on mechanical reconciliation. **Batch H (2026-10-21) fixed P-8** (indexes) and **measured P-2 into closure** — the aggregate PDF build is 0.09 s, i.e. 0.5% of the 20 s extraction phase, so the "one giant `multi_cell`" concern does not apply at real scale. P-6, P-9 remain open.
 - **Also logged 2026-10-19, resolved 2026-10-20:** **R-1** (§8) — the ~1 s `/workspaces` load was Supabase region latency (Seoul, ~120 ms/round trip). The project has since been moved to a fresh **Mumbai (`ap-south-1`)** project with no data migrated; measured TTFB dropped to the ~150–250 ms range. §8 keeps the measurements for the record.
 
 ---
@@ -90,12 +90,11 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 - **Implementation:** new settings `gemini_thinking_budget` (default **0**) and `gemini_timeout_seconds` (default **120**) — budget is config-driven so it can be raised to e.g. 1024 without a code change if quality regresses. `GeminiBRDGenerator` now sends `thinking_config=ThinkingConfig(thinking_budget=...)`, logs the token split (`prompt/output/thoughts/total` + elapsed) on the `brd-agent.generation` logger, and sets `http_options` with a millisecond timeout plus an **explicit 2-attempt retry** on `408/429/500/502/503/504`. The explicit value matters: the SDK retries **5 times by default** (verified in `_api_client.py:905`), so leaving it implicit meant unbounded worst-case latency.
 - **Original finding (for the record):** `gemini_brd_generator.py:58-65` sent only `response_mime_type` + `response_json_schema`; model pinned at line 18. No timeout, no retry — a single transient 503 cost one of the `5/hour` generates.
 
-### 🟡 P-2 — The aggregate extraction PDF is built as one giant `multi_cell`
-- **Where:** `server/app/ai/builders/project_document_builder.py:159-163` — a single `pdf.multi_cell(...)` call receives `document.content` verbatim; budget is `max_aggregate_chars = 1,000,000` (`config.py:45`).
-- **Why it costs time:** fpdf2 lays out the entire string (line-breaking and justification) in one call, then subsets and embeds the DejaVu TTF on `output()`. At the 1M budget this is a multi-hundred-KB text block and a generated PDF of roughly 140 pages (8 pt, `LINE_HEIGHT = 4`) — CPU + memory spent *before* Sarvam sees a byte.
-- **Note:** the 200-page cap applies only to **uploaded** PDFs (`pdf_parser.py:40`); the generated aggregate PDF is bounded by characters only.
-- **Impact:** adds seconds-to-tens-of-seconds to stage 1 and feeds a very large document to Sarvam, which compounds P-3.
-- **Safe change (measure first):** if §6 shows this is material, either lower `max_aggregate_chars`, or split the content into chunks and emit per-chunk `multi_cell` calls (same output, flatter CPU/memory). Do **not** change the builder's output semantics without an export-diff check.
+### ✅ P-2 — The aggregate extraction PDF is built as one giant `multi_cell` — CLOSED 2026-10-21, **not material**
+- **Original concern:** `server/app/ai/builders/project_document_builder.py:159-163` — a single `pdf.multi_cell(...)` receives `document.content` verbatim; budget is `max_aggregate_chars = 1,000,000`. The worry was that fpdf2 would lay out the whole string in one call, so a near-budget workspace would build a ~140-page PDF before Sarvam saw a byte.
+- **Measured 2026-10-21 (Batch H, Run B) on the real 4-document workspace:** 11,549 chars → **30 KB PDF built in 0.09 s**, i.e. **1% of the 1M budget** and **0.5% of the 20.2 s `processing_sources` phase**. A second independent build measured 0.11 s.
+- **Verdict:** the finding was arithmetically right about the *ceiling* and wrong about *where real workspaces sit*. Optimizing a 0.09 s step that is 0.5% of a phase whose other 99.5% is a vendor round trip would be effort spent for noise. **Closed with no code change.**
+- **Reopen condition (write it down so nobody re-derives it):** if a workspace's aggregate ever approaches `max_aggregate_chars`, the first lever is **lowering that setting** (config only, no layout risk) — chunked `multi_cell` is only warranted if a genuinely large input still proves slow, and any change there must be export-diffed against the current PDF.
 
 ### ✅ P-3 — Sarvam extraction had a hard 2-minute client timeout that nothing could override — FIXED 2026-10-19
 
@@ -124,11 +123,13 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
   2. **PDF/DOCX are excluded via `exclude_content_types`** (on top of Starlette's `DEFAULT_EXCLUDED_CONTENT_TYPES`). `FileResponse` is a streaming response, so exports would otherwise be compressed unconditionally: wasted CPU on already-compressed files and a dropped `Content-Length` on downloads.
 - **Original finding (for the record):** `server/app/main.py` had no gzip middleware — the full 11-section BRD JSON and every status/document payload shipped uncompressed.
 
-### 🟢 P-8 — No index on `workspace_id` for the workspace-scoped tables
-- **Where:** only `generation_jobs` has indexes (`db/models/generation_job.py:26,45` + migration `d4e5f6a7b8c9`). `standard_documents`, `brds`, `project_knowledge`, `document_extractions` carry FKs with **no** index — Postgres does not auto-index foreign keys.
-- **Correction (2026-10-19, verified via `pg_indexes` while measuring R-1):** `workspaces.user_id` is **not** unindexed — `uq_workspaces_user_lower_name ON workspaces (user_id, lower(name))` has `user_id` as its leading column, so `WHERE user_id = ?` can use it. Drop that table from the migration; the other four still need it.
-- **Impact:** every status poll (see P-4), Q&A ask, extraction run, and document listing filters on `workspace_id` → sequential scan once the tables grow. Negligible at demo scale, a real cost beyond it.
-- **Safe change:** one Alembic migration adding five indexes (reversible downgrade, no data change).
+### ✅ P-8 — No index on `workspace_id` for the workspace-scoped tables — FIXED 2026-10-21 (3 indexes, not 5)
+- **Correction first:** the original entry claimed five tables needed an index. Checked against live `pg_indexes` on 2026-10-21, **two of them were already indexed** — `brds` and `project_knowledge` each declare `workspace_id` with `unique=True`, and Postgres backs that with `brds_workspace_id_key` / `project_knowledge_workspace_id_key`. `generation_jobs` was already covered too (`ix_generation_jobs_workspace_id` + the partial unique from `b8c9d0e1f2a3`). This is the same over-count pattern as the `workspaces.user_id` correction in R-1: a `unique` constraint is easy to miss when reading only the column definition.
+- **The real gap was three indexes**, all created by migration `c1d2e3f4a5b6`: `ix_standard_documents_workspace_id`, `ix_document_extractions_workspace_id`, and `ix_document_extraction_documents_standard_document_id`.
+- **Why the third one:** `uq_extraction_document` is `(document_extraction_id, standard_document_id)`, so it **cannot** serve a lookup by `standard_document_id` alone — which is exactly the predicate the ORM cascade issues when a document is deleted.
+- **Verified:** `alembic upgrade head` → all three present in `pg_indexes`; a reverse query for any `workspace_id`/`standard_document_id` column that is not the leading column of some index now returns **zero rows**; `downgrade -1` removes all three; `upgrade head` restores them.
+- **Model + migration both changed on purpose** — mirroring DDL in `__table_args__`/`index=True` follows the `generation_jobs` precedent and is what lets the test assert on model metadata rather than a live database.
+- **Original finding (for the record):** `standard_documents`, `brds`, `project_knowledge`, `document_extractions` carry FKs with no index — Postgres does not auto-index foreign keys. Correct about the mechanism, over-broad about the scope.
 
 ### 🟢 P-9 — Q&A reads every document's full content on each question
 - **Where:** `server/app/services/brd_qa_service.py:72-76` → `get_all_by_workspace_id` (full rows, deferred `content` **not** applied) before scoring relevance; only `MAX_RELEVANT_SOURCES = 8` × `MAX_SOURCE_CONTENT_LENGTH = 12000` reach the prompt.
@@ -176,16 +177,30 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 8. ~~**P-10**~~ deterministic dedup in `KnowledgeConsolidator` — identical items dropped at consolidation, near-duplicates kept for Gemini. **52–60% of items were duplicates; BRD call 22.8 s → 14.4 s at `thinking_budget=2048`, prompt 5,010 → 3,125 tokens.**
 9. ~~**`gemini_thinking_budget` default**~~ raised `0` → **`2048`**, so the reasoning pass is restored now that the input is clean (see P-10).
 
-**Next — measured**
-10. **P-8** (indexes, reversible migration — still the cheapest remaining insurance; `workspaces.user_id` is already covered).
-11. **P-2** — only if §6 shows the aggregate-PDF build is material; the Batch E instrumentation now answers that from logs.
+**Batch H — done 2026-10-21** (contract-safe, server-only)
+10. ~~**P-8**~~ three missing indexes (migration `c1d2e3f4a5b6`) — `standard_documents.workspace_id`, `document_extractions.workspace_id`, `document_extraction_documents.standard_document_id`. **Corrected from five tables to three**: `brds`/`project_knowledge` were already indexed by their `unique` constraints.
+11. ~~**P-2**~~ **measured into closure — not material.** Aggregate PDF build **0.09 s** for 11,549 chars (1% of the 1M budget, 0.5% of the phase). No code change.
 
-**Conditional / deferred**
+**Next — measured**
 12. **P-6** (background ingestion needs a processing state + contract change).
-13. **P-9** (Q&A summary-first scoring — low payoff until workspaces get large).
+13. **P-9** (Q&A summary-first scoring — low payoff until workspaces get large, *and* it changes which sources get cited, so it is not a free projection).
+
+**Resolved / out of scope**
 14. ~~**R-1**~~ (§8) — **resolved 2026-10-20** by moving to a fresh Mumbai project; no code change needed.
 
-**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (148 after Batch G), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
+**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (154 after Batch H), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
+
+---
+
+## 5e. Batch H results (2026-10-21)
+
+- **Suite:** 148 → **154 passed** (+6 in new `server/tests/test_workspace_indexes.py`). App boots, 27 OpenAPI paths. `npm run lint` clean, `npm run build` green, **zero client diff**.
+- **Diff:** 3 model files, migration `c1d2e3f4a5b6`, 1 new test file, docs.
+- **Migration drill:** `upgrade head` → 3 indexes in `pg_indexes` → reverse gap query returns **0 rows** → `downgrade -1` removes all 3 → `upgrade head` restores. Reversibility tested, not assumed.
+- **Run A (regenerate, no new sources — free):** `preparing_knowledge` ≈ 3 ms (consolidation, incl. dedup); `generating_brd` **13.9 s** with `prompt=3125`, `thoughts=1491`, 11/11 sections, 15 functional requirements.
+- **Run B (real Sarvam job, result discarded, nothing written):** on the 4-document workspace — aggregate PDF build **0.09 s**, Sarvam round trip **20.1 s** (10 polls, 19.5 s server-side), so `processing_sources ≈ 20.2 s` and **the vendor round trip is 99.5% of it**.
+- **The end-to-end picture after Batches F/G/H** on a fresh-source generation: `~20.2 s extraction + ~0.003 s consolidation + ~13.9 s BRD ≈ 34 s`. The next-largest lever is no longer in this codebase.
+- **Still open:** P-6, P-9.
 
 ---
 
@@ -228,6 +243,20 @@ The timing instrumentation now exists — every generation logs, at INFO:
 So one real generation (2–3 sources, then a regenerate) answers most of §3. Record: aggregate chars, PDF build seconds, Sarvam submit→complete seconds and poll count, consolidation seconds, Gemini seconds. Then A/B P-1 (`thinking_budget=0` vs default) on the same workspace and compare the `generating_brd` line — that is the number that decides whether P-1 is the win it looks like.
 
 Only after that should P-2's severity be settled — it is the one item where a fix could add risk (export-layout change) for an unproven gain.
+
+### 6a. Measured 2026-10-21 (Batch H, Run B)
+
+One real Sarvam job on the 4-document workspace, result discarded (nothing written):
+
+| Stage | Time | Share |
+|---|---|---|
+| Aggregate PDF build | **0.09 s** (11,549 chars → 30 KB) | 0.5% |
+| Sarvam round trip | **20.1 s** (10 polls; 19.5 s server-side) | **99.5%** |
+| `processing_sources` total | ~20.2 s | 100% |
+
+Plus `preparing_knowledge` ≈ 3 ms (consolidation incl. dedup) and `generating_brd` 13.9 s (Batch G measurement). So a fresh-source generation is **≈34 s**, of which **20 s is a vendor call this codebase cannot speed up** — the only lever there is input size, and 11.5k chars is already small.
+
+**Consequence for P-2:** closed. The premise (a multi-hundred-KB, ~140-page PDF) describes the `max_aggregate_chars` ceiling, not any real workspace — this one uses **1%** of the budget. Reopen only if a workspace approaches that ceiling, and lower the budget before touching the builder.
 
 ---
 

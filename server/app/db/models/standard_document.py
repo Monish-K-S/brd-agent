@@ -21,6 +21,7 @@ class StandardDocument(Base):
             ondelete="CASCADE",
         ),
         nullable=False,
+        index=True,
     )
 
     source_type: Mapped[str] = mapped_column(

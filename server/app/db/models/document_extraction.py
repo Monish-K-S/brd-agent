@@ -21,6 +21,7 @@ class DocumentExtraction(Base):
             ondelete="CASCADE",
         ),
         nullable=False,
+        index=True,
     )
 
     document_knowledge: Mapped[dict] = mapped_column(
