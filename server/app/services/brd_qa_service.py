@@ -22,6 +22,50 @@ class BRDQAService:
     MAX_SOURCE_CONTENT_LENGTH = 12000
     MIN_RELEVANCE_SCORE = 2
 
+    # Shared by `_tokenize` (indexing) and `_is_indexable_term`
+    # (scanning), so the two can never disagree about which words count.
+    MIN_TERM_LENGTH = 3
+
+    STOP_WORDS = frozenset(
+        {
+            "a",
+            "about",
+            "an",
+            "and",
+            "are",
+            "be",
+            "can",
+            "do",
+            "does",
+            "for",
+            "from",
+            "how",
+            "i",
+            "in",
+            "is",
+            "it",
+            "of",
+            "on",
+            "or",
+            "our",
+            "the",
+            "this",
+            "to",
+            "what",
+            "when",
+            "where",
+            "which",
+            "who",
+            "why",
+            "with",
+            "you",
+            "your",
+        }
+    )
+
+    # A single token, as `_tokenize` produces them.
+    _TERM_RUN = re.compile(r"[a-zA-Z0-9]+\Z")
+
     def __init__(self, db: Session):
         self.db = db
 
@@ -138,6 +182,8 @@ class BRDQAService:
         if not question_terms:
             return documents[: cls.MAX_RELEVANT_SOURCES]
 
+        content_pattern = cls._term_pattern(question_terms)
+
         scored_documents: list[
             tuple[int, int, StandardDocument]
         ] = []
@@ -145,6 +191,7 @@ class BRDQAService:
         for index, document in enumerate(documents):
             score = cls._score_document(
                 question_terms=question_terms,
+                content_pattern=content_pattern,
                 document=document,
             )
 
@@ -193,25 +240,110 @@ class BRDQAService:
         cls,
         question_terms: set[str],
         document: StandardDocument,
+        content_pattern: re.Pattern[str] | None = None,
     ) -> int:
         title_terms = cls._tokenize(
             document.title or "",
         )
 
-        content_terms = cls._tokenize(
-            document.content or "",
+        score = 5 * len(question_terms & title_terms)
+
+        score += cls._count_present_terms(
+            terms=question_terms,
+            text=document.content or "",
+            pattern=content_pattern,
         )
 
-        score = 0
-
-        for term in question_terms:
-            if term in title_terms:
-                score += 5
-
-            if term in content_terms:
-                score += 1
-
         return score
+
+    @classmethod
+    def _count_present_terms(
+        cls,
+        terms: set[str],
+        text: str,
+        pattern: re.Pattern[str] | None = None,
+    ) -> int:
+        """Count how many of ``terms`` occur in ``text`` as whole tokens.
+
+        This used to tokenize the entire document into a set of every
+        distinct word, intersect it with the question's terms, and throw
+        the set away — allocating a set of hundreds of thousands of
+        strings per document, per question, to answer a question about
+        at most a handful of words.
+
+        The result is identical, because a term is present exactly when
+        it is a maximal ``[a-zA-Z0-9]+`` run **and** survives the same
+        filter ``_tokenize`` applies when building its set (min length
+        and stop words). Terms that the old set could never have
+        contained are excluded up front rather than scanned for.
+
+        The scan also stops as soon as every eligible term has been seen.
+        """
+
+        eligible = {
+            term
+            for term in terms
+            if cls._is_indexable_term(term)
+        }
+
+        if not eligible:
+            return 0
+
+        lowered = text.lower()
+
+        if not lowered:
+            return 0
+
+        if pattern is None:
+            pattern = cls._term_pattern(eligible)
+
+        found: set[str] = set()
+
+        for match in pattern.finditer(lowered):
+            found.add(match.group(0))
+
+            if len(found) == len(eligible):
+                break
+
+        return len(found)
+
+    @classmethod
+    def _is_indexable_term(cls, term: str) -> bool:
+        return (
+            len(term) >= cls.MIN_TERM_LENGTH
+            and term not in cls.STOP_WORDS
+            # Tokens are lowercased maximal `[a-zA-Z0-9]` runs, so a term
+            # containing anything else, or uppercase, can never equal
+            # one. `_tokenize` guarantees this for real questions; the
+            # check keeps the function honest for any caller.
+            and term == term.lower()
+            and cls._TERM_RUN.fullmatch(term) is not None
+        )
+
+    @staticmethod
+    def _term_pattern(terms: set[str]) -> re.Pattern[str]:
+        """Match any of ``terms`` as a whole token.
+
+        Longest-first ordering keeps an alternation from settling on a
+        prefix of a longer term and then failing the trailing boundary.
+
+        Lookarounds rather than ``\\b`` on purpose: ``\\b`` treats ``_``
+        as a word character, but ``_tokenize`` splits on
+        ``[a-zA-Z0-9]+``, so ``foo_bar`` contains the token ``foo``.
+        """
+
+        alternatives = "|".join(
+            re.escape(term)
+            for term in sorted(
+                terms,
+                key=len,
+                reverse=True,
+            )
+        )
+
+        return re.compile(
+            rf"(?<![a-zA-Z0-9])(?:{alternatives})(?![a-zA-Z0-9])"
+        )
 
     @staticmethod
     def _tokenize(text: str) -> set[str]:
@@ -220,45 +352,11 @@ class BRDQAService:
             text.lower(),
         )
 
-        stop_words = {
-            "a",
-            "about",
-            "an",
-            "and",
-            "are",
-            "be",
-            "can",
-            "do",
-            "does",
-            "for",
-            "from",
-            "how",
-            "i",
-            "in",
-            "is",
-            "it",
-            "of",
-            "on",
-            "or",
-            "our",
-            "the",
-            "this",
-            "to",
-            "what",
-            "when",
-            "where",
-            "which",
-            "who",
-            "why",
-            "with",
-            "you",
-            "your",
-        }
-
         return {
             word
             for word in words
-            if len(word) >= 3 and word not in stop_words
+            if len(word) >= BRDQAService.MIN_TERM_LENGTH
+            and word not in BRDQAService.STOP_WORDS
         }
 
     @classmethod

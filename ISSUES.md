@@ -4,7 +4,7 @@
 - **Scope:** the end-to-end pipeline — source upload → extraction → knowledge consolidation → BRD generation — plus the latency of the surfaces that sit on that path (status polling, exports, Q&A reads).
 - **Method:** static read of every stage in the request path, checked against the installed dependency versions (`server/.venv`, Python 3.11.15, google-genai 2.22.0). **No file was modified.** No profiling run exists in the repo, so every severity below is **structural, not measured** — §6 defines the measurement that would confirm it.
 - **Prior audit state:** 3 high, 9 medium, 10 low — **all closed**. Their one-line outcomes are preserved in §1.
-- **This pass:** 10 new pipeline findings (P-1…P-10). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. **Batch G (2026-10-20) added and fixed P-10**: the consolidator was handing Gemini 52–60% byte-identical duplicates, so reasoning was being spent on mechanical reconciliation. **Batch H (2026-10-21) fixed P-8** (indexes) and **measured P-2 into closure** — the aggregate PDF build is 0.09 s, i.e. 0.5% of the 20 s extraction phase, so the "one giant `multi_cell`" concern does not apply at real scale. P-6, P-9 remain open.
+- **This pass:** 10 new pipeline findings (P-1…P-10). **Batch E (2026-10-19) fixed four** (P-3, P-4, P-5, P-7) and shipped the timing instrumentation; **Batch F (2026-10-20) fixed the biggest one, P-1** — the Gemini thinking pass was 68% of generated tokens and ~17 s of every run. **Batch G (2026-10-20) added and fixed P-10**: the consolidator was handing Gemini 52–60% byte-identical duplicates, so reasoning was being spent on mechanical reconciliation. **Batch H (2026-10-21) fixed P-8** (indexes) and **measured P-2 into closure** — the aggregate PDF build is 0.09 s, i.e. 0.5% of the 20 s extraction phase, so the "one giant `multi_cell`" concern does not apply at real scale. **Batch I (2026-10-21) resolved P-9**: Q&A scoring no longer builds a per-document word set (72 ms → 54 ms, **peak allocation 10.1 MB → 0.5 MB**) and is proven bit-identical; at real workspace sizes it is 0.2 ms either way, so it is cheap insurance, not a visible win. **P-6 is the last open finding.**
 - **Also logged 2026-10-19, resolved 2026-10-20:** **R-1** (§8) — the ~1 s `/workspaces` load was Supabase region latency (Seoul, ~120 ms/round trip). The project has since been moved to a fresh **Mumbai (`ap-south-1`)** project with no data migrated; measured TTFB dropped to the ~150–250 ms range. §8 keeps the measurements for the record.
 
 ---
@@ -131,10 +131,13 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 - **Model + migration both changed on purpose** — mirroring DDL in `__table_args__`/`index=True` follows the `generation_jobs` precedent and is what lets the test assert on model metadata rather than a live database.
 - **Original finding (for the record):** `standard_documents`, `brds`, `project_knowledge`, `document_extractions` carry FKs with no index — Postgres does not auto-index foreign keys. Correct about the mechanism, over-broad about the scope.
 
-### 🟢 P-9 — Q&A reads every document's full content on each question
-- **Where:** `server/app/services/brd_qa_service.py:72-76` → `get_all_by_workspace_id` (full rows, deferred `content` **not** applied) before scoring relevance; only `MAX_RELEVANT_SOURCES = 8` × `MAX_SOURCE_CONTENT_LENGTH = 12000` reach the prompt.
-- **Impact:** up to ~5 MB read and scored in Python per question, discarded down to ≤96 KB. The Gemini call still dominates the user-visible time, so this is low severity.
-- **Safe change:** score from summaries/metadata (the same deferred-content projection as P-4/M-3), then fetch content only for the selected ids.
+### ✅ P-9 — Q&A tokenizes every document's full content on each question — RESOLVED 2026-10-21, **not material at real scale**
+- **What it was:** `brd_qa_service.py` read every document's full `content`, then built a **set of every distinct word** in each document, intersected it with the question's terms, and threw the set away — per document, per question. On a workspace at the capped size (10 files × 500k chars) that is 5M characters tokenized to answer a question about at most a handful of words.
+- **Correction to the original proposed fix:** *"score from summaries/metadata, then fetch content only for the selected ids"* **cannot preserve behaviour.** A document's content contributes up to `len(question_terms)` points and `MIN_RELEVANCE_SCORE` is 2, so a document with no title match can still qualify on content alone — nothing can be eliminated without reading it. Exactness forbids pruning, which is why the fix had to keep reading content.
+- **What was changed instead:** the scan targets the question's terms directly (`_term_pattern` + lookarounds that reproduce `[a-zA-Z0-9]+` boundaries exactly) and stops as soon as every eligible term has been seen. The token filter (`len >= 3`, stop words) was hoisted to `MIN_TERM_LENGTH` / `STOP_WORDS` so the indexer and the scanner can never disagree. **Selection is bit-identical** — proven by 300 seeded fuzz cases plus 8 questions against the old algorithm, kept in the test file as an oracle.
+- **Measured (2026-10-21, 10 docs × 500k chars):** wall clock **72 ms → 54 ms** (1.3×); peak allocation **10.1 MB → 0.5 MB (20.5× less)**. A substring prefilter was also tried and rejected — with a realistic question every term appears in every document, so it saves nothing.
+- **Verdict: not material today.** At the real 11.5k-char workspace this is 0.2 ms either way. The change is kept because it is a strict improvement (exact, cheaper, and 20× less garbage per question under concurrency), not because it fixed a visible problem.
+- **Reopen condition:** if workspaces approach the 5M-char cap, move scoring **into Postgres** (`regexp` per term in the `WHERE`, so content never crosses the wire and only the 8 selected rows are fetched). That is the only fix that avoids the read, and it changes the query shape enough to deserve its own batch.
 
 ### ✅ P-10 — ProjectKnowledge carried 52–60% byte-identical duplicates, so Gemini was paid to reconcile them — FIXED 2026-10-20
 
@@ -181,14 +184,16 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 10. ~~**P-8**~~ three missing indexes (migration `c1d2e3f4a5b6`) — `standard_documents.workspace_id`, `document_extractions.workspace_id`, `document_extraction_documents.standard_document_id`. **Corrected from five tables to three**: `brds`/`project_knowledge` were already indexed by their `unique` constraints.
 11. ~~**P-2**~~ **measured into closure — not material.** Aggregate PDF build **0.09 s** for 11,549 chars (1% of the 1M budget, 0.5% of the phase). No code change.
 
+**Batch I — done 2026-10-21** (contract-safe, server-only)
+12. ~~**P-9**~~ Q&A scoring scans for the question's terms instead of tokenizing each document into a word set. **Bit-identical selection** (oracle-tested), **72 ms → 54 ms** and **10.1 MB → 0.5 MB peak** at the cap; irrelevant at today's sizes, kept as cheap insurance.
+
 **Next — measured**
-12. **P-6** (background ingestion needs a processing state + contract change).
-13. **P-9** (Q&A summary-first scoring — low payoff until workspaces get large, *and* it changes which sources get cited, so it is not a free projection).
+13. **P-6** (background ingestion needs a processing state + contract change). This is the **last open finding**; Batch J proposes instrumenting it first (Track A) and only building Track B once upload time is measured.
 
 **Resolved / out of scope**
 14. ~~**R-1**~~ (§8) — **resolved 2026-10-20** by moving to a fresh Mumbai project; no code change needed.
 
-**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (154 after Batch H), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
+**Discipline for every item:** no route/schema/status change; no client change; server diff → **restart the backend**; run `pytest` (183 after Batch I), `npm run lint`, `npm run build`; update AGENTS.md + this file per the established per-batch pattern.
 
 ---
 
@@ -201,6 +206,18 @@ Severity key: **M** = medium (measurable slowdown or failure risk on the main pa
 - **Run B (real Sarvam job, result discarded, nothing written):** on the 4-document workspace — aggregate PDF build **0.09 s**, Sarvam round trip **20.1 s** (10 polls, 19.5 s server-side), so `processing_sources ≈ 20.2 s` and **the vendor round trip is 99.5% of it**.
 - **The end-to-end picture after Batches F/G/H** on a fresh-source generation: `~20.2 s extraction + ~0.003 s consolidation + ~13.9 s BRD ≈ 34 s`. The next-largest lever is no longer in this codebase.
 - **Still open:** P-6, P-9.
+
+---
+
+## 5f. Batch I results (2026-10-21)
+
+- **Suite:** 154 → **183 passed** (+29 in new `server/tests/test_brd_qa_selection.py`). App boots, 27 OpenAPI paths; `npm run lint` clean, `npm run build` green; **zero client diff**.
+- **Diff:** `app/services/brd_qa_service.py`, `app/db/models/__init__.py` (incidental, see below), 1 new test file, docs.
+- **Equivalence, not just tests:** the old scoring algorithm is preserved inside the test file as an oracle and compared against the new one over a hostile corpus (underscores, hyphens, decimals, substrings, accented text, empty content) plus 300 seeded fuzz strings and 8 full-selection questions. Two real divergences were caught this way before they shipped: the old set excluded tokens shorter than 3 chars and stop words, and a non-ASCII term like `café` can never be a token.
+- **Measured at the cap (10 × 500k chars):** 72 ms → 54 ms wall clock (1.3×); **10.1 MB → 0.5 MB peak allocation (20.5× less)**. At the real 11.5k-char workspace: 0.2 ms either way.
+- **Rejected:** scoring from titles/summaries (`MIN_RELEVANCE_SCORE = 2` means a content-only document can always qualify, so no pruning is safe) and a substring prefilter (every term appears in every document with a realistic question).
+- **Incidental fix:** `app/db/models/__init__.py` was missing `GoogleConnection`, so `import app.db.models` produced an incomplete mapper registry — any script touching an ORM entity without also importing the integrations died with `KeyError: 'GoogleConnection'`. It bit two measurement scripts the same day. One line, now complete.
+- **Still open:** P-6 only.
 
 ---
 
