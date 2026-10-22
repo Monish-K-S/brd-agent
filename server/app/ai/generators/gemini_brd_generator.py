@@ -34,6 +34,7 @@ class GeminiBRDGenerator:
         schema_path: str | Path,
         timeout_seconds: int | None = None,
         thinking_budget: int | None = None,
+        model: str | None = None,
     ) -> None:
         load_dotenv()
 
@@ -43,6 +44,16 @@ class GeminiBRDGenerator:
             raise RuntimeError("GEMINI_API_KEY is not set")
 
         self.schema_path = Path(schema_path)
+
+        # Overridable per instance so the evaluation harness can compare
+        # two models on identical input. The class constant stays the
+        # default, so nothing changes for the app.
+        self.model = model or self.MODEL
+
+        # Token split of the most recent call, or None before the first
+        # one. Exposed so the evaluator can record usage as data instead
+        # of scraping the log line.
+        self.last_usage: dict | None = None
 
         self.timeout_seconds = (
             timeout_seconds
@@ -84,6 +95,9 @@ class GeminiBRDGenerator:
 
         schema = self._load_schema()
 
+        # A failed call must not leave the previous run's tokens behind.
+        self.last_usage = None
+
         project_knowledge_json = json.dumps(
             project_knowledge,
             default=self._serialize_dataclass,
@@ -98,7 +112,7 @@ class GeminiBRDGenerator:
         started = time.perf_counter()
 
         response = self.client.models.generate_content(
-            model=self.MODEL,
+            model=self.model,
             contents=prompt,
             config={
                 "response_mime_type": "application/json",
@@ -137,11 +151,20 @@ class GeminiBRDGenerator:
         if usage is None:
             return
 
+        self.last_usage = {
+            "model": self.model,
+            "prompt_tokens": getattr(usage, "prompt_token_count", None),
+            "output_tokens": getattr(usage, "candidates_token_count", None),
+            "thought_tokens": getattr(usage, "thoughts_token_count", None),
+            "total_tokens": getattr(usage, "total_token_count", None),
+            "seconds": round(elapsed_seconds, 3),
+        }
+
         logger.info(
             "Gemini BRD generation in %.2fs (model=%s, prompt=%s tokens, "
             "output=%s tokens, thoughts=%s tokens, total=%s tokens)",
             elapsed_seconds,
-            self.MODEL,
+            self.model,
             getattr(usage, "prompt_token_count", None),
             getattr(usage, "candidates_token_count", None),
             getattr(usage, "thoughts_token_count", None),

@@ -65,6 +65,14 @@ class Settings(BaseSettings):
 
     generation_job_timeout_minutes: int = 15
 
+    # Evaluation harness (developer tooling, see FINAL.md batch K).
+    # `eval_enabled` mounts the dev-only /evals routes; `eval_on_generation`
+    # scores every successful generation and writes a record. Both are
+    # ignored in production — the recorder and the routes return early on
+    # `environment == "production"` regardless of these values.
+    eval_enabled: bool = True
+    eval_on_generation: bool = True
+
     rate_limit_enabled: bool = True
     rate_limit_brd_generate: str = "5/hour"
     rate_limit_brd_ask: str = "30/minute"

@@ -10,6 +10,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.models.generation_job import GenerationJob
 from app.db.session import SessionLocal
+from app.evals import store
+from app.evals.generation import build_generation_eval
 from app.repositories.generation_job_repository import (
     GenerationJobRepository,
 )
@@ -257,6 +259,19 @@ class GenerationJobService:
 
         job_started = time.perf_counter()
 
+        # Collected alongside the log lines so the evaluation record can
+        # report real phase costs. Phases that do not run (a regeneration
+        # with no new sources has no extraction step) are simply absent.
+        phase_timings: dict[str, float] = {}
+
+        brd = None
+        project_knowledge = None
+
+        # Set only after the job is marked succeeded. The handler below
+        # falls through rather than returning, so this flag is what keeps
+        # a scoring failure out of the failure path.
+        succeeded = False
+
         try:
             if has_new_sources:
                 self._set_phase(
@@ -278,6 +293,7 @@ class GenerationJobService:
                     job_id,
                     PHASE_PROCESSING_SOURCES,
                     phase_started,
+                    phase_timings,
                 )
 
                 if extraction is None:
@@ -307,6 +323,7 @@ class GenerationJobService:
                 job_id,
                 PHASE_PREPARING_KNOWLEDGE,
                 phase_started,
+                phase_timings,
             )
 
             if project_knowledge is None:
@@ -334,6 +351,7 @@ class GenerationJobService:
                 job_id,
                 PHASE_GENERATING_BRD,
                 phase_started,
+                phase_timings,
             )
 
             if brd is None:
@@ -349,6 +367,8 @@ class GenerationJobService:
                 STATUS_SUCCEEDED,
                 None,
             )
+
+            succeeded = True
 
             logger.info(
                 "Generation job %s succeeded in %.2fs",
@@ -368,6 +388,58 @@ class GenerationJobService:
                 public_error_message(exc),
             )
 
+        # Outside the try block on purpose. Inside it, a scoring failure
+        # would be caught above and mark a *successful* generation as
+        # failed — the one outcome this must never cause.
+        if succeeded:
+            self._record_evaluation(
+                job=job,
+                brd=brd,
+                project_knowledge=project_knowledge,
+                phase_timings=phase_timings,
+                brd_service=brd_service,
+            )
+
+    def _record_evaluation(
+        self,
+        job: GenerationJob,
+        brd: object,
+        project_knowledge: object,
+        phase_timings: dict,
+        brd_service: object,
+    ) -> None:
+        """Score a successful generation and store the record (dev only).
+
+        Never raises: the BRD is already saved and the job already
+        marked succeeded, so an evaluation problem is a developer-tool
+        problem and must stay one.
+        """
+        if settings.environment == "production":
+            return
+
+        if not settings.eval_on_generation:
+            return
+
+        try:
+            generator = getattr(brd_service, "brd_generator", None)
+
+            record = build_generation_eval(
+                job_id=job.id,
+                workspace_id=job.workspace_id,
+                brd_data=getattr(brd, "brd_data", None),
+                knowledge_data=getattr(project_knowledge, "knowledge_data", None),
+                timings=phase_timings,
+                usage=getattr(generator, "last_usage", None),
+            )
+
+            store.save_record(record)
+        except Exception:
+            logger.warning(
+                "Evaluation record for job %s failed",
+                job.id,
+                exc_info=True,
+            )
+
     def _get_job(
         self,
         job_id: UUID,
@@ -382,19 +454,27 @@ class GenerationJobService:
         job_id: UUID,
         phase: str,
         started: float,
+        timings: dict | None = None,
     ) -> None:
-        """Wall-clock cost of one pipeline phase (observability only).
+        """Wall-clock cost of one pipeline phase.
 
-        Extraction and BRD generation are remote calls, so without this
-        there is no way to tell which stage is slow (or whether the
-        aggregate-PDF build is a factor) from the logs.
+        Logged *and*, when a ``timings`` dict is supplied, kept as data
+        for the evaluation record. Both come from the same measurement on
+        purpose: two separate timers would eventually disagree, and then
+        the log line and the dashboard would tell different stories about
+        the same run.
         """
+        elapsed = time.perf_counter() - started
+
         logger.info(
             "Generation job %s phase=%s took %.2fs",
             job_id,
             phase,
-            time.perf_counter() - started,
+            elapsed,
         )
+
+        if timings is not None:
+            timings[phase] = round(elapsed, 3)
 
     def _set_phase(
         self,

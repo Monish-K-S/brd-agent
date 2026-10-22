@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -19,12 +21,15 @@ from app.core.config import settings
 from app.core.rate_limit import limiter
 from app.core.security_headers import SecurityHeadersMiddleware
 from app.db.session import SessionLocal
+from app.evals.router import register_eval_routes
 from app.integrations.drive.router import (
     router as drive_router,
 )
 from app.integrations.gmail.router import (
     router as gmail_router,
 )
+
+logger = logging.getLogger("brd-agent.evals")
 
 app = FastAPI(
     title=settings.app_name,
@@ -120,6 +125,12 @@ app.include_router(standard_document_router)
 app.include_router(brd_router)
 app.include_router(gmail_router)
 app.include_router(drive_router)
+
+# Developer tooling. Mounted conditionally, never in production — see
+# app/evals/router.py. Kept after the product routers so the dev surface
+# is visibly separate from the API.
+if register_eval_routes(app):
+    logger.info("Evaluation routes enabled (non-production only)")
 
 
 app.add_middleware(

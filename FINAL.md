@@ -5,7 +5,7 @@ Work top to bottom. Update the checkbox and the change log as items land.
 
 - **Owner:** you
 - **Created:** 2026-10-21
-- **Current test baseline:** server **186 passed**, client **0 tests** (no test tooling installed)
+- **Current test baseline:** server **209 passed**, client **0 tests** (no test tooling installed)
 - **Audit status:** `ISSUES.md` v1 **22/22 closed**, v2 **10/10 closed or resolved**, R-1 resolved. **Nothing open.**
 
 ---
@@ -21,14 +21,16 @@ These are settled — do not re-litigate them mid-batch.
 | Live Sarvam budget | **6 jobs** acceptable for the first full run (3 scenarios × 2 repeats). Everything after that uses replay. |
 | Harness in git | **Yes** — commit datasets, metrics, runner, reports code. Only run outputs are gitignored. |
 | A/B comparison | **In scope.** Generator configs (`thinking_budget`, model) must be comparable on identical input. |
-| Storage for eval results | Files on disk under `server/evals/reports/<run-id>/`. **No DB migration, no schema change.** |
+| Storage for eval results | Files on disk under `server/app/evals/reports/<run-id>/`. **No DB migration, no schema change.** |
 | Evaluation is not a product feature | No client bundle growth in production builds; the page must be dev-gated (`import.meta.env.DEV`). |
+| Automatic evaluation | **On by default in development**, off in production. It runs after every successful generation, costs zero extra API calls, and must never be able to fail a generation. |
+| Fixture format | `.txt` — `ParserFactory` accepts only `.txt`/`.pdf`/`.docx`, so `.md` fixtures would bypass the real parser path. |
 
 ---
 
 ## 1. Definition of done for v1.0
 
-- [ ] **D1** Server suite ≥ **200 tests** green from `server/`
+- [x] **D1** Server suite ≥ **200 tests** green from `server/` — **209** as of 2026-10-22
 - [ ] **D2** Client suite ≥ **20 tests** green, `npm test` wired
 - [ ] **D3** `npm run lint` clean and `npm run build` green
 - [ ] **D4** CI workflow runs server tests + client lint/build/test on every push
@@ -57,19 +59,40 @@ These are settled — do not re-litigate them mid-batch.
 
 Goal: prove the pipeline produces **good output**, not just fast output — with reproducible numbers.
 
+Two tiers, because they answer different questions and only one of them needs a reference answer:
+
+| | **Tier 1 — automatic** | **Tier 2 — benchmark** |
+|---|---|---|
+| Needs ground truth | No — the input knowledge *is* the reference | Yes (`expected.json`) |
+| Runs on | Every real generation | 3 curated scenarios |
+| Cost | **0 extra API calls**, milliseconds | 6 Sarvam + 6 Gemini jobs |
+| Answers | "Did it drop or invent anything?" | "Did it capture what the documents said?" |
+
+## K0 — Phase 0: the metrics (DONE 2026-10-22)
+
+- [x] `server/app/evals/` package: `models.py`, `text.py`, `metrics/`
+- [x] `metrics/structure.py` — wraps `validate_brd_data()`, never raises; counts survive a missing section
+- [x] `metrics/retention.py` — token-overlap match against extracted requirements, threshold 0.6, dropped items keep their best match + score
+- [x] `metrics/groundedness.py` — lexical support rate against the knowledge corpus, labelled `method: "lexical-overlap"`
+- [x] `metrics/duplication.py` — case/whitespace/edge-punctuation only; **digits untouched**
+- [x] `metrics/latency.py` — per-phase median/min/max, `n` reported so a single run is never mistaken for a distribution
+- [x] `GeminiBRDGenerator.last_usage` + optional `model` kwarg (additive)
+- [x] 23 tests (20 metrics + 3 generator); suite **186 → 209**
+- **Acceptance met:** no DB, no network, no FastAPI in any metric; `BRD_LIST_FIELDS` drift guard against `schemas.brd._REQUIRED_BRD_LISTS`.
+
 ## K1 — Package skeleton and CLI
 
-- [ ] Create `server/evals/__init__.py`, `run.py`, `runner.py`, `report.py`
+- [ ] Create `server/app/evals/run.py`, `runner.py`, `report.py`
 - [ ] CLI: `python -m evals.run --scenario all --repeats 2 [--replay|--refresh] [--out DIR]`
 - [ ] Per-stage timing collected with `time.perf_counter()`; stages: `parse`, `aggregate_pdf`, `extraction`, `consolidation`, `generation`, `scoring`
 - [ ] Exit non-zero on any scenario failure; never silently continue
-- **Files:** `server/evals/*`
+- **Files:** `server/app/evals/*`
 - **Acceptance:** `python -m evals.run --help` works with no DB connection and no API call.
 
 ## K2 — Datasets and ground truth
 
-- [ ] `server/evals/datasets/<scenario>/inputs/*.md` — 2–3 short docs per scenario (1–2 pages each)
-- [ ] `server/evals/datasets/<scenario>/expected.json` — 12–15 atomic facts, each with synonym groups:
+- [ ] `server/app/evals/datasets/<scenario>/inputs/*.txt` — 2–3 short docs per scenario (1–2 pages each)
+- [ ] `server/app/evals/datasets/<scenario>/expected.json` — 12–15 atomic facts, each with synonym groups:
       `{"id":"f1","text":"Users sign in with Google SSO","groups":[["sso","single sign-on","google"]]}`
 - [ ] Three scenarios, different domains:
   - [ ] `checkout-redesign` (product brief + meeting notes + support themes)
@@ -93,7 +116,7 @@ Goal: prove the pipeline produces **good output**, not just fast output — with
 
 - [ ] `runner.py` replicates the real pipeline **without the DB**:
       parse → `ProjectDocumentBuilder` → `SarvamExtractor` → `DocumentKnowledgeMapper` → `KnowledgeConsolidator` → `GeminiBRDGenerator`
-- [ ] `--replay` reads a cached raw Sarvam response from `server/evals/.cache/<scenario>-<input-hash>.json`; `--refresh` overwrites it
+- [ ] `--replay` reads a cached raw Sarvam response from `server/app/evals/.cache/<scenario>-<input-hash>.json`; `--refresh` overwrites it
 - [ ] Cache key includes a hash of the input documents so edited fixtures invalidate automatically
 - [ ] Optional `--no-dedupe` (implemented **in the runner**, never by changing production consolidation) for the dedup A/B
 - **Acceptance:** a full `--replay` run touches no network except the Gemini call; a `--replay` run is reproducible in its structure (coverage may vary — that is why repeats exist).
@@ -121,7 +144,7 @@ Goal: prove the pipeline produces **good output**, not just fast output — with
   - `GET  /evals/runs` and `GET /evals/runs/{run_id}`
 - [ ] Mount in `main.py` **only if** `settings.environment != "production"`; log one line at startup saying the eval routes are enabled
 - [ ] Reuse `get_current_db_user` (no new auth rules, no anonymous surface)
-- [ ] Results read from disk under `server/evals/reports/`; no DB writes
+- [ ] Results read from disk under `server/app/evals/reports/`; no DB writes
 - [ ] Client `/evals` page gated on `import.meta.env.DEV`: scenario list, Run button, run table, link to `report.html`
 - **Acceptance:** with `ENVIRONMENT=production`, `GET /evals/scenarios` returns **404/405**, and the client chunk is absent from the production bundle.
 
@@ -137,8 +160,30 @@ Goal: prove the pipeline produces **good output**, not just fast output — with
 
 - [ ] `README.md` → "Evaluation harness" section: what it measures, how to run it, cost warning for live runs
 - [ ] `AGENTS.md` → closed entry + test counts + the invariant that eval routes are dev-only
-- [ ] `.gitignore` → `server/evals/reports/`, `server/evals/.cache/`
+- [x] `.gitignore` → `server/app/evals/reports/`, `server/app/evals/.cache/`, `server/app/evals/generations/`
 - [ ] Update §2 of this file
+
+## K10 — Automatic evaluation on every generation (Tier 1) — DONE 2026-10-22
+
+- [x] Collect phase timings in `generation_job_service.py` — `_log_phase` now logs *and* records into a dict from the same measurement (two timers would eventually disagree)
+- [x] `_set_phase(job, STATUS_SUCCEEDED, None)` → `succeeded = True`; the recorder runs **after** the try/except, gated on that flag
+- [x] One JSON per job in `app/evals/generations/` (last 50, no DB, no migration), written by `evals/store.py`
+- [x] `try/except` in `_record_evaluation` outside the job's error handling — a scoring failure logs a warning and cannot fail a generation
+- [x] Gated on `settings.environment != "production"` + `eval_on_generation` (default **on**)
+- [x] Dev-only `GET /evals/generations` and `GET /evals/generations/{id}` via `register_eval_routes`
+- [x] **Bonus:** `tests/conftest.py` makes the suite hermetic — it previously imported `app.main` and only worked because a local `.env` existed, which would have broken CI
+- **Verified:** 209 → **229 tests**, suite green with `server/.env` renamed away, 29 OpenAPI paths in dev / **27 in production**
+
+> Note: the benchmark routes (`POST /evals/run`, `/evals/runs`) are still K7 — this only shipped the two read endpoints Phase 1 needs to be observable.
+
+## K11 — Dashboard (Tier 1 + Tier 2 in one place)
+
+- [ ] `/evals` client page, dev-gated (`import.meta.env.DEV`) and behind `RequireAuth`
+- [ ] **Tab 1 — Benchmark:** latest runs, fact recall, latency percentiles, the A/B table, link to `report.html`, "Run benchmark" button with a cost confirmation ("6 Sarvam jobs, ~5 min")
+- [ ] **Tab 2 — Recent generations:** last N real runs with health-check numbers, row detail
+- [ ] Dev-only "Evaluation" pill on the workspace page after a successful generation → `/evals?workspace=…`
+- [ ] Verify `grep -ril "evals" client/dist/assets` returns nothing after `npm run build`
+- **Acceptance:** the dashboard shows real numbers, not "0 of 0 expected facts" — the benchmark must have been run at least once before the review.
 
 ---
 
@@ -293,3 +338,5 @@ ENVIRONMENT=production .venv/bin/python -c "from app.main import app; print([r.p
 | Date | Change |
 |---|---|
 | 2026-10-21 | File created. Batches K/L/M defined. Decisions locked. ISSUES.md confirmed at 0 open items. |
+| 2026-10-22 | **K0 (Phase 0) shipped:** five metrics + 2 additive generator changes, 186 → 209 tests. Added K10 (automatic evaluation, on by default in dev) and K11 (dashboard). Fixed fixture format `.md` → `.txt` (ParserFactory rejects `.md`) and moved the package to `server/app/evals/` so the dev-only route imports within `app`. |
+| 2026-10-22 | **K10 (Phase 1) shipped:** phase timings recorded, evaluation hook on every successful generation, `app/evals/store.py` + `generations/`, dev-only list/detail eval routes, `register_eval_routes` gate, `eval_enabled` / `eval_on_generation` settings. 209 → **229 tests**; added `tests/conftest.py` so the suite no longer depends on a local `.env` (would have failed in CI). |

@@ -213,3 +213,38 @@ def test_empty_response_still_raises(monkeypatch):
 
     with pytest.raises(RuntimeError, match="empty response"):
         _generator(monkeypatch).generate({"project_name": "Sourcify"})
+
+
+# ------------------------------------------------------- evaluator hooks
+
+
+def test_last_usage_is_none_before_the_first_call(monkeypatch):
+    _install_fake_client(monkeypatch, _response())
+
+    assert _generator(monkeypatch).last_usage is None
+
+
+def test_last_usage_records_the_token_split(monkeypatch):
+    # The evaluator reads tokens as data; scraping the log line would
+    # couple it to a log format nobody promised to keep.
+    _install_fake_client(monkeypatch, _response())
+
+    generator = _generator(monkeypatch)
+    generator.generate({"project_name": "Sourcify"})
+
+    assert generator.last_usage["prompt_tokens"] == 5010
+    assert generator.last_usage["output_tokens"] == 1138
+    assert generator.last_usage["thought_tokens"] == 0
+    assert generator.last_usage["total_tokens"] == 6148
+    assert generator.last_usage["model"] == "gemini-2.5-flash"
+
+
+def test_model_can_be_overridden_for_an_a_b(monkeypatch):
+    fake = _install_fake_client(monkeypatch, _response())
+
+    generator = _generator(monkeypatch, model="gemini-2.5-pro")
+    generator.generate({"project_name": "Sourcify"})
+
+    assert generator.model == "gemini-2.5-pro"
+    assert fake.models.calls[0]["model"] == "gemini-2.5-pro"
+    assert generator.last_usage["model"] == "gemini-2.5-pro"

@@ -30,6 +30,11 @@ env/
 .coverage
 htmlcov/
 
+# Evaluation harness outputs — the harness itself is committed, its runs are not
+server/app/evals/reports/
+server/app/evals/.cache/
+server/app/evals/generations/
+
 # Build
 build/
 dist/
