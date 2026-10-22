@@ -1,0 +1,36 @@
+Checkout Redesign - Engineering sync notes
+
+Attendees: Priya (product), Daniel (engineering), Aisha (design),
+Rahul (payments), Meera (support)
+
+Payment retry
+Rahul raised that 11% of card attempts fail on the first try because of
+bank timeouts. We agreed the checkout will retry a failed card payment
+automatically up to three times before showing an error, and the shopper
+will see a clear message if all three attempts fail.
+
+Fraud
+Rahul confirmed the fraud threshold stays at 25,000 rupees for phase
+one. Orders above that go to manual review, which can delay dispatch by
+up to a day, and support must be able to see that state.
+
+Saved cards
+Daniel asked whether saved cards are opt-in. We agreed saved cards are
+opt-in and the shopper can delete a saved card from the account page at
+any time.
+
+Session behaviour
+Aisha pointed out that a shopper who closes the tab should not lose the
+cart. The cart must persist for 30 days on the same device.
+
+Analytics
+We need an abandoned checkout event so growth can measure the 68% to 50%
+target. Daniel will own that.
+
+Open question
+Do we show delivery estimates for pin codes we cannot serve yet? Nobody
+had an answer, so it stays open.
+
+Decision
+We are not building a native app checkout this year. Mobile web is the
+only surface in phase one.

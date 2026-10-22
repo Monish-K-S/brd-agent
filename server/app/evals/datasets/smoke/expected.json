@@ -1,0 +1,38 @@
+{
+  "scenario": "smoke",
+  "title": "Library study room booking (smoke test)",
+  "facts": [
+    {
+      "id": "f1",
+      "text": "Students can book a study room for up to two hours",
+      "groups": [
+        ["book", "booking", "reserve"],
+        ["study room", "rooms"],
+        ["two hours", "2 hours"]
+      ]
+    },
+    {
+      "id": "f2",
+      "text": "A booking requires a college email address",
+      "groups": [
+        ["college email", "student email", "institutional email"]
+      ]
+    },
+    {
+      "id": "f3",
+      "text": "The room list can be filtered by equipment such as a projector",
+      "groups": [
+        ["filter"],
+        ["projector"]
+      ]
+    },
+    {
+      "id": "f4",
+      "text": "Cancelling a booking frees the slot immediately",
+      "groups": [
+        ["cancel"],
+        ["immediately", "instantly", "right away"]
+      ]
+    }
+  ]
+}

@@ -200,7 +200,52 @@ def test_dropped_requirement_reports_its_best_match():
     assert len(dropped) == 1
     assert "running item total" in dropped[0]["text"]
     # Explainable, not just a count.
-    assert dropped[0]["best_score"] < 0.6
+    assert dropped[0]["score"] < 0.6
+    assert dropped[0]["missing_terms"]
+
+
+def test_formal_rewording_with_inflections_is_retained():
+    # Real false positive: the model turned "is converted into a ticket"
+    # into "shall automatically convert emails ... into new tickets", and
+    # surface-form matching scored it 0.5 — reporting a plainly retained
+    # requirement as lost.
+    result = score_retention(
+        _knowledge(
+            functional=[
+                "Email to support is converted into a ticket automatically.",
+            ],
+        ),
+        _brd(
+            functional_requirements={
+                "requirements": [
+                    "The system shall automatically convert emails sent to "
+                    "the support address into new tickets.",
+                ],
+            },
+        ),
+    )
+
+    assert result["functional"]["retention"] == 1.0
+
+
+def test_requirement_split_across_two_lines_is_retained():
+    result = score_retention(
+        _knowledge(
+            functional=[
+                "Priority is set by the requester and confirmed by the first responder.",
+            ],
+        ),
+        _brd(
+            functional_requirements={
+                "requirements": [
+                    "The system shall allow the requester to set the priority.",
+                    "The first responder shall confirm the priority of a ticket.",
+                ],
+            },
+        ),
+    )
+
+    assert result["functional"]["retention"] == 1.0
 
 
 def test_retention_without_knowledge_is_unavailable():
@@ -231,6 +276,49 @@ def test_non_functional_requirements_are_scored_too():
 
     assert result["non_functional"]["input"] == 1
     assert result["non_functional"]["retention"] == 1.0
+
+
+def test_requirement_moved_to_another_section_is_still_retained():
+    # The prompt asks that a requirement stay represented, not that it
+    # land in a particular section. Scoping the match to one section
+    # reported legitimate re-homing as a loss on real data.
+    result = score_retention(
+        _knowledge(
+            functional=["Users must sign in with Google single sign-on."],
+        ),
+        _brd(
+            functional_requirements={"requirements": []},
+            business_requirements={
+                "requirements": [
+                    "Users must sign in with Google single sign-on.",
+                ],
+            },
+        ),
+    )
+
+    assert result["functional"]["retention"] == 1.0
+
+
+def test_requirement_only_mentioned_as_a_risk_is_not_retained():
+    # The other side of that line: a passing mention outside the
+    # requirement sections is not retention.
+    result = score_retention(
+        _knowledge(
+            functional=[
+                "Users must sign in with Google single sign-on.",
+            ],
+        ),
+        _brd(
+            functional_requirements={"requirements": []},
+            business_requirements={"requirements": []},
+            risks_and_decisions={
+                "risks": ["Single sign-on may be unavailable."],
+                "decisions": [],
+            },
+        ),
+    )
+
+    assert result["functional"]["retention"] == 0.0
 
 
 # ----------------------------------------------------------- groundedness

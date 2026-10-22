@@ -1,0 +1,37 @@
+Clinic Booking - Stakeholder interview, Dr Nair (clinic director)
+
+Transcript excerpt, lightly edited for length.
+
+Q: What breaks most often today?
+A: Double bookings. The front desk writes in a book, and two people call
+for the same slot. It happens maybe five times a week across the three
+clinics.
+
+Q: What would make staff actually use the new system?
+A: It has to be faster than the book. One screen, today's list, and the
+ability to move someone to another slot without hunting. If it takes
+more than a few clicks they will go back to paper.
+
+Q: Anything about languages?
+A: Yes. A large share of our patients read Hindi better than English, so
+the patient-facing screens need Hindi as well as English. Staff screens
+can stay English.
+
+Q: Reminders?
+A: One SMS the day before is enough. Do not send three; people complain.
+
+Q: What about patients without smartphones?
+A: The phone line stays open. Do not remove it. Walk-ins stay too.
+
+Q: Privacy obligations?
+A: We handle medical records, so patient data must be protected in line
+with our clinical data policy. Access is limited to staff at the clinic
+where the appointment is booked.
+
+Q: Reporting?
+A: I want a monthly report of no-show rates per doctor and per clinic.
+That is the number I am judged on.
+
+Q: Anything you explicitly do not want?
+A: No online payment in the first version. Billing at the desk is
+working, and adding payments would delay the launch.

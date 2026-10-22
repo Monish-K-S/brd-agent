@@ -1,0 +1,86 @@
+{
+  "scenario": "helpdesk-migration",
+  "title": "IT helpdesk migration — from shared inboxes to ticketing",
+  "facts": [
+    {
+      "id": "f1",
+      "text": "Requests are raised from a web portal, email or the intranet",
+      "groups": [["portal"], ["email", "intranet"]]
+    },
+    {
+      "id": "f2",
+      "text": "One queue with hardware, software, access, network and other categories",
+      "groups": [["hardware"], ["software"], ["access"], ["network"]]
+    },
+    {
+      "id": "f3",
+      "text": "Staff can see only their own tickets",
+      "groups": [["own tickets", "their own", "cannot see anyone else's"]]
+    },
+    {
+      "id": "f4",
+      "text": "First response within 4 business hours",
+      "groups": [["4 business hours", "four business hours", "4 hours"], ["response", "respond"]]
+    },
+    {
+      "id": "f5",
+      "text": "Escalation to the on-call engineer after 8 business hours",
+      "groups": [["8 business hours", "eight business hours"], ["escalat"]]
+    },
+    {
+      "id": "f6",
+      "text": "Security incidents go straight to the on-call engineer",
+      "groups": [["security incident", "security incidents"], ["on-call", "on call"]]
+    },
+    {
+      "id": "f7",
+      "text": "Sign-in is Google Workspace single sign-on",
+      "groups": [["google workspace", "google"], ["single sign-on", "single sign on", "sso"]]
+    },
+    {
+      "id": "f8",
+      "text": "Searchable self-service knowledge base of the twenty most common fixes",
+      "groups": [["knowledge base"], ["searchable", "search"]]
+    },
+    {
+      "id": "f9",
+      "text": "The last 12 months of email are imported",
+      "groups": [["12 months", "twelve months"], ["import"]]
+    },
+    {
+      "id": "f10",
+      "text": "Manager dashboard with volume, first response and resolution time",
+      "groups": [["dashboard"], ["first response"], ["resolution"]]
+    },
+    {
+      "id": "f11",
+      "text": "No mobile app — the portal is responsive",
+      "groups": [
+        [
+          "no mobile app",
+          "mobile application",
+          "not in scope",
+          "out of scope",
+          "excludes a mobile",
+          "not include the development of a mobile"
+        ],
+        ["responsive", "phone browser"]
+      ]
+    },
+    {
+      "id": "f12",
+      "text": "Resolved tickets are retained for 3 years",
+      "groups": [["3 years", "three years"], ["retain", "retained", "retention", "deleted"]]
+    },
+    {
+      "id": "f13",
+      "text": "Access granted through the Google Workspace directory group, removed within 15 minutes",
+      "groups": [["directory group", "group"], ["15 minutes", "fifteen minutes"]]
+    },
+    {
+      "id": "f14",
+      "text": "A ticket closed without requester confirmation after 5 business days closes automatically",
+      "groups": [["5 business days", "five business days"], ["closed", "close", "automatically"]]
+    }
+  ]
+}

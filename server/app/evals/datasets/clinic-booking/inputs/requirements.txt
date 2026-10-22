@@ -1,0 +1,42 @@
+Clinic Appointment Booking - Requirements Document
+
+Purpose
+Replace the phone-only appointment process at the three city clinics
+with an online booking service for patients.
+
+Booking
+Patients must be able to book an appointment online through the clinic
+website and the patient mobile app.
+
+Patients choose a doctor by specialty — general medicine, paediatrics,
+dermatology or orthopaedics — and then pick from that doctor's available
+slots.
+
+When a patient selects a slot, the slot is held for 10 minutes while they
+confirm. If they do not confirm within 10 minutes, the slot is released
+back to the pool automatically.
+
+The system must prevent double booking. Two patients must never be able
+to hold the same slot at the same time.
+
+If a doctor has no free slots, the patient can join a waitlist for that
+doctor and is notified when a slot frees up.
+
+Reminders
+A reminder SMS is sent 24 hours before the appointment. Patients must be
+able to cancel up to 2 hours before the appointment without a penalty.
+
+Doctor availability
+Doctors set their weekly availability themselves from a staff
+dashboard, including leave days. Changes take effect immediately.
+
+Payments
+Phase one does not take online payments. Patients pay at the clinic
+desk, in cash or by card.
+
+Access
+Staff need an admin dashboard showing the day's appointments per doctor
+and per clinic, and the ability to reschedule on a patient's behalf.
+
+Walk-in patients are still accepted at the desk and must appear on the
+same schedule as booked patients so doctors see one list.

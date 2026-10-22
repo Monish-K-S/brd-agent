@@ -5,7 +5,7 @@ Work top to bottom. Update the checkbox and the change log as items land.
 
 - **Owner:** you
 - **Created:** 2026-10-21
-- **Current test baseline:** server **209 passed**, client **0 tests** (no test tooling installed)
+- **Current test baseline:** server **259 passed**, client **0 tests** (no test tooling installed)
 - **Audit status:** `ISSUES.md` v1 **22/22 closed**, v2 **10/10 closed or resolved**, R-1 resolved. **Nothing open.**
 
 ---
@@ -80,88 +80,77 @@ Two tiers, because they answer different questions and only one of them needs a 
 - [x] 23 tests (20 metrics + 3 generator); suite **186 → 209**
 - **Acceptance met:** no DB, no network, no FastAPI in any metric; `BRD_LIST_FIELDS` drift guard against `schemas.brd._REQUIRED_BRD_LISTS`.
 
-## K1 — Package skeleton and CLI
+## K1 — Package skeleton and CLI — DONE 2026-10-22
 
-- [ ] Create `server/app/evals/run.py`, `runner.py`, `report.py`
-- [ ] CLI: `python -m evals.run --scenario all --repeats 2 [--replay|--refresh] [--out DIR]`
-- [ ] Per-stage timing collected with `time.perf_counter()`; stages: `parse`, `aggregate_pdf`, `extraction`, `consolidation`, `generation`, `scoring`
-- [ ] Exit non-zero on any scenario failure; never silently continue
-- **Files:** `server/app/evals/*`
-- **Acceptance:** `python -m evals.run --help` works with no DB connection and no API call.
+- [x] `app/evals/run.py` (CLI), `runner.py`, `report.py`, `compare.py`, `datasets.py`
+- [x] CLI: `--scenario <names...>|all`, `--repeats N`, `--replay`, `--thinking-budget N`, `--model NAME`, `--no-dedupe`, `--out DIR`, `--compare A B`, `--list`
+- [x] Per-stage timings: `parse`, `aggregate_pdf`, `extraction`, `consolidation`, `generation`, `scoring`
+- [x] Exit codes: 0 ok, 1 a scenario failed, 2 bad usage/malformed dataset
+- **`--refresh` was dropped**: live mode always re-extracts and rewrites the cache, so a separate "ignore the cache" flag had no meaning. `--replay` is the only cache control.
 
-## K2 — Datasets and ground truth
+## K2 — Datasets and ground truth — DONE 2026-10-22
 
-- [ ] `server/app/evals/datasets/<scenario>/inputs/*.txt` — 2–3 short docs per scenario (1–2 pages each)
-- [ ] `server/app/evals/datasets/<scenario>/expected.json` — 12–15 atomic facts, each with synonym groups:
-      `{"id":"f1","text":"Users sign in with Google SSO","groups":[["sso","single sign-on","google"]]}`
-- [ ] Three scenarios, different domains:
-  - [ ] `checkout-redesign` (product brief + meeting notes + support themes)
-  - [ ] `clinic-booking` (requirements doc + stakeholder transcript)
-  - [ ] `helpdesk-migration` (memo + runbook)
-- **Acceptance:** each `expected.json` validates against a small schema check in tests (unique ids, non-empty groups).
+- [x] `app/evals/datasets/<scenario>/inputs/*.txt` — 2–3 documents each (1–2 pages)
+- [x] `expected.json` per scenario, with synonym groups
+- [x] Four scenarios: `checkout-redesign` (15 facts, 3 docs), `clinic-booking` (14, 2), `helpdesk-migration` (14, 2), plus `smoke` (4, 1) used to validate the plumbing before any authoring
+- [x] Load-time validation: unique ids, non-empty phrasing groups, at least one document, `.txt`/`.pdf`/`.docx` only — **before** any API budget is spent
+- **Acceptance met:** loading an invalid scenario fails with a message naming the fact.
 
-> This is the biggest single time sink in Batch K — roughly half the batch. Facts must be **unambiguous** in the inputs, or coverage scores become noise.
+## K3 — Metrics — DONE 2026-10-22
 
-## K3 — Metrics
+- [x] `metrics/coverage.py` — fact recall; every group must have ≥1 alternative; emits `missed[].missing_groups`
+- [x] `metrics/groundedness.py` — the renamed "faithfulness" metric; lexical support rate, labelled `method: "lexical-overlap"`
+- [x] `metrics/structure.py`, `metrics/duplication.py`, `metrics/latency.py`
+- [x] `last_usage` on `GeminiBRDGenerator`
+- [x] `metrics/retention.py` — added in K0
+- **Correction from real data (2026-10-22):** retention as first written was wrong. It matched each source requirement against a *single line in one section* with surface-form tokens, and every one of 13 "dropped" requirements across three live runs was a false positive — the model had merely rewritten them ("is converted into a ticket" → "shall automatically convert emails ... into new tickets"). Two fixes: **light stemming** (`converted`/`convert`, `tickets`/`ticket`) and **corpus scoring with per-line reporting** (score against all requirement sections, report the closest single line). Verified by re-scoring the stored BRDs: all 13 became retained.
+- **Deliberate scoping:** matching covers the requirement sections only. A requirement that survives merely as a mention inside `risks_and_decisions` is *not* retained — tested.
 
-- [ ] `metrics/coverage.py` — recall over `expected.json`; a fact matches when **every** group has ≥1 alternative present (case/whitespace-normalized). Emit per-fact detail.
-- [ ] `metrics/faithfulness.py` — per BRD item, share of distinctive content words present in the source corpus; flag items below threshold (default 0.5) with samples. **Label as a heuristic in the report.**
-- [ ] `metrics/structure.py` — 11 sections present and non-empty; run `validate_brd_data()`; item counts per section.
-- [ ] `metrics/duplication.py` — exact-duplicate rate across all list fields (canonical-key approach).
-- [ ] `metrics/latency.py` — per-stage median, cold vs warm, end-to-end; token split (prompt/output/thoughts).
-- [ ] Add `last_usage: dict | None` to `GeminiBRDGenerator` (set after each call, non-breaking) so tokens are read programmatically instead of scraped from logs.
-- **Acceptance:** every metric returns a plain dict, is unit-tested, and never raises on an empty/partial BRD.
+## K4 — Runner and replay cache — DONE 2026-10-22
 
-## K4 — Runner and replay cache
+- [x] DB-free replica: `DocumentIngestionService` → `ProjectDocumentBuilder` → `SarvamExtractor` → `SarvamKnowledgeMapper` → `KnowledgeConsolidator` → `GeminiBRDGenerator`
+- [x] `--replay` reads `.cache/<scenario>-<sha256(inputs)[:12]>.json`; a live run writes it through the extractor's existing `output_path`
+- [x] Cache key hashes the input **bytes**, so editing a fixture invalidates it
+- [x] `--no-dedupe` implemented in the runner only
+- **Two documented omissions:** the private `_fit_to_aggregate_budget` is not reproduced (fixtures are ~1–4k chars against a 1M budget; a fixture that would exceed it **fails loudly** instead of silently measuring a different pipeline), and multi-document consolidation is not exercised because production takes the single-document path too.
+- **`results.json` stores the BRD.** A score you cannot inspect against the document that produced it is not evidence — and this is what made the retention bug diagnosable without a second paid run.
 
-- [ ] `runner.py` replicates the real pipeline **without the DB**:
-      parse → `ProjectDocumentBuilder` → `SarvamExtractor` → `DocumentKnowledgeMapper` → `KnowledgeConsolidator` → `GeminiBRDGenerator`
-- [ ] `--replay` reads a cached raw Sarvam response from `server/app/evals/.cache/<scenario>-<input-hash>.json`; `--refresh` overwrites it
-- [ ] Cache key includes a hash of the input documents so edited fixtures invalidate automatically
-- [ ] Optional `--no-dedupe` (implemented **in the runner**, never by changing production consolidation) for the dedup A/B
-- **Acceptance:** a full `--replay` run touches no network except the Gemini call; a `--replay` run is reproducible in its structure (coverage may vary — that is why repeats exist).
+## K5 — Reports — DONE 2026-10-22
 
-## K5 — Reports
+- [x] `results.json` + `report.md` + `report.html` per run under `app/evals/reports/<run-id>/`
+- [x] HTML is self-contained: inline CSS, CSS-only bars, no JS, no CDN (asserted by test)
+- [x] Records mode, model, thinking budget, dedupe, repeats and timestamp — a number is never quoted without its conditions
+- **Fixed during the first real run:** booleans were being medianed, so `valid` rendered blank (`median(True, True)` → filtered out). Booleans now come from the first repeat.
 
-- [ ] `report.py` writes `report.md`, `report.html`, `results.json` per run
-- [ ] Markdown: per-scenario tables (coverage %, unsupported items, section fill, dup rate, latency by stage)
-- [ ] HTML: self-contained (inline CSS, CSS-bar charts, no JS dependency, no CDN) so it opens from disk during the presentation
-- [ ] Report states run mode (cold/warm), repeats, model, thinking budget, and the timestamp
-- **Acceptance:** `report.html` renders standalone with the network disabled.
+## K6 — A/B comparison — DONE 2026-10-22
 
-## K6 — A/B comparison
-
-- [ ] `--compare results-a.json results-b.json` → side-by-side table: coverage, unsupported %, dup rate, tokens, latency per stage
-- [ ] First A/B to run: **`thinking_budget=0` vs `2048`** on identical replay input
+- [x] `--compare A B` prints a Markdown table; warns when the runs used different modes
+- [x] First A/B measured: **thinking 2048 (live) vs thinking 0 (replay)** on the same cached extraction — recall and retention **identical** (1.0 / 0.857-1.0), unsupported items **87% worse** with thinking off (0.087 → 0.163), generation stage **38.7% faster** (18.0 s → 11.1 s)
 - [ ] Second (optional): dedup on/off via `--no-dedupe`
-- **Acceptance:** the comparison is generated by the tool, not hand-assembled.
 
-## K7 — Dev-only route and page
+## K7 — Dev-only run routes and dashboard — PENDING
 
-- [ ] `server/app/api/routes/evals.py` with:
-  - `GET  /evals/scenarios`
-  - `POST /evals/run` → **202** + run id, executed via `BackgroundTasks` (a 3-scenario run is minutes, not seconds)
-  - `GET  /evals/runs` and `GET /evals/runs/{run_id}`
-- [ ] Mount in `main.py` **only if** `settings.environment != "production"`; log one line at startup saying the eval routes are enabled
-- [ ] Reuse `get_current_db_user` (no new auth rules, no anonymous surface)
-- [ ] Results read from disk under `server/app/evals/reports/`; no DB writes
-- [ ] Client `/evals` page gated on `import.meta.env.DEV`: scenario list, Run button, run table, link to `report.html`
-- **Acceptance:** with `ENVIRONMENT=production`, `GET /evals/scenarios` returns **404/405**, and the client chunk is absent from the production bundle.
+- [ ] `app/evals/router.py` currently serves only the read endpoints (`GET /evals/generations{,/{id}}`); still needed:
+  - `GET /evals/scenarios`
+  - `POST /evals/run` → **202** + run id, executed via `BackgroundTasks`
+  - `GET /evals/runs` and `GET /evals/runs/{run_id}`
+  - one-at-a-time lock (a double-click must not spawn 6 Sarvam jobs)
+- [ ] Findings: rules 7–9 unchanged (production mounts zero routes — already asserted by test)
+- [ ] Client `/evals` page gated on `import.meta.env.DEV`
 
-## K8 — Tests (offline)
+## K8 — Tests (offline) — DONE 2026-10-22
 
-- [ ] `server/tests/test_evals_metrics.py` — coverage matching (synonyms, case, partial groups), faithfulness flags, structure on partial BRD, duplication
-- [ ] `server/tests/test_evals_runner.py` — fake extractor + fake generator, asserting stage timings are recorded and `--replay` hits the cache
-- [ ] `server/tests/test_evals_route.py` — route **absent** when environment is production; present otherwise
-- [ ] No network, no DB, no Sarvam/Gemini calls in any test
-- **Acceptance:** suite stays under ~2 s added runtime.
+- [x] `test_evals_metrics.py` (22), `test_evals_benchmark.py` (26), `test_evals_generation.py` (20)
+- [x] No network, no DB, no provider calls: the extractor and generator are injected
+- [x] Suite stays under 2 s added runtime
+- **Acceptance met:** replay is asserted to call the extractor **zero** times.
 
-## K9 — Docs and ignore rules
+## K9 — Docs and ignore rules — PARTIAL
 
-- [ ] `README.md` → "Evaluation harness" section: what it measures, how to run it, cost warning for live runs
-- [ ] `AGENTS.md` → closed entry + test counts + the invariant that eval routes are dev-only
-- [x] `.gitignore` → `server/app/evals/reports/`, `server/app/evals/.cache/`, `server/app/evals/generations/`
-- [ ] Update §2 of this file
+- [ ] `README.md` → "Evaluation harness" section
+- [ ] `AGENTS.md` → closed entry for K1–K6 (K0/K10 entries exist)
+- [x] `.gitignore` → `server/app/evals/reports/`, `.cache/`, `generations/`
+- [x] Update §2 of this file
 
 ## K10 — Automatic evaluation on every generation (Tier 1) — DONE 2026-10-22
 
@@ -339,4 +328,5 @@ ENVIRONMENT=production .venv/bin/python -c "from app.main import app; print([r.p
 |---|---|
 | 2026-10-21 | File created. Batches K/L/M defined. Decisions locked. ISSUES.md confirmed at 0 open items. |
 | 2026-10-22 | **K0 (Phase 0) shipped:** five metrics + 2 additive generator changes, 186 → 209 tests. Added K10 (automatic evaluation, on by default in dev) and K11 (dashboard). Fixed fixture format `.md` → `.txt` (ParserFactory rejects `.md`) and moved the package to `server/app/evals/` so the dev-only route imports within `app`. |
+| 2026-10-22 | **K1–K6 + K8 (Phase 2) shipped:** benchmark runner, 4 validated scenarios (smoke + 3 domains), coverage metric, replay cache, `report.md`/`report.html`/`results.json`, and `--compare`. First A/B measured: thinking 0 is 38.7% faster than 2048 but has 87% more unsupported items, with recall/retention unchanged. Retention was corrected against real data (stemming + corpus scoring) after all 13 flags in three live runs proved to be rewording false positives. 229 → **259 tests**. |
 | 2026-10-22 | **K10 (Phase 1) shipped:** phase timings recorded, evaluation hook on every successful generation, `app/evals/store.py` + `generations/`, dev-only list/detail eval routes, `register_eval_routes` gate, `eval_enabled` / `eval_on_generation` settings. 209 → **229 tests**; added `tests/conftest.py` so the suite no longer depends on a local `.env` (would have failed in CI). |

@@ -196,6 +196,62 @@ All workspace routes require a Supabase JWT `Authorization: Bearer <token>` head
 - `GET /workspaces/{id}/brd/export/docx` — download DOCX
 - `GET /integrations/gmail/*` — Gmail OAuth and import
 - `GET /integrations/drive/connect|callback|status|picker-token`, `DELETE /integrations/drive`, `POST /workspaces/{id}/files/import` — Drive OAuth (shared Google client, `drive.file` scope) and Picker file import
+- `GET /evals/generations` — **development only**; recent per-generation evaluation records (see below)
+
+## Evaluation harness
+
+The pipeline can be scored, not just run. Two independent layers, and they
+answer different questions:
+
+| | Automatic (every generation) | Benchmark (on demand) |
+|---|---|---|
+| Needs an answer key | No — the extracted knowledge *is* the reference | Yes (`expected.json`) |
+| Runs on | Any real workspace | 4 curated scenarios |
+| Cost | **zero extra API calls** | 1 Sarvam job per scenario |
+
+### Automatic — every successful generation
+
+`GenerationJobService` scores the BRD it just produced and writes one JSON
+record under `server/app/evals/generations/` (pruned to the last 50).
+Nothing is re-extracted and no provider is called again.
+
+| Metric | Question |
+|---|---|
+| `retention` | Did every extracted requirement survive into the BRD? |
+| `groundedness` | Is every BRD line traceable to the extracted knowledge? |
+| `structure` | Are all 11 sections present and valid? |
+| `duplication` | Does the document repeat itself? |
+| `latency` | What did each pipeline phase cost? |
+
+Read them at `GET /evals/generations` (or `ls server/app/evals/generations`).
+Both this and the route are **disabled in production** (`ENVIRONMENT=production`
+or `EVAL_ON_GENERATION=false`), and a scoring failure can never fail a
+generation.
+
+### Benchmark — the accuracy number
+
+```bash
+cd server
+
+.venv/bin/python -m app.evals.run --list
+.venv/bin/python -m app.evals.run --scenario smoke          # 1 Sarvam job
+.venv/bin/python -m app.evals.run --scenario all            # 4 Sarvam jobs
+.venv/bin/python -m app.evals.run --scenario all --replay   # free: reuse cached extraction
+.venv/bin/python -m app.evals.run --compare A/results.json B/results.json
+```
+
+Each run writes `results.json`, `report.md` and a **self-contained**
+`report.html` (opens from disk, no network) under
+`server/app/evals/reports/<run-id>/`.
+
+`--replay` reuses a cached extraction keyed on the fixture bytes, so
+comparison runs are free of Sarvam cost and run on identical input.
+
+**What it does not measure:** semantic correctness, or whether the BRD reads
+well. Fact recall is substring ground truth — a correct paraphrase that uses
+none of the listed phrasings scores as a miss — and groundedness is a lexical
+heuristic that flags suspects rather than proving a hallucination. Repeats
+matter: Gemini is nondeterministic, so a single run is not a distribution.
 
 ## Deploy
 

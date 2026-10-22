@@ -1,0 +1,50 @@
+IT Helpdesk Migration - Memo
+
+To: All staff
+From: Head of IT Operations
+Subject: Moving off shared mailboxes
+
+Why
+Support requests arrive in four shared inboxes and a WhatsApp group.
+Nothing is tracked, nobody owns a ticket, and we cannot report on how
+long anything takes. We are moving to a ticketing system in the next
+quarter.
+
+What changes for you
+Tickets are raised through a web portal, by email to a single support
+address, or from the intranet. Every request gets a reference number.
+
+There will be one queue with categories: hardware, software, access,
+network and other. Staff can see the status of their own tickets; they
+cannot see anyone else's.
+
+Service targets
+First response within 4 business hours. If a ticket is not resolved
+within 8 business hours it escalates automatically to the on-call
+engineer.
+
+Anything marked as a security incident goes straight to the on-call
+engineer and is not held in the queue.
+
+Sign-in
+Staff sign in to the portal with their existing Google Workspace
+account. Single sign-on only; there will be no separate helpdesk
+password.
+
+Self-service
+We will publish a knowledge base of the twenty most common fixes so
+staff can solve simple problems without raising a ticket. The knowledge
+base is searchable and public to all staff.
+
+History
+The last 12 months of email from the shared inboxes will be imported so
+we do not lose the audit trail. Anything older stays in the archive and
+is not migrated.
+
+Reporting
+Managers get a dashboard with ticket volume, first response time and
+resolution time, filterable by team and category.
+
+Not in scope
+No mobile app. The portal is responsive and works in a phone browser,
+and that is the end of it. Asset tracking is a separate project.

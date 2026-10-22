@@ -1,0 +1,43 @@
+Helpdesk Migration - Operations runbook (draft)
+
+Ticket lifecycle
+New, assigned, in progress, waiting on requester, resolved, closed.
+A ticket closed without requester confirmation after 5 business days is
+closed automatically, and the requester is told so.
+
+Assignment
+Tickets are assigned by category to a rota. The on-call engineer is the
+escalation point outside business hours.
+
+Priority
+Priority is set by the requester and confirmed by the first responder.
+Priority one means a whole team is blocked, priority four is a request
+for information. Priority one tickets page the on-call engineer
+immediately.
+
+Channels
+Email to support@ is converted into a ticket automatically. Replies by
+email append to the ticket. The web portal is the only place to change
+status.
+
+Knowledge base
+Articles are written by the resolver and reviewed quarterly. An article
+can be marked obsolete but not deleted, so historical links keep
+working.
+
+Access
+Access is granted through the Google Workspace directory group
+helpdesk-users. Removing someone from the group removes portal access
+within 15 minutes.
+
+Data retention
+Resolved tickets are retained for 3 years, then deleted. Backups are
+kept for 30 days.
+
+Reporting
+The manager dashboard refreshes hourly, not in real time. A nightly CSV
+export is available for the monthly service review.
+
+Known constraint
+The old shared mailboxes must stay readable for 90 days after the cutover
+in case someone needs an old thread.
