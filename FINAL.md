@@ -5,7 +5,7 @@ Work top to bottom. Update the checkbox and the change log as items land.
 
 - **Owner:** you
 - **Created:** 2026-10-21
-- **Current test baseline:** server **259 passed**, client **0 tests** (no test tooling installed)
+- **Current test baseline:** server **291 passed**, client **0 tests** (no test tooling installed)
 - **Audit status:** `ISSUES.md` v1 **22/22 closed**, v2 **10/10 closed or resolved**, R-1 resolved. **Nothing open.**
 
 ---
@@ -36,7 +36,7 @@ These are settled — do not re-litigate them mid-batch.
 - [ ] **D4** CI workflow runs server tests + client lint/build/test on every push
 - [ ] **D5** Evaluator produces a report for **3 scenarios** with coverage, faithfulness, structure, duplication and per-stage latency
 - [ ] **D6** A/B report comparing at least two generator configs on identical input
-- [ ] **D7** Evaluator routes verified **absent** when `ENVIRONMENT=production`
+- [x] **D7** Evaluator routes verified **absent** when `ENVIRONMENT=production` (asserted by `test_routes_are_absent_in_production`)
 - [ ] **D8** Demo workspace seeded; full flow rehearsed end to end against a running backend
 - [ ] **D9** `README.md`, `AGENTS.md` and this file updated to reflect reality
 - [ ] **D10** No open findings in `ISSUES.md` (already true — keep it true)
@@ -128,15 +128,18 @@ Two tiers, because they answer different questions and only one of them needs a 
 - [x] First A/B measured: **thinking 2048 (live) vs thinking 0 (replay)** on the same cached extraction — recall and retention **identical** (1.0 / 0.857-1.0), unsupported items **87% worse** with thinking off (0.087 → 0.163), generation stage **38.7% faster** (18.0 s → 11.1 s)
 - [ ] Second (optional): dedup on/off via `--no-dedupe`
 
-## K7 — Dev-only run routes and dashboard — PENDING
+## K7 — Dev-only routes and dashboard — DONE 2026-10-22
 
-- [ ] `app/evals/router.py` currently serves only the read endpoints (`GET /evals/generations{,/{id}}`); still needed:
-  - `GET /evals/scenarios`
-  - `POST /evals/run` → **202** + run id, executed via `BackgroundTasks`
-  - `GET /evals/runs` and `GET /evals/runs/{run_id}`
-  - one-at-a-time lock (a double-click must not spawn 6 Sarvam jobs)
-- [ ] Findings: rules 7–9 unchanged (production mounts zero routes — already asserted by test)
-- [ ] Client `/evals` page gated on `import.meta.env.DEV`
+- [x] `app/evals/coordinator.py` — run lifecycle kept out of the router so the one-run rule has a single implementation
+- [x] `GET /evals/scenarios` — name, facts, documents, chars, whether a cache exists (disk only)
+- [x] `POST /evals/run` → **202** + run id, executed via `BackgroundTasks`; **409** when a run is already in progress
+- [x] `GET /evals/runs`, `GET /evals/runs/{id}`, `GET /evals/runs/{id}/report.html`
+- [x] `status.json` per run so progress survives a page refresh
+- [x] Client `/evals` page (two tabs) and a dev-only **Evaluation** pill on the workspace utility bar
+- [x] Report opened through the authenticated client and handed to the browser as a blob — a plain `window.open` would 401
+- **OpenAPI:** 34 paths in development, **27 in production** (unchanged), asserted by test
+- **Not a bare `threading.Lock`:** the slot is timestamped, so a request whose background task never ran cannot wedge the endpoint for the life of the process. A run still `running` after 15 minutes is reported as **interrupted** rather than spinning forever — that is what a mid-run restart looks like.
+- **Bundle proof:** production build contains **zero** "evals" references (`grep -ril evals dist/assets`); the dev server serves the page (HTTP 200, transformed), so the lazy route is real rather than tree-shaken dead code.
 
 ## K8 — Tests (offline) — DONE 2026-10-22
 
@@ -328,5 +331,8 @@ ENVIRONMENT=production .venv/bin/python -c "from app.main import app; print([r.p
 |---|---|
 | 2026-10-21 | File created. Batches K/L/M defined. Decisions locked. ISSUES.md confirmed at 0 open items. |
 | 2026-10-22 | **K0 (Phase 0) shipped:** five metrics + 2 additive generator changes, 186 → 209 tests. Added K10 (automatic evaluation, on by default in dev) and K11 (dashboard). Fixed fixture format `.md` → `.txt` (ParserFactory rejects `.md`) and moved the package to `server/app/evals/` so the dev-only route imports within `app`. |
+| 2026-10-22 | **K5 shipped:** retention fixed for noun-phrase requirements (2/3 threshold, derivational stemming, `securely`/`secure`) after a real workspace reported 10 of 28 kept when the BRD contained them; generation records now store the BRD and knowledge so a metric change can be re-scored offline; verdict computed server-side; dashboard rewritten as one quiet sentence per generation with expandable evidence. 274 → **291 tests**. |
+| 2026-10-22 | **K4 shipped:** benchmark re-cut into three source-density tiers (small/medium/large, 1/3/6 documents, 8/18/28 facts) with `level` driving order; retention broadened to whole-document matching after still flagging correctly re-homed requirements; Evaluation button aligned with Export; generations dashboard gained a median strip and expandable rows with counts. 273 → **274 tests**. |
+| 2026-10-22 | **K7 (Phase 3) shipped:** `coordinator.py` run lifecycle, 5 new dev routes (scenarios / run / runs / run detail / report), 409 on concurrent runs, timestamped slot so an abandoned run cannot wedge the endpoint, `status.json` progress, two-tab `/evals` page and a dev-only workspace pill. OpenAPI 29 → **34 dev / 27 production**; production bundle contains zero eval references. 259 → **273 tests**. |
 | 2026-10-22 | **K1–K6 + K8 (Phase 2) shipped:** benchmark runner, 4 validated scenarios (smoke + 3 domains), coverage metric, replay cache, `report.md`/`report.html`/`results.json`, and `--compare`. First A/B measured: thinking 0 is 38.7% faster than 2048 but has 87% more unsupported items, with recall/retention unchanged. Retention was corrected against real data (stemming + corpus scoring) after all 13 flags in three live runs proved to be rewording false positives. 229 → **259 tests**. |
 | 2026-10-22 | **K10 (Phase 1) shipped:** phase timings recorded, evaluation hook on every successful generation, `app/evals/store.py` + `generations/`, dev-only list/detail eval routes, `register_eval_routes` gate, `eval_enabled` / `eval_on_generation` settings. 209 → **229 tests**; added `tests/conftest.py` so the suite no longer depends on a local `.env` (would have failed in CI). |

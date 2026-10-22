@@ -10,6 +10,8 @@ to one without the other would make every item in it invisible to the
 metrics without any test failing.
 """
 
+import pytest
+
 from app.ai.models.knowledge.functional_requirement import (
     FunctionalRequirement,
 )
@@ -299,26 +301,97 @@ def test_requirement_moved_to_another_section_is_still_retained():
     assert result["functional"]["retention"] == 1.0
 
 
-def test_requirement_only_mentioned_as_a_risk_is_not_retained():
-    # The other side of that line: a passing mention outside the
-    # requirement sections is not retention.
+def test_requirement_kept_as_a_constraint_is_retained():
+    # The model legitimately re-homes some requirements: a 90-day mailbox
+    # retention rule belongs in constraints or decisions, not in
+    # functional_requirements. Restricting the match to requirement
+    # sections reported those as lost on real data.
     result = score_retention(
         _knowledge(
             functional=[
-                "Users must sign in with Google single sign-on.",
+                "The old shared mailboxes must stay readable for 90 days "
+                "after cutover.",
             ],
         ),
         _brd(
             functional_requirements={"requirements": []},
             business_requirements={"requirements": []},
-            risks_and_decisions={
-                "risks": ["Single sign-on may be unavailable."],
-                "decisions": [],
+            assumptions_and_constraints={
+                "assumptions": [],
+                "constraints": [
+                    "The old shared mailboxes must remain readable for 90 days "
+                    "after cutover to allow access to historical threads.",
+                ],
+            },
+        ),
+    )
+
+    assert result["functional"]["retention"] == 1.0
+
+
+@pytest.mark.parametrize(
+    ("requirement", "brd_line"),
+    [
+        # These are the exact shapes a real workspace produced: Sarvam
+        # extracted noun phrases there, not the full sentences the
+        # benchmark scenarios produce. Every one of them scored at or
+        # below 0.5 against a correct BRD before the stemming fix.
+        ("user account creation", "Users shall be able to create an account."),
+        ("password reset", "A user can reset their password from the sign-in page."),
+        ("team member invitations", "Team members may invite colleagues to the workspace."),
+        ("campaign creation", "Marketers can create a campaign from the dashboard."),
+        ("email-based feedback collection", "Collect feedback by email after the campaign."),
+        (
+            "campaign pausing before delivery",
+            "A campaign can be paused before it is sent.",
+        ),
+        ("dashboard reporting", "The dashboard shall report campaign performance."),
+        ("CSV exports", "The system shall provide CSV export of results."),
+        ("campaign history", "Users can view the campaign history."),
+        ("secure password handling", "Passwords are stored securely and never logged."),
+    ],
+)
+def test_noun_phrase_requirements_are_retained(requirement, brd_line):
+    result = score_retention(
+        _knowledge(functional=[requirement]),
+        _brd(functional_requirements={"requirements": [brd_line]}),
+    )
+
+    assert result["functional"]["retention"] == 1.0
+
+
+def test_two_word_requirement_must_match_both_words():
+    # "password" matching "reset" says nothing, so a one-word overlap on a
+    # two-word requirement is a miss rather than a 50% score.
+    result = score_retention(
+        _knowledge(functional=["password reset"]),
+        _brd(
+            functional_requirements={
+                "requirements": ["Users must have a password."],
             },
         ),
     )
 
     assert result["functional"]["retention"] == 0.0
+
+
+def test_requirement_absent_from_the_document_is_retained_never():
+    # The other side of that line: if the content appears nowhere, it was
+    # genuinely lost.
+    result = score_retention(
+        _knowledge(
+            functional=[
+                "Support hours are 08:00 to 18:00, Monday to Friday.",
+            ],
+        ),
+        _brd(
+            functional_requirements={"requirements": []},
+            business_requirements={"requirements": []},
+        ),
+    )
+
+    assert result["functional"]["retention"] == 0.0
+    assert result["functional"]["dropped"][0]["missing_terms"]
 
 
 # ----------------------------------------------------------- groundedness

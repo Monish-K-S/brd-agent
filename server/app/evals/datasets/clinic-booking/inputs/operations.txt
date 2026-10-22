@@ -1,0 +1,35 @@
+Clinic Booking - Front Desk Operations Notes
+
+Appointment length
+Standard appointments are 15 minutes. Paediatric appointments are 20
+minutes and are set that way by default in the doctor's profile. The
+front desk can override the length when booking on a patient's behalf.
+
+Confirming a booking
+As soon as a booking is confirmed, the patient receives a confirmation
+SMS with the clinic address, the doctor's name and the appointment time.
+This is separate from the reminder that goes out 24 hours before.
+
+Rescheduling
+Patients can reschedule up to 2 hours before the appointment, on the
+same terms as cancelling. After that, the desk handles it as a missed
+appointment.
+
+What the desk sees
+Staff can look up a patient's booking history for the last 12 months,
+including no-shows, because the doctor asks about it in the room.
+
+No-show performance
+The clinic director tracks no-shows monthly. The target is a no-show
+rate of 10% or lower per doctor. Today the average is 18%, and the
+director expects reminders and the waitlist to bring it down.
+
+Phone line
+The telephone booking line stays open for patients who cannot use the
+app. Desk staff enter phone bookings into the same system, so every
+appointment sits in one schedule.
+
+Hardware
+Each clinic desk has two terminals and a printer for the day sheet. The
+system must print the day's appointments in time order at the start of
+each shift.

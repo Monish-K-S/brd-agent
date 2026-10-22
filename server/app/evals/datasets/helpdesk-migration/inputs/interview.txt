@@ -1,0 +1,35 @@
+IT Helpdesk - Interview with the IT Operations Manager
+
+Q: What is the real problem with the shared inboxes?
+A: Nobody owns anything. A request arrives, four people read it, nobody
+answers, and the requester asks again a week later. We cannot even say
+how many tickets we handled last quarter, because counting emails is not
+counting work.
+
+Q: What does success look like a year from now?
+A: Every request has an owner and a reference number. I can show the
+finance director a number for first response time that is not a guess.
+And the helpdesk stops being a place where people burn out.
+
+Q: What worries you about the migration?
+A: People hating it and going back to email. That is why training
+matters more than the software. If someone cannot raise a ticket in
+under a minute, they will go back to email.
+
+Q: How much process is too much?
+A: We are a team of six supporting two hundred and fifty people. Do not
+build us a system for a thousand agents. Four priorities is already one
+more than I wanted.
+
+Q: Anything about the knowledge base?
+A: I would rather have twenty good articles than a hundred that are out
+of date. If it fills with stale content, staff stop trusting it and we
+have wasted the effort.
+
+Q: Reporting expectations?
+A: Monthly, by team and by category. I need to see volume, first
+response and resolution time. I do not need a live dashboard on the wall.
+
+Q: What about people who leave?
+A: Access has to come off the day they leave, not when someone
+remembers. That is a security requirement, not a convenience.

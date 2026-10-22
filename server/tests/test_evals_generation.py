@@ -481,6 +481,11 @@ def test_routes_are_mounted_in_development():
     assert _eval_paths(app) == [
         "/evals/generations",
         "/evals/generations/{record_id}",
+        "/evals/run",
+        "/evals/runs",
+        "/evals/runs/{run_id}",
+        "/evals/runs/{run_id}/report.html",
+        "/evals/scenarios",
     ]
 
 
@@ -563,3 +568,98 @@ def test_settings_load_without_a_dotenv_file():
     from app.core.config import Settings
 
     assert Settings().database_url
+
+
+# ------------------------------------------------------------- verdict
+
+
+def test_clean_generation_needs_no_attention():
+    from app.evals.verdict import evaluate_summary
+
+    verdict = evaluate_summary(
+        {
+            "sections_present": 11,
+            "retention": 1.0,
+            "functional_input": 15,
+            "functional_retained": 15,
+            "unsupported_rate": 0.02,
+            "duplicate_items": 0,
+        }
+    )
+
+    assert verdict["level"] == "complete"
+    assert verdict["reasons"] == []
+
+
+def test_missing_requirements_are_explained_in_words():
+    from app.evals.verdict import evaluate_summary
+
+    verdict = evaluate_summary(
+        {
+            "sections_present": 11,
+            "retention": 0.7,
+            "functional_input": 28,
+            "functional_retained": 18,
+            "unsupported_rate": 0.0,
+            "duplicate_items": 0,
+        }
+    )
+
+    assert verdict["level"] == "review"
+    # The count, not the percentage: "10 of 28" is what a person can act on.
+    assert verdict["reasons"] == ["10 of 28 requirements were not kept"]
+
+
+def test_empty_section_and_untraced_lines_are_both_reported():
+    from app.evals.verdict import evaluate_summary
+
+    verdict = evaluate_summary(
+        {
+            "sections_present": 9,
+            "retention": 1.0,
+            "unsupported_rate": 0.4,
+            "duplicate_items": 5,
+        }
+    )
+
+    assert verdict["level"] == "review"
+    assert len(verdict["reasons"]) == 3
+    assert any("2 sections are empty" in reason for reason in verdict["reasons"])
+    assert any("could not be traced" in reason for reason in verdict["reasons"])
+    assert any("repeated" in reason for reason in verdict["reasons"])
+
+
+def test_verdict_survives_a_missing_summary():
+    from app.evals.verdict import evaluate_summary
+
+    assert evaluate_summary(None)["level"] == "complete"
+
+
+# ------------------------------------------------------- stored evidence
+
+
+def test_record_keeps_what_is_needed_to_re_score_it():
+    # Retention has been corrected four times against real data, and each
+    # time the fix was verified against a stored document rather than by
+    # paying for another generation.
+    record = build_generation_eval(
+        job_id=uuid4(),
+        workspace_id=uuid4(),
+        brd_data=_brd_data(),
+        knowledge_data=_knowledge_data(),
+    )
+
+    assert record["brd"]["functional_requirements"]["requirements"]
+    assert record["knowledge"]["functional_requirements"]
+
+
+def test_unusable_evidence_is_stored_as_null_not_garbage():
+    record = build_generation_eval(
+        job_id=uuid4(),
+        workspace_id=uuid4(),
+        brd_data=MagicMock(),
+        knowledge_data="not a dict",
+    )
+
+    assert record["brd"] is None
+    assert record["knowledge"] is None

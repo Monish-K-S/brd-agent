@@ -1,0 +1,29 @@
+IT Helpdesk - Security Incident Handling
+
+Scope
+This covers anything that looks like a security issue: suspicious email,
+lost devices, suspected account compromise, malware, or unauthorised
+access to a system holding company or customer data.
+
+Reporting
+A suspected security incident must be reported within one hour of being
+noticed. Staff report it through the same portal, marking the ticket as
+a security incident, or by calling the service desk if the portal is
+unavailable.
+
+Handling
+A security incident is routed straight to the on-call security engineer
+and is never held in the general queue. The service desk does not
+attempt a fix before the security engineer has acknowledged it.
+
+Evidence
+Tickets and attachments relating to a security incident are preserved
+for the duration of any investigation. For this reason a ticket may be
+closed but never deleted; deletion is not available to any role in the
+system.
+
+Disclosure
+Details of an active investigation are shared only with the security
+engineer, the IT operations manager and, where required, the legal team.
+The requester is told that the incident is being handled, not what was
+found.

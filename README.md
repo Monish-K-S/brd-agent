@@ -196,7 +196,7 @@ All workspace routes require a Supabase JWT `Authorization: Bearer <token>` head
 - `GET /workspaces/{id}/brd/export/docx` — download DOCX
 - `GET /integrations/gmail/*` — Gmail OAuth and import
 - `GET /integrations/drive/connect|callback|status|picker-token`, `DELETE /integrations/drive`, `POST /workspaces/{id}/files/import` — Drive OAuth (shared Google client, `drive.file` scope) and Picker file import
-- `GET /evals/generations` — **development only**; recent per-generation evaluation records (see below)
+- `GET /evals/generations`, `/evals/scenarios`, `/evals/runs`, `/evals/runs/{id}`, `/evals/runs/{id}/report.html`, `POST /evals/run` — **development only**; evaluation records, benchmark catalogue, runs and reports (see below)
 
 ## Evaluation harness
 
@@ -223,7 +223,7 @@ Nothing is re-extracted and no provider is called again.
 | `duplication` | Does the document repeat itself? |
 | `latency` | What did each pipeline phase cost? |
 
-Read them at `GET /evals/generations` (or `ls server/app/evals/generations`).
+Read them at `GET /evals/generations` (or `ls server/app/evals/generations`), or open the **Evaluation** page from a workspace.
 Both this and the route are **disabled in production** (`ENVIRONMENT=production`
 or `EVAL_ON_GENERATION=false`), and a scoring failure can never fail a
 generation.
@@ -240,9 +240,25 @@ cd server
 .venv/bin/python -m app.evals.run --compare A/results.json B/results.json
 ```
 
+The same runs are available from the dev-only `/evals` page: pick
+scenarios, run in **replay** mode (free, the default) or **live** (one Sarvam
+job per scenario, behind an explicit confirmation), watch progress, then open
+the report. Only one run may be in flight at a time — a second request gets
+**409** rather than starting a duplicate batch.
+
 Each run writes `results.json`, `report.md` and a **self-contained**
 `report.html` (opens from disk, no network) under
 `server/app/evals/reports/<run-id>/`.
+
+Scenarios are three different products at three documentation depths, so the
+run doubles as a scaling study — latency grows with the source material while
+recall holds:
+
+| Level | Scenario | Documents | Facts |
+|---|---|---|---|
+| small | `library-rooms` | 1 | 8 |
+| medium | `clinic-booking` | 3 | 18 |
+| large | `helpdesk-migration` | 6 | 28 |
 
 `--replay` reuses a cached extraction keyed on the fixture bytes, so
 comparison runs are free of Sarvam cost and run on identical input.

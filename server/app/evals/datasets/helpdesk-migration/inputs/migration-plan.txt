@@ -1,0 +1,33 @@
+IT Helpdesk - Migration and Cutover Plan
+
+Training
+Every staff member attends one training session before cutover. Sessions
+run three times a week for a month, take 45 minutes, and cover raising a
+ticket, replying by email and finding a knowledge base article. Team
+leads get a second, longer session on the manager dashboard.
+
+Parallel running
+The old shared mailboxes and the new system run in parallel for two
+weeks after cutover. During that window the desk triages both, so nobody
+loses a request while people get used to the portal.
+
+Old mailboxes
+After the parallel period the shared mailboxes are closed to new mail
+but stay readable for 90 days, in case someone needs an old thread. They
+are archived after that.
+
+Rollback
+We roll back if more than 20% of tickets in a week are misrouted, or if
+the desk cannot meet the first response target for three consecutive
+days. Rollback means re-opening the shared inboxes as the primary
+channel; the new system stays available read-only.
+
+Comms
+A single announcement goes out two weeks before cutover, a reminder the
+day before, and a note in the weekly all-hands. There is no separate
+launch event.
+
+Cutover date
+Planned for the first Monday after the training month completes. The
+exact date is confirmed by the IT operations manager once the knowledge
+base reaches twenty published articles.

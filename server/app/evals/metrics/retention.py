@@ -9,44 +9,41 @@ requirements go in, nine come out, and nothing in the pipeline notices.
 No ground truth is needed — the input knowledge *is* the reference — which
 is why this can run on every real generation for free.
 
-Matching is token overlap rather than string equality because the model
-is explicitly allowed to reword. The threshold is a floor, not a target:
-a requirement that scores below it is reported with its best match and
-score so a human can judge whether it was genuinely dropped.
+**Matching against the whole document, not one section.** Two earlier
+versions of this metric were wrong in ways only real data exposed:
+
+* scoping to a single section reported legitimate re-homing as a loss;
+* restricting to the requirement sections still missed requirements the
+  model placed in ``scope``, ``assumptions`` or ``decisions`` — which is
+  a perfectly sensible place for a constraint.
+
+"Represented" means present anywhere in the document. A requirement that
+appears nowhere has genuinely been lost, and that is the only thing this
+metric now claims.
 """
 
+from app.evals.models import iter_brd_text_items
 from app.evals.text import content_words
 
 RETENTION_THRESHOLD = 0.6
 
-# A requirement may legitimately be re-homed by the model, so each group
-# is matched against every requirement section rather than one. Deliberately
-# excludes scope/risks/assumptions: a requirement that only survives as a
-# passing mention in "risks and decisions" has not been retained.
-FUNCTIONAL_SECTIONS = (
-    "functional_requirements",
-    "business_requirements",
-    "non_functional_requirements",
-)
-
-NON_FUNCTIONAL_SECTIONS = (
-    "non_functional_requirements",
-    "functional_requirements",
-    "business_requirements",
-)
+# A requirement of one or two content words cannot lose a word and still
+# mean the same thing: "password" matching "reset" tells you nothing.
+# Sampled from a real workspace, where Sarvam extracted *noun phrases*
+# ("CSV exports", "dashboard reporting") rather than the full sentences
+# the benchmark scenarios produce — every one of those scored at or below
+# 0.5 against a correct BRD and was reported as dropped.
+SHORT_REQUIREMENT_WORDS = 2
+# Two of three words. Written as a division, not 0.67, because
+# 0.67 > 2/3 and that rounding decided a real verdict.
+THREE_WORD_THRESHOLD = 2 / 3
 
 
 def score_retention(
     knowledge: object,
     brd: object,
 ) -> dict:
-    """Compare extracted requirements against the generated BRD.
-
-    Matching is against the requirement sections as a group, not against
-    one section. The prompt asks that a requirement stay *represented*,
-    not that it land in a particular section, and scoping to a single
-    section reported legitimate re-homing as a loss.
-    """
+    """Compare extracted requirements against the generated BRD."""
     if knowledge is None:
         return {
             "available": False,
@@ -56,15 +53,17 @@ def score_retention(
             "overall_retention": None,
         }
 
+    targets = [
+        (section, text, _stemmed_words(text))
+        for section, text in iter_brd_text_items(brd)
+    ]
+
     functional = _score_group(
         source_texts=[
             getattr(item, "description", "")
             for item in getattr(knowledge, "functional_requirements", [])
         ],
-        target_texts=_requirement_texts(
-            brd,
-            FUNCTIONAL_SECTIONS,
-        ),
+        targets=targets,
     )
 
     non_functional = _score_group(
@@ -72,10 +71,7 @@ def score_retention(
             getattr(item, "description", "")
             for item in getattr(knowledge, "non_functional_requirements", [])
         ],
-        target_texts=_requirement_texts(
-            brd,
-            NON_FUNCTIONAL_SECTIONS,
-        ),
+        targets=targets,
     )
 
     return {
@@ -92,7 +88,7 @@ def score_retention(
 
 def _score_group(
     source_texts: list[str],
-    target_texts: list[str],
+    targets: list[tuple[str, str, set[str]]],
 ) -> dict:
     """Score one requirement group.
 
@@ -100,19 +96,11 @@ def _score_group(
     the same as 1.0: "no requirements were extracted" is an input problem,
     and reporting it as perfect would hide it.
 
-    Two decisions here came from real data rather than theory:
-
-    * **Stemming.** The model rewrites "is converted into a ticket" as
-      "shall automatically convert emails ... into new tickets". Comparing
-      surface forms scored that pair at 0.5 and reported a requirement as
-      lost when it was plainly retained.
-    * **Corpus scoring, per-line reporting.** The model also splits one
-      requirement across two lines ("priority is set by the requester"
-      plus "the first responder confirms it"). Matching each source
-      against a single target missed those. The score now asks whether
-      the requirement's vocabulary survives *anywhere* in the section
-      group; ``best_match`` still names the closest single line so a
-      finding stays explainable.
+    Scoring is corpus coverage — how much of the requirement's vocabulary
+    survives *somewhere* — while ``best_match`` names the closest single
+    line so a finding stays explainable. Surface-form comparison alone
+    scored "is converted into a ticket" against "shall automatically
+    convert emails ... into new tickets" at 0.5 and called it lost.
     """
     sources = [
         text
@@ -123,15 +111,9 @@ def _score_group(
     if not sources:
         return _empty_group()
 
-    targets = [
-        (text, _stemmed_words(text))
-        for text in target_texts
-        if isinstance(text, str) and text.strip()
-    ]
-
     corpus: set[str] = set()
 
-    for _, words in targets:
+    for _, _, words in targets:
         corpus |= words
 
     dropped = []
@@ -144,15 +126,19 @@ def _score_group(
 
         coverage = len(source_words & corpus) / len(source_words)
 
-        best_score, best_match = _best_match(source_words, targets)
+        if coverage < _threshold(len(source_words)):
+            best_score, best_match, best_section = _best_match(
+                source_words,
+                targets,
+            )
 
-        if coverage < RETENTION_THRESHOLD:
             dropped.append(
                 {
                     "text": text,
                     "score": round(coverage, 3),
                     "best_score": round(best_score, 3),
                     "best_match": best_match,
+                    "best_section": best_section,
                     "missing_terms": sorted(source_words - corpus)[:5],
                 }
             )
@@ -167,69 +153,27 @@ def _score_group(
     }
 
 
-def _stemmed_words(text: str) -> set[str]:
-    return {_stem(word) for word in content_words(text)}
-
-
-def _stem(word: str) -> str:
-    """Crude suffix stripping, deliberately not a real stemmer.
-
-    Only exists so ``converted``/``convert`` and ``tickets``/``ticket``
-    compare equal. It never touches the first characters, so two
-    requirements that differ in their distinctive word still differ.
-    """
-    for suffix in ("ings", "ing", "edly", "ed", "es", "s"):
-        if len(word) > len(suffix) + 3 and word.endswith(suffix):
-            return word[: -len(suffix)]
-
-    return word
-
-
 def _best_match(
     source_words: set[str],
-    targets: list[tuple[str, set[str]]],
-) -> tuple[float, str | None]:
-    """Best share of ``source_words`` covered by any single target."""
+    targets: list[tuple[str, str, set[str]]],
+) -> tuple[float, str | None, str | None]:
+    """Closest single line, for explaining a finding rather than scoring it."""
     if not source_words:
-        return 0.0, None
+        return 0.0, None, None
 
     best_score = 0.0
     best_text = None
+    best_section = None
 
-    for text, target_words in targets:
+    for section, text, target_words in targets:
         score = len(source_words & target_words) / len(source_words)
 
         if score > best_score:
             best_score = score
             best_text = text
+            best_section = section
 
-    return best_score, best_text
-
-
-def _requirement_texts(brd: object, sections: tuple[str, ...]) -> list[str]:
-    texts: list[str] = []
-
-    for section in sections:
-        texts.extend(_section_items(brd, section))
-
-    return texts
-
-
-def _section_items(brd: object, section: str) -> list[str]:
-    if not isinstance(brd, dict):
-        return []
-
-    content = brd.get(section)
-
-    if not isinstance(content, dict):
-        return []
-
-    items = content.get("requirements")
-
-    if not isinstance(items, list):
-        return []
-
-    return [item for item in items if isinstance(item, str)]
+    return best_score, best_text, best_section
 
 
 def _combined_retention(functional: dict, non_functional: dict) -> float | None:
@@ -250,3 +194,91 @@ def _empty_group() -> dict:
         "retention": None,
         "dropped": [],
     }
+
+
+def _stemmed_words(text: str) -> set[str]:
+    return {_stem(word) for word in content_words(text)}
+
+
+def _threshold(word_count: int) -> float:
+    """Coverage a requirement must reach to count as retained."""
+    if word_count <= SHORT_REQUIREMENT_WORDS:
+        return 1.0
+
+    if word_count == 3:
+        return THREE_WORD_THRESHOLD
+
+    return RETENTION_THRESHOLD
+
+
+# Longest first, so "ations" is tried before "s".
+_SUFFIXES = (
+    "ations",
+    "ation",
+    "ements",
+    "ement",
+    "ments",
+    "ment",
+    "ings",
+    "ing",
+    "ions",
+    "ion",
+    "ities",
+    "ity",
+    "nesses",
+    "ness",
+    "ances",
+    "ance",
+    "ences",
+    "ence",
+    "edly",
+    "ly",
+    "ed",
+    "es",
+    "s",
+)
+
+
+def _stem(word: str) -> str:
+    """Crude suffix stripping, deliberately not a real stemmer.
+
+    Exists so ``converted``/``convert``, ``tickets``/``ticket`` and — the
+    case that actually broke on real data — ``creation``/``create`` and
+    ``invitations``/``invite`` compare equal. Two passes because the
+    second suffix is only visible after the first is removed
+    (``creates`` -> ``create`` -> ``creat``).
+
+    It never touches the first characters, so two requirements that
+    differ in their distinctive word still differ.
+    """
+    for _ in range(2):
+        for suffix in _SUFFIXES:
+            if not word.endswith(suffix):
+                continue
+
+            remainder = word[: -len(suffix)]
+
+            # Keep at least four characters, except for short words where
+            # an aggressive cut is the only way "ratings" and "rate" meet.
+            # Scanning continues past a rejected suffix instead of
+            # stopping: "creation" has to fall through "ation" (which
+            # would leave "cre") to "ion" (which leaves "creat").
+            short_cut = (
+                len(suffix) >= 3
+                and len(word) <= 7
+                and len(remainder) >= 3
+            )
+
+            if len(remainder) >= 4 or short_cut:
+                word = remainder
+
+                break
+        else:
+            break
+
+    # "create" and "creation" only both reach "creat" if the trailing e
+    # goes too. Three characters is the floor, again to avoid shredding.
+    if len(word) > 3 and word.endswith("e"):
+        word = word[:-1]
+
+    return word

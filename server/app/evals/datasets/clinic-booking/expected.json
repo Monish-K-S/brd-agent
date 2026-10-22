@@ -1,76 +1,256 @@
 {
   "scenario": "clinic-booking",
-  "title": "Clinic appointment booking — patient and staff flows",
+  "level": "medium",
+  "title": "Clinic appointment booking \u2014 patient and staff flows",
   "facts": [
     {
       "id": "f1",
       "text": "Patients book appointments online via website and mobile app",
-      "groups": [["book", "booking"], ["online"], ["website", "web site", "mobile app", "app"]]
+      "groups": [
+        [
+          "book",
+          "booking"
+        ],
+        [
+          "online"
+        ],
+        [
+          "website",
+          "web site",
+          "mobile app",
+          "app"
+        ]
+      ]
     },
     {
       "id": "f2",
       "text": "Doctors are chosen by specialty",
-      "groups": [["specialty", "speciality", "specialties"], ["doctor", "doctors"]]
+      "groups": [
+        [
+          "specialty",
+          "speciality",
+          "specialties"
+        ],
+        [
+          "doctor",
+          "doctors"
+        ]
+      ]
     },
     {
       "id": "f3",
       "text": "A selected slot is held for 10 minutes while the patient confirms",
-      "groups": [["10 minutes", "ten minutes"], ["held", "hold", "reserved", "released"]]
+      "groups": [
+        [
+          "10 minutes",
+          "ten minutes"
+        ],
+        [
+          "held",
+          "hold",
+          "reserved",
+          "released"
+        ]
+      ]
     },
     {
       "id": "f4",
       "text": "Double booking must be prevented",
-      "groups": [["double booking", "double-booking", "double booked", "double-book"]]
+      "groups": [
+        [
+          "double booking",
+          "double-booking",
+          "double booked",
+          "double-book"
+        ]
+      ]
     },
     {
       "id": "f5",
       "text": "Patients can join a waitlist when no slots are free",
-      "groups": [["waitlist", "wait list"]]
+      "groups": [
+        [
+          "waitlist",
+          "wait list"
+        ]
+      ]
     },
     {
       "id": "f6",
       "text": "Reminder SMS sent 24 hours before the appointment",
-      "groups": [["sms"], ["24 hours", "twenty-four hours"]]
+      "groups": [
+        [
+          "sms"
+        ],
+        [
+          "24 hours",
+          "twenty-four hours"
+        ]
+      ]
     },
     {
       "id": "f7",
       "text": "Cancellation allowed up to 2 hours before the appointment",
-      "groups": [["cancel"], ["2 hours", "two hours"]]
+      "groups": [
+        [
+          "cancel"
+        ],
+        [
+          "2 hours",
+          "two hours"
+        ]
+      ]
     },
     {
       "id": "f8",
       "text": "Doctors set weekly availability from a staff dashboard",
-      "groups": [["availability"], ["dashboard", "staff"]]
+      "groups": [
+        [
+          "availability"
+        ],
+        [
+          "dashboard",
+          "staff"
+        ]
+      ]
     },
     {
       "id": "f9",
-      "text": "No online payment in phase one — patients pay at the clinic desk",
-      "groups": [["cash", "at the desk", "at the clinic", "desk"]]
+      "text": "No online payment in phase one \u2014 patients pay at the clinic desk",
+      "groups": [
+        [
+          "cash",
+          "at the desk",
+          "at the clinic",
+          "desk"
+        ]
+      ]
     },
     {
       "id": "f10",
       "text": "Patient-facing screens support Hindi and English",
-      "groups": [["hindi"], ["english"]]
+      "groups": [
+        [
+          "hindi"
+        ],
+        [
+          "english"
+        ]
+      ]
     },
     {
       "id": "f11",
       "text": "Walk-in patients appear on the same schedule as booked patients",
-      "groups": [["walk-in", "walk in", "walkins"], ["schedule", "list", "same"]]
+      "groups": [
+        [
+          "walk-in",
+          "walk in",
+          "walkins"
+        ],
+        [
+          "schedule",
+          "list",
+          "same"
+        ]
+      ]
     },
     {
       "id": "f12",
       "text": "Admin dashboard shows the day's appointments per doctor and clinic",
-      "groups": [["admin", "staff", "dashboard"], ["per doctor", "doctor", "clinic"]]
+      "groups": [
+        [
+          "admin",
+          "staff",
+          "dashboard"
+        ],
+        [
+          "per doctor",
+          "doctor",
+          "clinic"
+        ]
+      ]
     },
     {
       "id": "f13",
       "text": "Monthly no-show report per doctor and per clinic",
-      "groups": [["no-show", "no show", "noshow"], ["monthly", "report"]]
+      "groups": [
+        [
+          "no-show",
+          "no show",
+          "noshow"
+        ],
+        [
+          "monthly",
+          "report"
+        ]
+      ]
     },
     {
       "id": "f14",
       "text": "Patient data protected; access limited to the booking clinic's staff",
-      "groups": [["protected", "privacy", "data policy", "secure"], ["staff", "access"]]
+      "groups": [
+        [
+          "protected",
+          "privacy",
+          "data policy",
+          "secure"
+        ],
+        [
+          "staff",
+          "access"
+        ]
+      ]
+    },
+    {
+      "id": "f15",
+      "text": "Standard appointments are 15 minutes",
+      "groups": [
+        [
+          "15 minutes",
+          "fifteen minutes"
+        ]
+      ]
+    },
+    {
+      "id": "f16",
+      "text": "A confirmation SMS is sent as soon as a booking is confirmed",
+      "groups": [
+        [
+          "confirmation"
+        ],
+        [
+          "sms"
+        ]
+      ]
+    },
+    {
+      "id": "f17",
+      "text": "Staff can see a patient's booking history for the last 12 months",
+      "groups": [
+        [
+          "booking history",
+          "history"
+        ],
+        [
+          "12 months",
+          "twelve months"
+        ]
+      ]
+    },
+    {
+      "id": "f18",
+      "text": "The no-show rate target is 10% or lower per doctor",
+      "groups": [
+        [
+          "10%",
+          "10 percent"
+        ],
+        [
+          "no-show",
+          "no show",
+          "noshow"
+        ]
+      ]
     }
   ]
 }

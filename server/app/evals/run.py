@@ -21,8 +21,8 @@ from pathlib import Path
 from app.evals.compare import compare_runs
 from app.evals.datasets import (
     ScenarioError,
-    list_scenarios,
     load_scenario,
+    ordered_scenarios,
 )
 from app.evals.report import build_run, write_run
 from app.evals.runner import (
@@ -112,18 +112,18 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _list() -> int:
-    names = list_scenarios()
+    scenarios = ordered_scenarios()
 
-    if not names:
+    if not scenarios:
         print("No scenarios found.", file=sys.stderr)
 
         return 2
 
-    for name in names:
-        scenario = load_scenario(name)
+    for scenario in scenarios:
+        name = scenario.name
 
         print(
-            f"{name:24} {len(scenario.facts):3} facts  "
+            f"{scenario.level:7} {name:20} {len(scenario.facts):3} facts  "
             f"{len(scenario.inputs)} document(s)  "
             f"{scenario.total_chars} chars"
         )
@@ -152,7 +152,7 @@ def _run(args) -> int:
         requested = args.scenario
 
         if "all" in requested:
-            scenario_names = list_scenarios()
+            scenario_names = [item.name for item in ordered_scenarios()]
         else:
             scenario_names = requested
 

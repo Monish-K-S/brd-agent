@@ -1,60 +1,151 @@
 {
   "scenario": "helpdesk-migration",
-  "title": "IT helpdesk migration — from shared inboxes to ticketing",
+  "level": "large",
+  "title": "IT helpdesk migration \u2014 from shared inboxes to ticketing",
   "facts": [
     {
       "id": "f1",
       "text": "Requests are raised from a web portal, email or the intranet",
-      "groups": [["portal"], ["email", "intranet"]]
+      "groups": [
+        [
+          "portal"
+        ],
+        [
+          "email",
+          "intranet"
+        ]
+      ]
     },
     {
       "id": "f2",
       "text": "One queue with hardware, software, access, network and other categories",
-      "groups": [["hardware"], ["software"], ["access"], ["network"]]
+      "groups": [
+        [
+          "hardware"
+        ],
+        [
+          "software"
+        ],
+        [
+          "access"
+        ],
+        [
+          "network"
+        ]
+      ]
     },
     {
       "id": "f3",
       "text": "Staff can see only their own tickets",
-      "groups": [["own tickets", "their own", "cannot see anyone else's"]]
+      "groups": [
+        [
+          "own tickets",
+          "their own",
+          "cannot see anyone else's"
+        ]
+      ]
     },
     {
       "id": "f4",
       "text": "First response within 4 business hours",
-      "groups": [["4 business hours", "four business hours", "4 hours"], ["response", "respond"]]
+      "groups": [
+        [
+          "4 business hours",
+          "four business hours",
+          "4 hours"
+        ],
+        [
+          "response",
+          "respond"
+        ]
+      ]
     },
     {
       "id": "f5",
       "text": "Escalation to the on-call engineer after 8 business hours",
-      "groups": [["8 business hours", "eight business hours"], ["escalat"]]
+      "groups": [
+        [
+          "8 business hours",
+          "eight business hours"
+        ],
+        [
+          "escalat"
+        ]
+      ]
     },
     {
       "id": "f6",
       "text": "Security incidents go straight to the on-call engineer",
-      "groups": [["security incident", "security incidents"], ["on-call", "on call"]]
+      "groups": [
+        [
+          "security incident",
+          "security incidents"
+        ],
+        [
+          "on-call",
+          "on call"
+        ]
+      ]
     },
     {
       "id": "f7",
       "text": "Sign-in is Google Workspace single sign-on",
-      "groups": [["google workspace", "google"], ["single sign-on", "single sign on", "sso"]]
+      "groups": [
+        [
+          "google workspace",
+          "google"
+        ],
+        [
+          "single sign-on",
+          "single sign on",
+          "sso"
+        ]
+      ]
     },
     {
       "id": "f8",
       "text": "Searchable self-service knowledge base of the twenty most common fixes",
-      "groups": [["knowledge base"], ["searchable", "search"]]
+      "groups": [
+        [
+          "knowledge base"
+        ],
+        [
+          "searchable",
+          "search"
+        ]
+      ]
     },
     {
       "id": "f9",
       "text": "The last 12 months of email are imported",
-      "groups": [["12 months", "twelve months"], ["import"]]
+      "groups": [
+        [
+          "12 months",
+          "twelve months"
+        ],
+        [
+          "import"
+        ]
+      ]
     },
     {
       "id": "f10",
       "text": "Manager dashboard with volume, first response and resolution time",
-      "groups": [["dashboard"], ["first response"], ["resolution"]]
+      "groups": [
+        [
+          "dashboard"
+        ],
+        [
+          "first response"
+        ],
+        [
+          "resolution"
+        ]
+      ]
     },
     {
       "id": "f11",
-      "text": "No mobile app — the portal is responsive",
+      "text": "No mobile app \u2014 the portal is responsive",
       "groups": [
         [
           "no mobile app",
@@ -64,23 +155,259 @@
           "excludes a mobile",
           "not include the development of a mobile"
         ],
-        ["responsive", "phone browser"]
+        [
+          "responsive",
+          "phone browser"
+        ]
       ]
     },
     {
       "id": "f12",
       "text": "Resolved tickets are retained for 3 years",
-      "groups": [["3 years", "three years"], ["retain", "retained", "retention", "deleted"]]
+      "groups": [
+        [
+          "3 years",
+          "three years"
+        ],
+        [
+          "retain",
+          "retained",
+          "retention",
+          "deleted"
+        ]
+      ]
     },
     {
       "id": "f13",
       "text": "Access granted through the Google Workspace directory group, removed within 15 minutes",
-      "groups": [["directory group", "group"], ["15 minutes", "fifteen minutes"]]
+      "groups": [
+        [
+          "directory group",
+          "group"
+        ],
+        [
+          "15 minutes",
+          "fifteen minutes"
+        ]
+      ]
     },
     {
       "id": "f14",
       "text": "A ticket closed without requester confirmation after 5 business days closes automatically",
-      "groups": [["5 business days", "five business days"], ["closed", "close", "automatically"]]
+      "groups": [
+        [
+          "5 business days",
+          "five business days"
+        ],
+        [
+          "closed",
+          "close",
+          "automatically"
+        ]
+      ]
+    },
+    {
+      "id": "f15",
+      "text": "Support hours are 08:00 to 18:00, Monday to Friday",
+      "groups": [
+        [
+          "08:00",
+          "8:00",
+          "eight"
+        ],
+        [
+          "18:00",
+          "6pm",
+          "eighteen"
+        ]
+      ]
+    },
+    {
+      "id": "f16",
+      "text": "Priority one means a whole team is blocked",
+      "groups": [
+        [
+          "priority one",
+          "priority 1",
+          "p1"
+        ],
+        [
+          "whole team",
+          "team is blocked",
+          "entire team"
+        ]
+      ]
+    },
+    {
+      "id": "f17",
+      "text": "A priority one ticket pages the on-call engineer immediately",
+      "groups": [
+        [
+          "priority one",
+          "priority 1",
+          "p1"
+        ],
+        [
+          "page",
+          "paged",
+          "paging",
+          "immediately"
+        ]
+      ]
+    },
+    {
+      "id": "f18",
+      "text": "Priority four is a request for information",
+      "groups": [
+        [
+          "priority four",
+          "priority 4",
+          "p4"
+        ],
+        [
+          "information",
+          "request"
+        ]
+      ]
+    },
+    {
+      "id": "f19",
+      "text": "A suspected security incident must be reported within one hour",
+      "groups": [
+        [
+          "one hour",
+          "1 hour"
+        ],
+        [
+          "report",
+          "reported"
+        ]
+      ]
+    },
+    {
+      "id": "f20",
+      "text": "Tickets may be closed but never deleted",
+      "groups": [
+        [
+          "closed",
+          "close"
+        ],
+        [
+          "never deleted",
+          "not deleted",
+          "cannot be deleted",
+          "no deletion",
+          "deletion is not"
+        ]
+      ]
+    },
+    {
+      "id": "f21",
+      "text": "Every staff member attends one training session before cutover",
+      "groups": [
+        [
+          "training"
+        ],
+        [
+          "before cutover",
+          "before the cutover",
+          "before go-live"
+        ]
+      ]
+    },
+    {
+      "id": "f22",
+      "text": "The old and new systems run in parallel for two weeks",
+      "groups": [
+        [
+          "parallel"
+        ],
+        [
+          "two weeks",
+          "2 weeks"
+        ]
+      ]
+    },
+    {
+      "id": "f23",
+      "text": "Old shared mailboxes stay readable for 90 days",
+      "groups": [
+        [
+          "90 days",
+          "ninety days"
+        ],
+        [
+          "readable",
+          "read-only",
+          "read only",
+          "archived"
+        ]
+      ]
+    },
+    {
+      "id": "f24",
+      "text": "Knowledge base articles are reviewed quarterly",
+      "groups": [
+        [
+          "quarterly",
+          "every quarter"
+        ]
+      ]
+    },
+    {
+      "id": "f25",
+      "text": "Obsolete articles are marked obsolete rather than deleted",
+      "groups": [
+        [
+          "obsolete"
+        ],
+        [
+          "not deleted",
+          "rather than deleted",
+          "marked"
+        ]
+      ]
+    },
+    {
+      "id": "f26",
+      "text": "A nightly CSV export supports the monthly service review",
+      "groups": [
+        [
+          "csv"
+        ],
+        [
+          "nightly",
+          "nightly export",
+          "daily"
+        ]
+      ]
+    },
+    {
+      "id": "f27",
+      "text": "Backups are kept for 30 days",
+      "groups": [
+        [
+          "backups",
+          "backup"
+        ],
+        [
+          "30 days",
+          "thirty days"
+        ]
+      ]
+    },
+    {
+      "id": "f28",
+      "text": "Ticket status can only be changed through the web portal",
+      "groups": [
+        [
+          "web portal",
+          "portal"
+        ],
+        [
+          "status"
+        ]
+      ]
     }
   ]
 }

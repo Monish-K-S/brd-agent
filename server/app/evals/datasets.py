@@ -19,6 +19,9 @@ DATASETS_DIR = Path(__file__).resolve().parent / "datasets"
 
 SUPPORTED_SUFFIXES = {".txt", ".pdf", ".docx"}
 
+# Presentation order: least to most source material.
+LEVEL_ORDER = {"small": 0, "medium": 1, "large": 2}
+
 
 class ScenarioError(ValueError):
     """A scenario is missing or malformed."""
@@ -37,6 +40,17 @@ class Scenario:
     @property
     def facts(self) -> list[dict]:
         return self.expected.get("facts", [])
+
+    @property
+    def level(self) -> str:
+        """Documentation depth: ``small``, ``medium`` or ``large``.
+
+        Used for ordering and labelling only. A missing level is not an
+        error — a scenario someone adds by hand should still run.
+        """
+        level = self.expected.get("level")
+
+        return level if isinstance(level, str) and level else "unknown"
 
     @property
     def total_chars(self) -> int:
@@ -91,6 +105,21 @@ def load_all(datasets_dir: str | Path | None = None) -> list[Scenario]:
         load_scenario(name, datasets_dir)
         for name in list_scenarios(datasets_dir)
     ]
+
+
+def ordered_scenarios(datasets_dir: str | Path | None = None) -> list[Scenario]:
+    """Scenarios least-to-most source material, then by name.
+
+    Alphabetical order would put "clinic" before "library" and make a
+    scaling run read out of sequence in the report.
+    """
+    return sorted(
+        load_all(datasets_dir),
+        key=lambda item: (
+            LEVEL_ORDER.get(item.level, len(LEVEL_ORDER)),
+            item.name,
+        ),
+    )
 
 
 def _source_files(directory: Path) -> list[Path]:

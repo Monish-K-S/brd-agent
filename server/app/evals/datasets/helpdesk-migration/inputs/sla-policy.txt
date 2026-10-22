@@ -1,0 +1,30 @@
+IT Helpdesk - Service Level Policy
+
+Support hours
+The service desk operates from 08:00 to 18:00, Monday to Friday,
+excluding public holidays. All response and resolution targets in this
+policy are measured in business hours, so a ticket raised at 17:30 on
+Friday has its clock start again on Monday morning.
+
+Priorities
+Priority one means a whole team is blocked and cannot work. A priority
+one ticket pages the on-call engineer immediately, regardless of the
+time of day, and the service desk manager is notified at the same time.
+
+Priority two is a single person blocked with no workaround.
+
+Priority three is a degraded experience with a workaround available.
+
+Priority four is a request for information, or a change with no urgency.
+
+Who sets priority
+The requester sets the initial priority when raising the ticket. The
+first responder confirms or corrects it, and must record a reason when
+changing it.
+
+Targets
+First response within 4 business hours for priorities two, three and
+four. Priority one is acknowledged within 15 minutes. Resolution targets
+are 8 business hours for priority two and 3 business days for priority
+three; priority four has no resolution target and is handled in the
+weekly change window.

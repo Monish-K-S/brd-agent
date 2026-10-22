@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { useAuth } from "@/auth/useAuth";
@@ -48,6 +48,7 @@ import {
 import { isGoogleReconnectRequiredError } from "@/api/googleReconnect";
 import {
   ArrowLeft,
+  ChartLine,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -1732,28 +1733,40 @@ export default function WorkspacePage() {
                 </p>
               </div>
 
-              {brdStatus?.has_brd && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    render={
-                      <Button variant="outline">
-                        <Download />
-                        Export
-                      </Button>
-                    }
-                  />
+              {/* One row so Evaluation keeps the same baseline and
+                  spacing as Export, and does not shift when Export is
+                  hidden (it only renders once a BRD exists). */}
+              <div className="flex items-center gap-2">
+                {brdStatus?.has_brd && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button variant="outline">
+                          <Download />
+                          Export
+                        </Button>
+                      }
+                    />
 
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={handleDownloadPdf}>
-                      PDF
-                    </DropdownMenuItem>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleDownloadPdf}>
+                        PDF
+                      </DropdownMenuItem>
 
-                    <DropdownMenuItem onClick={handleDownloadDocx}>
-                      DOCX
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                      <DropdownMenuItem onClick={handleDownloadDocx}>
+                        DOCX
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
+                {import.meta.env.DEV && (
+                  <Button variant="outline" render={<Link to="/evals" />}>
+                    <ChartLine />
+                    Evaluation
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 

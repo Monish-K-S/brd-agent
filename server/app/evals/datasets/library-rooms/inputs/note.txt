@@ -1,0 +1,38 @@
+Study Room Booking - Product Note
+
+Background
+The college library has fourteen group study rooms with no booking
+system. Students claim a room by writing their name on the whiteboard on
+the door, which leads to double bookings, arguments at the desk, and
+rooms sitting empty because someone claimed one and never turned up.
+The library wants a small booking tool built into the student portal.
+
+What students need
+Students must be able to book a study room for up to two hours at a
+time. A booking requires a college email address; personal email
+addresses are not accepted, because the library can only contact
+students through the college directory.
+
+Students can book up to 30 days in advance and cannot hold more than two
+active bookings at once.
+
+Students should be able to filter the room list by equipment, so a group
+that needs a projector can see only the rooms that have one. Four of the
+fourteen rooms currently have projectors.
+
+If a group cancels a booking, the slot must become available to other
+students immediately, not at the end of the day.
+
+Library staff need to be able to block a room for maintenance. A blocked
+room disappears from the student view for the duration of the block, and
+any booking already made in that window is cancelled with a notification
+to the student.
+
+Out of scope
+The first version will not send reminder emails, and it will not support
+booking on behalf of another student. Rooms cannot be booked for
+non-library use, such as society meetings.
+
+Open question
+Should a student be limited to one active booking at a time instead of
+two? The library has not decided yet.

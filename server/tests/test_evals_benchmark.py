@@ -92,12 +92,15 @@ def _brd(**overrides) -> dict:
         },
         "functional_requirements": {
             "requirements": [
-                "Students must be able to book a study room for up to two hours at a time.",
+                "The library has fourteen group study rooms available for booking.",
+                "Students may book a study room for up to two hours at a time.",
                 "A booking requires a college email address.",
-                "Students should be able to filter the room list by equipment, "
-                "so a group that needs a projector can see only the rooms that have one.",
-                "If a group cancels a booking, the slot must become available to "
-                "other students immediately.",
+                "Students can book up to 30 days in advance.",
+                "A student may hold at most two active bookings.",
+                "Students can filter the room list by equipment such as a projector.",
+                "Cancelling a booking makes the slot available immediately.",
+                "Library staff can block a room for maintenance, and affected "
+                "bookings are cancelled.",
             ],
         },
         "non_functional_requirements": {
@@ -157,7 +160,7 @@ class _FakeGenerator:
 
 
 def _scenario():
-    return load_scenario("smoke")
+    return load_scenario("library-rooms")
 
 
 def _config(tmp_path, **overrides):
@@ -182,10 +185,14 @@ def test_paraphrase_is_captured_through_synonyms():
     brd = _brd(
         functional_requirements={
             "requirements": [
-                "Groups may reserve a room for 2 hours.",
-                "A college email is required to book.",
-                "Students can filter rooms by projector.",
-                "Cancelling frees the slot instantly.",
+                "Fourteen rooms are available in the library.",
+                "Bookings last up to 2 hours.",
+                "Students must use their student email to book.",
+                "A booking window of thirty days is available ahead of the visit.",
+                "No one may hold two bookings at once.",
+                "The list can be filtered by projector.",
+                "A cancelled slot frees up instantly.",
+                "Staff may block rooms for maintenance; affected bookings are cancelled.",
             ],
         },
         business_requirements={"requirements": ["Rooms are booked from the portal."]},
@@ -216,26 +223,30 @@ def test_missing_fact_reports_the_group_that_was_absent():
     brd = _brd(
         functional_requirements={
             "requirements": [
-                "Students must be able to book a study room for up to two hours at a time.",
+                "The library has fourteen group study rooms available for booking.",
+                "Students may book a study room for up to two hours at a time.",
                 "A booking requires a college email address.",
+                "Students can book up to 30 days in advance.",
+                "A student may hold at most two active bookings.",
                 # Mentions filtering but loses the projector requirement,
-                # so only one of f3's two groups should be reported.
-                "Students should be able to filter the room list by equipment.",
-                "If a group cancels a booking, the slot must become available "
-                "to other students immediately.",
+                # so only one of s6's two groups should be reported.
+                "Students can filter the room list by equipment.",
+                "Cancelling a booking makes the slot available immediately.",
+                "Library staff can block a room for maintenance, and affected "
+                "bookings are cancelled.",
             ],
         },
     )
 
     result = score_coverage(brd, _scenario().expected)
 
-    assert result["facts_total"] == 4
-    assert result["facts_matched"] == 3
+    assert result["facts_total"] == 8
+    assert result["facts_matched"] == 7
     assert len(result["missed"]) == 1
 
     missed = result["missed"][0]
 
-    assert missed["id"] == "f3"
+    assert missed["id"] == "s6"
     # Not just "a fact was missed" — which phrase went missing.
     assert missed["missing_groups"] == [["projector"]]
 
@@ -280,11 +291,12 @@ def test_coverage_without_facts_is_unavailable():
 # ------------------------------------------------------------- datasets
 
 
-def test_smoke_scenario_loads():
+def test_small_scenario_loads():
     scenario = _scenario()
 
-    assert scenario.name == "smoke"
-    assert len(scenario.facts) == 4
+    assert scenario.name == "library-rooms"
+    assert scenario.level == "small"
+    assert len(scenario.facts) == 8
     assert len(scenario.inputs) == 1
     assert scenario.total_chars > 0
 
@@ -564,8 +576,8 @@ def test_cli_lists_scenarios_without_running_anything(capsys):
 
     output = capsys.readouterr().out
 
-    assert "smoke" in output
-    assert "4 facts" in output
+    assert "library-rooms" in output
+    assert "8 facts" in output
 
 
 def test_cli_rejects_an_unknown_scenario(capsys):
@@ -578,5 +590,7 @@ def test_cli_rejects_zero_repeats(capsys):
     assert cli.main(["--scenario", "smoke", "--repeats", "0"]) == 2
 
 
-def test_scenario_list_includes_smoke():
-    assert "smoke" in list_scenarios()
+def test_scenario_list_covers_three_levels():
+    assert {"library-rooms", "clinic-booking", "helpdesk-migration"} <= set(
+        list_scenarios()
+    )

@@ -45,6 +45,12 @@ def build_generation_eval(
         ),
         "job_id": str(job_id),
         "workspace_id": str(workspace_id),
+        # Kept so a record can be re-scored later. Retention has been
+        # corrected four times against real data, and every one of those
+        # was diagnosed from a *stored* document rather than by paying for
+        # a fresh generation. The dashboard also shows the evidence.
+        "brd": brd_data if isinstance(brd_data, dict) else None,
+        "knowledge": knowledge_data if isinstance(knowledge_data, dict) else None,
         "timings": _clean_timings(timings),
         "usage": _clean_usage(usage),
         "metrics": {
@@ -57,7 +63,14 @@ def build_generation_eval(
             "valid": structure["valid"],
             "sections_present": structure["sections_present"],
             "retention": retention["overall_retention"],
+            # Counts, not just percentages: "13 of 15" is what makes a
+            # retention number actionable, and the dashboard should not
+            # have to fetch every full record to show it.
+            "functional_input": retention["functional"]["input"],
+            "functional_retained": retention["functional"]["retained"],
             "unsupported_rate": groundedness["unsupported_rate"],
+            "unsupported_items": len(groundedness["unsupported"]),
+            "items_scored": groundedness["items_scored"],
             "duplicate_items": duplication["duplicate_items"],
             "total_seconds": _total_seconds(timings),
         },
