@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    name: server (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        # Keeps `python -m pytest` resolving `app.*` imports exactly as it
+        # does locally, with no PYTHONPATH workaround.
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Matches the local venv and PYTHON_VERSION on Render.
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: server/requirements*.txt
+
+      # No secrets: tests/conftest.py sets placeholder settings for every
+      # required field, so the suite never reaches Supabase, Sarvam or the
+      # Gemini API.
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - run: python -m pytest -q
+
+  client:
+    name: client (lint, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Same major as NODE_VERSION on Cloudflare Pages.
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      # Installs devDependencies too — `npm run build` needs tsc and vite.
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build

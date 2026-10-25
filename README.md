@@ -307,3 +307,39 @@ then, pin `--workers 1` and scale vertically.
 Security headers for the SPA (CSP, HSTS, `X-Frame-Options`) are configured at
 the static host (`vercel.json` / `netlify.toml`), not in this repo — the API is
 JSON-only and sets its own headers server-side via `SecurityHeadersMiddleware`.
+
+### Current deployment
+
+A free-tier deployment, sized for a demo rather than production:
+
+| Piece | Where |
+|---|---|
+| SPA | Cloudflare Pages — root `client`, build `npm run build`, output `dist` |
+| API | Render — root `server`, region Singapore |
+| Database | Supabase `ap-south-1`, via the Supavisor pooler |
+| CI | `.github/workflows/ci.yml` — server `pytest`, client lint/test/build |
+
+Render start command (the proxy flags are mandatory — Render terminates TLS and
+forwards `X-Forwarded-For`, and without them headerless OAuth callbacks key rate
+limiting on Render's proxy IP instead of the client's):
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+```
+
+Five settings that fail in ways which do not name their cause:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Every request returns **400 Invalid host header** | `ALLOWED_HOSTS` does not match the real host | Set it to the exact hostname; `TrustedHostMiddleware` turns a mismatch into a 400 before any route runs |
+| `ModuleNotFoundError: psycopg2` on boot | `DATABASE_URL` uses a bare `postgresql://` scheme | Keep `postgresql+psycopg://` — only psycopg 3 is installed |
+| Boot hangs / fails to reach the database | Direct host `db.<ref>.supabase.co` is IPv6-only | Use the Supavisor pooler URL (`postgres.<ref>@aws-0-<region>.pooler.supabase.com`) |
+| Build fails on a package with no wheel | Host defaults to a newer Python than the pins were resolved against | Set `PYTHON_VERSION=3.11.9` |
+| Deployed app calls `localhost:8000` | `VITE_*` values are inlined at **build** time, not read at runtime | Set them before the first build, then rebuild |
+
+Free-tier behaviour worth knowing: a Render free instance sleeps after 15 minutes
+without traffic and takes about a minute to wake, so ping `/health` every 10
+minutes with any uptime monitor during a demo window. The allowance is 750
+instance hours per month, and there is no persistent disk — exports are written
+to temp files and evaluation records are disabled because
+`ENVIRONMENT=production` (which also unmounts `/evals` and enables HSTS).

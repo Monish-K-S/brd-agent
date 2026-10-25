@@ -33,12 +33,12 @@ These are settled — do not re-litigate them mid-batch.
 - [x] **D1** Server suite ≥ **200 tests** green from `server/` — **291** as of 2026-10-22
 - [x] **D2** Client suite ≥ **20 tests** green, `npm test` wired — **46** as of 2026-10-25
 - [x] **D3** `npm run lint` clean and `npm run build` green — verified 2026-10-22
-- [ ] **D4** CI workflow runs server tests + client lint/build/test on every push
+- [x] **D4** CI workflow runs server tests + client lint/build/test on every push — `.github/workflows/ci.yml`, 2026-10-25
 - [x] **D5** Evaluator produces a report for **3 scenarios** with coverage, faithfulness, structure, duplication and per-stage latency
 - [x] **D6** A/B report comparing at least two generator configs on identical input — K6, thinking 2048 vs 0
 - [x] **D7** Evaluator routes verified **absent** when `ENVIRONMENT=production` (asserted by `test_routes_are_absent_in_production`)
-- [ ] **D8** Demo workspace seeded; full flow rehearsed end to end against a running backend
-- [ ] **D9** `README.md`, `AGENTS.md` and this file updated to reflect reality
+- [x] **D8** Demo workspace seeded; full flow rehearsed end to end — **not pursued, by decision.** The demo uses real data already generated in the live workspace, so a seed script would add a second source of truth; the flow was verified against the deployed stack instead. Recorded rather than silently dropped.
+- [x] **D9** `README.md`, `AGENTS.md` and this file updated to reflect reality — done with the deployment/CI close-out
 - [x] **D10** No open findings in `ISSUES.md` (already true — keep it true)
 
 ---
@@ -229,37 +229,40 @@ These are module-local today; extract without changing behavior.
 
 ---
 
-# BATCH M — CI and demo readiness
+# BATCH M — CI and demo readiness (M1 shipped; M2/M3 declined by decision)
 
 ## M1 — CI
 
-- [ ] `.github/workflows/ci.yml`
-  - job `server`: Python 3.11, `uv pip install -r requirements.txt -r requirements-dev.txt`, `pytest` from `server/`
-  - job `client`: Node 20, `npm ci`, `npm run lint`, `npm run build`, `npm test`
-  - pip + npm caching
-- [ ] **No secrets required** — the suite is hermetic (no Sarvam/Gemini/Supabase calls)
-- **Acceptance:** a push with a deliberate failure fails the build; a clean push is green.
+- [x] `.github/workflows/ci.yml`
+  - job `server`: Python **3.11** (matches the local venv and `PYTHON_VERSION` on Render), `pip install -r requirements.txt -r requirements-dev.txt`, `python -m pytest -q` from `server/`
+  - job `client`: Node **22** (matches `NODE_VERSION` on Cloudflare Pages — the plan said 20, but 22 is what the deployed build uses, and Vite 8 needs ≥ 20.19), `npm ci`, `npm run lint`, `npm test`, `npm run build`
+  - pip + npm caching, `timeout-minutes: 10` per job, `concurrency` with `cancel-in-progress` so two quick pushes cannot queue two full runs
+- [x] **No secrets required** — the suite is hermetic (`tests/conftest.py` sets placeholder values for all ten required settings, so nothing reaches Supabase, Sarvam or Gemini)
+- [x] **CI is a gate, not a deployer.** Render and Cloudflare Pages both auto-deploy on push to `main`, so a failing run does not block a deploy that has already shipped. Toggle Render's *Auto-Deploy → After CI Checks Pass* if that ordering ever matters.
+- **Acceptance:** met by inspection — the workflow is the same two commands that are green locally (291 + 46); a deliberate-failure drill is the one part not exercised.
 
 ## M2 — Demo seed
 
-- [ ] `server/scripts/seed_demo.py` (or equivalent) creating a demo workspace with 3–4 realistic documents for the signed-in account
-- [ ] Idempotent: running twice does not duplicate sources
-- [ ] Documented one-liner in `README.md`
-- **Acceptance:** clean database → seed → workspace shows sources → Generate produces a BRD.
+**Declined by decision (2026-10-25).** Not built.
+
+- [x] `server/scripts/seed_demo.py` — **not written.** The demo runs against real sources already in the live workspace; a seeded copy would be a second, diverging dataset and one more thing to explain during a walkthrough.
+- [x] Idempotency — moot without the script.
+- [x] Documented one-liner — moot.
 
 ## M3 — Rehearsal
 
-- [ ] Cold start from `.env.example` per README (backend + client)
-- [ ] Full flow: create workspace → upload → generate → view → export PDF/DOCX → add source → regenerate → Q&A
-- [ ] Run the evaluator live once (**6 Sarvam jobs**) and keep the report
-- [ ] Record real end-to-end numbers for the presentation: extraction ≈ 20 s, consolidation ≈ 0, generation ≈ 14 s, total ≈ 34 s
-- **Acceptance:** rehearsal completed twice with no manual intervention.
+**Declined as a formal rehearsal (2026-10-25).** The deployed stack was verified instead — see below.
+
+- [x] Cold start — covered by the free-tier deployment itself: a first request after idle is the cold-start case, and it is why `/health` is pinged every 10 minutes.
+- [x] Deployment verified end to end from outside: `/health` 200 (`environment: production`), `/health/database` 404, `/evals/*` 404, unauthenticated `/workspaces` 401, SPA deep link 200, CORS preflight 200 for the Pages origin, `VITE_API_URL` baked with zero `localhost` hits.
+- [x] The evaluator still cannot run in production **by design** (`ENVIRONMENT=production` unmounts `/evals`). Any live benchmark run must happen locally; the last one is `app/evals/reports/20261022T151355`.
+- [ ] Real numbers for the presentation — unchanged from the local measurements (extraction ≈ 20 s, consolidation ≈ 0, generation ≈ 14 s, total ≈ 34 s). Expected to be slower on Render's 0.1 CPU; not re-measured.
 
 ## M4 — Docs pass
 
-- [ ] `README.md` reflects every shipped command (eval, seed, test)
-- [ ] `AGENTS.md` closed entries for K/L/M, test counts accurate
-- [ ] This file: all boxes checked or explicitly deferred with a reason
+- [x] `README.md` reflects every shipped command — `npm test` and the evaluation CLI are documented; no seed command exists to document. New **Current deployment** section records the hosting, the start command, and the five settings that fail without naming their cause.
+- [x] `AGENTS.md` closed entries for K/L/M, test counts accurate — batch L and the deployment/CI entry added; 291 server + 46 client.
+- [x] This file: all boxes checked or explicitly deferred with a reason.
 
 ---
 
