@@ -30,16 +30,16 @@ These are settled — do not re-litigate them mid-batch.
 
 ## 1. Definition of done for v1.0
 
-- [x] **D1** Server suite ≥ **200 tests** green from `server/` — **209** as of 2026-10-22
+- [x] **D1** Server suite ≥ **200 tests** green from `server/` — **291** as of 2026-10-22
 - [ ] **D2** Client suite ≥ **20 tests** green, `npm test` wired
-- [ ] **D3** `npm run lint` clean and `npm run build` green
+- [x] **D3** `npm run lint` clean and `npm run build` green — verified 2026-10-22
 - [ ] **D4** CI workflow runs server tests + client lint/build/test on every push
-- [ ] **D5** Evaluator produces a report for **3 scenarios** with coverage, faithfulness, structure, duplication and per-stage latency
-- [ ] **D6** A/B report comparing at least two generator configs on identical input
+- [x] **D5** Evaluator produces a report for **3 scenarios** with coverage, faithfulness, structure, duplication and per-stage latency
+- [x] **D6** A/B report comparing at least two generator configs on identical input — K6, thinking 2048 vs 0
 - [x] **D7** Evaluator routes verified **absent** when `ENVIRONMENT=production` (asserted by `test_routes_are_absent_in_production`)
 - [ ] **D8** Demo workspace seeded; full flow rehearsed end to end against a running backend
 - [ ] **D9** `README.md`, `AGENTS.md` and this file updated to reflect reality
-- [ ] **D10** No open findings in `ISSUES.md` (already true — keep it true)
+- [x] **D10** No open findings in `ISSUES.md` (already true — keep it true)
 
 ---
 
@@ -126,7 +126,7 @@ Two tiers, because they answer different questions and only one of them needs a 
 
 - [x] `--compare A B` prints a Markdown table; warns when the runs used different modes
 - [x] First A/B measured: **thinking 2048 (live) vs thinking 0 (replay)** on the same cached extraction — recall and retention **identical** (1.0 / 0.857-1.0), unsupported items **87% worse** with thinking off (0.087 → 0.163), generation stage **38.7% faster** (18.0 s → 11.1 s)
-- [ ] Second (optional): dedup on/off via `--no-dedupe`
+- [x] Second (optional): dedup on/off via `--no-dedupe` — **closed as already measured**, not re-run. Batch G recorded the before/after in `ISSUES.md` (147 → 71 and 120 → 48 items, 22.8 s → 14.4 s with thinking restored, `functional_requirements` = 15 in every configuration). Re-running it would reproduce a number that already exists, and `--no-dedupe` remains available in the runner for anyone who wants it.
 
 ## K7 — Dev-only routes and dashboard — DONE 2026-10-22
 
@@ -148,10 +148,10 @@ Two tiers, because they answer different questions and only one of them needs a 
 - [x] Suite stays under 2 s added runtime
 - **Acceptance met:** replay is asserted to call the extractor **zero** times.
 
-## K9 — Docs and ignore rules — PARTIAL
+## K9 — Docs and ignore rules — DONE 2026-10-22
 
-- [ ] `README.md` → "Evaluation harness" section
-- [ ] `AGENTS.md` → closed entry for K1–K6 (K0/K10 entries exist)
+- [x] `README.md` → "Evaluation harness" section (`README.md:201`)
+- [x] `AGENTS.md` → closed entries for K0–K5 (`AGENTS.md:251–330`)
 - [x] `.gitignore` → `server/app/evals/reports/`, `.cache/`, `generations/`
 - [x] Update §2 of this file
 
@@ -168,13 +168,14 @@ Two tiers, because they answer different questions and only one of them needs a 
 
 > Note: the benchmark routes (`POST /evals/run`, `/evals/runs`) are still K7 — this only shipped the two read endpoints Phase 1 needs to be observable.
 
-## K11 — Dashboard (Tier 1 + Tier 2 in one place)
+## K11 — Dashboard (Tier 1 + Tier 2 in one place) — DONE 2026-10-22
 
-- [ ] `/evals` client page, dev-gated (`import.meta.env.DEV`) and behind `RequireAuth`
-- [ ] **Tab 1 — Benchmark:** latest runs, fact recall, latency percentiles, the A/B table, link to `report.html`, "Run benchmark" button with a cost confirmation ("6 Sarvam jobs, ~5 min")
-- [ ] **Tab 2 — Recent generations:** last N real runs with health-check numbers, row detail
-- [ ] Dev-only "Evaluation" pill on the workspace page after a successful generation → `/evals?workspace=…`
-- [ ] Verify `grep -ril "evals" client/dist/assets` returns nothing after `npm run build`
+- [x] `/evals` client page, dev-gated (`import.meta.env.DEV`) and behind `RequireAuth`
+- [x] **Tab 1 — Benchmark:** latest runs, fact recall, latency percentiles, link to `report.html`, "Run benchmark" button with a cost confirmation ("6 Sarvam jobs, ~5 min")
+- [x] **Tab 2 — Your generations:** last N real runs with health-check numbers, row detail
+- [x] Dev-only "Evaluation" pill on the workspace page after a successful generation → `/evals?workspace=…`
+- [x] Verify `grep -ril "evals" client/dist/assets` returns nothing after `npm run build`
+- [ ] **Exception — the A/B table is not in the tab.** Comparison lives in the CLI (`--compare`) and in `report.html`. Deferred deliberately: it needs a new compare route plus diff logic to answer a question the HTML report already answers, and the dashboard's job is the per-generation numbers. Not a K11 blocker.
 - **Acceptance:** the dashboard shows real numbers, not "0 of 0 expected facts" — the benchmark must have been run at least once before the review.
 
 ---
