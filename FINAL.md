@@ -31,7 +31,7 @@ These are settled — do not re-litigate them mid-batch.
 ## 1. Definition of done for v1.0
 
 - [x] **D1** Server suite ≥ **200 tests** green from `server/` — **291** as of 2026-10-22
-- [ ] **D2** Client suite ≥ **20 tests** green, `npm test` wired
+- [x] **D2** Client suite ≥ **20 tests** green, `npm test` wired — **46** as of 2026-10-25
 - [x] **D3** `npm run lint` clean and `npm run build` green — verified 2026-10-22
 - [ ] **D4** CI workflow runs server tests + client lint/build/test on every push
 - [x] **D5** Evaluator produces a report for **3 scenarios** with coverage, faithfulness, structure, duplication and per-stage latency
@@ -180,50 +180,52 @@ Two tiers, because they answer different questions and only one of them needs a 
 
 ---
 
-# BATCH L — Frontend tests
+# BATCH L — Frontend tests — DONE 2026-10-25
 
-Goal: cover the largest untested surface in the project. Currently **zero** test files and no `test` script.
+Goal: cover the largest untested surface in the project. It was **zero** test files and no `test` script; it is now **46 tests** across 7 files, wired to `npm test`.
 
 ## L1 — Tooling
 
-- [ ] Install dev deps: `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`
-- [ ] `vite.config.ts` → `test` block (`environment: "jsdom"`, `setupFiles`, `globals: true`)
-- [ ] `src/test/setup.ts` → `@testing-library/jest-dom` + cleanup
-- [ ] Scripts: `"test": "vitest run"`, `"test:watch": "vitest"`
-- **Acceptance:** `npm test` runs and reports "no tests" without configuration errors before L2 lands.
+- [x] Install dev deps: `vitest` 5.0.5, `jsdom` 30, `@testing-library/react` 16, `@testing-library/user-event` 14, `@testing-library/jest-dom` 7
+- [x] **`vitest.config.ts`, not `vite.config.ts`** — deliberately separate, because the build config owns the `manualChunks` split for the production bundle and tests must not be able to change what ships. Vitest 5 accepts Vite 8, so no version pinning was needed (the risk that would have blocked this).
+- [x] `src/test/setup.ts` → jest-dom matchers + `cleanup()` + the three jsdom gaps the app actually hits (`scrollIntoView`, `crypto.randomUUID`, `URL.createObjectURL`). Without them the failure looks like a bug in the component rather than a missing browser API.
+- [x] Scripts: `"test": "vitest run"`, `"test:watch": "vitest"`
+- **Acceptance met:** proven with a throwaway toolchain test before any real test was written.
 
 ## L2 — Make pure logic testable (behavior-preserving extraction)
 
 These are module-local today; extract without changing behavior.
 
-- [ ] `safeExportFilename` → `src/lib/files.ts`
-- [ ] `errorDetail` → `src/lib/errors.ts`
-- [ ] `findDuplicateUpload` + `DuplicateMatch` → `src/lib/uploadDedup.ts`
-- [ ] `mapJobPhaseToStep` → `src/lib/generation.ts`
-- [ ] Any `docMeasure`/layout helper out of `BRDViewer.tsx` → `src/lib/layout.ts`
-- **Acceptance:** `npm run build` and `npm run lint` green after each move; `WorkspacePage.tsx` shrinks; no behavior change.
+- [x] `safeExportFilename` + `downloadBlob` → `src/lib/files.ts`
+- [x] `errorDetail` → `src/lib/errors.ts`
+- [x] `findDuplicateUpload` + `DuplicateMatch` → `src/lib/uploadDedup.ts` — gains an explicit `documents` parameter instead of closing over component state, which is what made it untestable
+- [x] `mapJobPhaseToStep` → `src/lib/generation.ts`
+- [x] `docMeasure` → `src/lib/layout.ts` as `documentMeasure(sourcesOpen, qaOpen)` (it lives in `WorkspacePage`, not `BRDViewer`)
+- **Beyond the list:** the upload pre-check became `validateUploadSelection(files)`, and the L-7 delete-then-upload sequence became `replaceStoredSource(...)`. The second one matters — it is the only cheap way to assert an ordering invariant without rendering a 2,000-line page.
+- **Acceptance met:** `build` and `lint` green after every move; `WorkspacePage.tsx` 2,224 → 2,107 lines; messages kept byte-identical (asserted in tests).
 
 ## L3 — Unit tests
 
-- [ ] `files.ts` — spaces, slashes, emoji, empty name, duplicate extension
-- [ ] `errors.ts` — Axios error with `detail`, plain Error, non-object, 409 shape
-- [ ] `uploadDedup.ts` — in-batch duplicate (hard error) vs stored duplicate (replace dialog), name/type/size keying
-- [ ] `generation.ts` — every server phase maps to the expected step; unknown phase falls back
-- [ ] `api/googleReconnect.ts` — `isGoogleReconnectRequiredError` / `throwIfGoogleReconnectRequired`
-- **Acceptance:** no React rendering needed; fast.
+- [x] `files.ts` (9) — spaces, slashes, quotes, control chars, leading dot, 80-char cap, emoji, empty name, `downloadBlob` URL lifecycle
+- [x] `errors.ts` (5) — string `detail`, non-string `detail`, missing response, plain Error, non-error values
+- [x] `uploadDedup.ts` (14) — in-batch duplicate is a hard error, stored match returns its id, size and extension mismatches, case-insensitive extension, the 10MB boundary (exactly 10MB passes), and the replace ordering (upload never before delete resolves, never after a failed delete)
+- [x] `generation.ts` (3) — every phase, `null` while queued, unknown phase falls back to the first step
+- [x] `api/googleReconnect.ts` (7) — 409 on the same connector throws, a 409 belonging to the *other* connector is ignored (connecting Drive must not tear down Gmail), missing flag, other statuses, non-axios
+- [x] `layout.ts` (3) — 1024 / 880 / 720 for the rail combinations
+- **Acceptance met:** 41 of the 46 tests render nothing; the whole suite runs in ~1 s.
 
 ## L4 — Component tests (highest value first)
 
-- [ ] `BRDQAPanel` — optimistic user message appears before the request resolves; on failure the message is rolled back **and the composer text is restored**; sources render with `source_type`
-- [ ] `WorkspacePage` — duplicate-upload Replace flow calls delete **then** upload (order asserted); delete tracking disables only the affected row
-- [ ] `WorkspacePage` — Generate/Regenerate disabled while `generationStep !== "idle"`
-- **Setup:** `QueryClientProvider` wrapper + `vi.mock("@/api/...")`; no real network, no Supabase
+- [x] `BRDQAPanel` (6) — optimistic bubble before the request resolves, answer paragraphs, sources with `source_type`, rollback **and** composer restore on failure, empty submit ignored, only one send while in flight, clear
+- [x] Replace ordering — asserted through the extracted `replaceStoredSource` rather than a page render. Two tests: upload is not called while the delete is pending (and is called after it resolves), and a failed delete never uploads. **Not** covered: delete tracking disabling only the affected row.
+- [ ] **Deferred:** Generate/Regenerate disabled while `generationStep !== "idle"`. This is inline JSX in a 2,107-line page that needs auth context, a router, and six mocked queries. Skipped deliberately: the harness would be more fragile than the assertion is valuable, and the guard is one `disabled` prop on a button that is already exercised by hand every generation. Revisit only if that button misbehaves.
+- **Setup as planned:** `QueryClientProvider` wrapper + `vi.mock("@/api/brd")`. No network, no Supabase. Env placeholders live in `vitest.config.ts` because `@/lib/supabase` throws at import time without them.
 - **Acceptance:** each test fails if the behavior it guards is removed.
 
 ## L5 — Optional (only if time allows)
 
-- [ ] Accessibility smoke: `@testing-library/jest-dom` role/label assertions on the workspace shells
-- [ ] Coverage report in CI (informational, no threshold gate)
+- [ ] **Deferred (optional):** accessibility smoke — role/label assertions on the workspace shells.
+- [ ] **Deferred (optional):** coverage report in CI (informational, no threshold gate).
 
 ---
 

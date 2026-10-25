@@ -165,6 +165,8 @@ Other commands:
 npm run build    # type-check + production build
 npm run preview  # preview production build
 npm run lint     # eslint
+npm test         # vitest, jsdom (46 tests)
+npm run test:watch
 ```
 
 ## User flow

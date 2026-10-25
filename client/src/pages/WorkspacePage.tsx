@@ -79,26 +79,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { downloadBlob, safeExportFilename } from "@/lib/files";
+import { errorDetail } from "@/lib/errors";
+import {
+  findDuplicateUpload,
+  replaceStoredSource,
+  validateUploadSelection,
+} from "@/lib/uploadDedup";
+import { mapJobPhaseToStep } from "@/lib/generation";
+import { documentMeasure } from "@/lib/layout";
+
 const GmailSourceBrowser = lazy(() =>
   import("@/components/gmail/GmailSourceBrowser").then((module) => ({
     default: module.GmailSourceBrowser,
   })),
 );
-
-// Server job phases (processing_sources | preparing_knowledge |
-// generating_brd | null while queued) mapped onto the UI step order.
-function mapJobPhaseToStep(
-  phase: string | null,
-): "processing-sources" | "preparing-knowledge" | "generating-brd" {
-  switch (phase) {
-    case "preparing_knowledge":
-      return "preparing-knowledge";
-    case "generating_brd":
-      return "generating-brd";
-    default:
-      return "processing-sources";
-  }
-}
 
 // Compact source index row shared by the uploads, Gmail, and Drive
 // lists: single-line title plus a one-line meta row (neutral type badge
@@ -167,22 +162,6 @@ function SourceCard({
     </div>
   );
 }
-
-/** Server `detail` from an axios error, when it is a plain string. */
-function errorDetail(error: unknown): string | null {
-  if (!isAxiosError(error)) {
-    return null;
-  }
-
-  const detail = (error.response?.data as { detail?: unknown } | undefined)
-    ?.detail;
-
-  return typeof detail === "string" ? detail : null;
-}
-
-type DuplicateMatch =
-  | { kind: "batch"; fileName: string }
-  | { kind: "stored"; fileName: string; documentId: string };
 
 export default function WorkspacePage() {
   const navigate = useNavigate();
@@ -440,40 +419,6 @@ export default function WorkspacePage() {
   function flashSources(text: string) {
     setSourcesNoteText(text);
     showSourcesNote();
-  }
-
-  const MAX_EXPORT_NAME_CHARS = 80;
-
-  function safeExportFilename(
-    workspaceName: string,
-    extension: string,
-  ): string {
-    let stem = workspaceName.trim() || "BRD";
-
-    // eslint-disable-next-line no-control-regex
-    stem = stem.replace(/[\x00-\x1f\x7f"\\/]/g, "");
-
-    stem = stem.replace(/\s+/g, " ").replace(/^[./]+/, "") || "BRD";
-
-    if (stem.length > MAX_EXPORT_NAME_CHARS) {
-      stem = stem.slice(0, MAX_EXPORT_NAME_CHARS).trimEnd() || "BRD";
-    }
-
-    return `${stem} - BRD.${extension}`;
-  }
-
-  function downloadBlob(blob: Blob, filename: string) {
-    const url = window.URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    window.URL.revokeObjectURL(url);
   }
 
   async function handleDownloadPdf() {
@@ -748,10 +693,6 @@ export default function WorkspacePage() {
     navigate("/auth", { replace: true });
   }
 
-  const MAX_UPLOAD_FILES = 10;
-  const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
-  const ALLOWED_EXTENSIONS = [".txt", ".pdf", ".docx"];
-
   const [uploadValidationError, setUploadValidationError] = useState<
     string | null
   >(null);
@@ -769,30 +710,14 @@ export default function WorkspacePage() {
 
     setUploadValidationError(null);
 
-    if (files.length > MAX_UPLOAD_FILES) {
-      setUploadValidationError(
-        `Too many files: ${files.length}. Maximum ${MAX_UPLOAD_FILES} files per upload.`,
-      );
+    const validationError = validateUploadSelection(files);
+
+    if (validationError) {
+      setUploadValidationError(validationError);
       return;
     }
 
-    for (const file of files) {
-      const suffix = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
-
-      if (!ALLOWED_EXTENSIONS.includes(suffix)) {
-        setUploadValidationError(
-          `Unsupported file type: ${file.name}. Supported types: .txt, .pdf, .docx`,
-        );
-        return;
-      }
-
-      if (file.size > MAX_UPLOAD_BYTES) {
-        setUploadValidationError(`File too large: ${file.name} (max 10MB)`);
-        return;
-      }
-    }
-
-    const duplicate = findDuplicateUpload(files);
+    const duplicate = findDuplicateUpload(files, documents);
 
     if (duplicate?.kind === "batch") {
       setUploadValidationError(
@@ -812,46 +737,6 @@ export default function WorkspacePage() {
     }
 
     uploadMutation.mutate(files);
-  }
-
-  // Client-side mirror of the server triple check (file name + extension +
-  // byte size) — the server re-validates. An in-batch repeat stays a hard
-  // error (there is nothing to replace); a match against a stored source
-  // gets a Replace offer, so an edited file that kept its name and size is
-  // no longer un-addable (L-7).
-  function findDuplicateUpload(files: File[]): DuplicateMatch | null {
-    const seen = new Set<string>();
-
-    for (const file of files) {
-      const suffix = `.${file.name.split(".").pop()?.toLowerCase() ?? ""}`;
-      const key = `${file.name}|${suffix}|${file.size}`;
-
-      if (seen.has(key)) {
-        return { kind: "batch", fileName: file.name };
-      }
-
-      seen.add(key);
-
-      const match = (documents ?? []).find((document) => {
-        const metadata = document.metadata ?? {};
-
-        return (
-          metadata.file_name === file.name &&
-          metadata.extension === suffix &&
-          metadata.size_bytes === file.size
-        );
-      });
-
-      if (match) {
-        return {
-          kind: "stored",
-          fileName: file.name,
-          documentId: match.id,
-        };
-      }
-    }
-
-    return null;
   }
 
   const [pendingDeleteDocumentId, setPendingDeleteDocumentId] = useState<
@@ -893,21 +778,24 @@ export default function WorkspacePage() {
 
     setReplaceError(null);
 
-    // Sequential on purpose: the server re-checks the dedup triple against
-    // committed rows, so the upload must not race the delete.
-    deleteMutation
-      .mutateAsync(documentId)
-      .then(() => {
-        setPendingReplace(null);
-        uploadMutation.mutate(files);
-      })
-      .catch((error: unknown) => {
-        // Keep the old source (and this dialog) — nothing has been lost.
-        setReplaceError(
-          errorDetail(error) ??
-            `Couldn't remove the stored copy of ${fileName}. Try again.`,
-        );
-      });
+    // Delete first, upload second — see replaceStoredSource for why this
+    // must not be parallel.
+    replaceStoredSource(
+      { documentId, files },
+      {
+        remove: (storedId) => deleteMutation.mutateAsync(storedId),
+        upload: (replacement) => {
+          setPendingReplace(null);
+          uploadMutation.mutate(replacement);
+        },
+      },
+    ).catch((error: unknown) => {
+      // Keep the old source (and this dialog) — nothing has been lost.
+      setReplaceError(
+        errorDetail(error) ??
+          `Couldn't remove the stored copy of ${fileName}. Try again.`,
+      );
+    });
   }
 
   function handleConnectGmail() {
@@ -1160,12 +1048,7 @@ export default function WorkspacePage() {
   // Document measure follows the rails: comfortable at full chrome,
   // roomier as rails collapse. Transition is motion-safe via the global
   // reduced-motion kill-switch.
-  const docMeasure =
-    !sourcesOpen && !qaOpen
-      ? "max-w-[1024px]"
-      : !sourcesOpen || !qaOpen
-        ? "max-w-[880px]"
-        : "max-w-[720px]";
+  const docMeasure = documentMeasure(sourcesOpen, qaOpen);
 
   return (
     <main className="relative min-h-screen print:bg-white">
