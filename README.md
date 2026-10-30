@@ -159,6 +159,32 @@ VITE_GOOGLE_APP_ID=...
 | `VITE_GOOGLE_PICKER_API_KEY` | Browser API key restricted to the Google Picker API (Drive file chooser) |
 | `VITE_GOOGLE_APP_ID` | Numeric Google Cloud project number for the Picker |
 
+### Google Picker setup
+
+The Drive file chooser needs three console settings, and each fails with an
+error that does not name it:
+
+| Setting | Where | If it is missing |
+|---|---|---|
+| `https://<your-origin>/*` in **HTTP referrers** | Credentials → the browser API key | *"The API developer key is invalid"* dialog |
+| **Google Picker API** enabled | APIs & Services → Library | the same dialog as above |
+| `https://<your-origin>` in **Authorized JavaScript origins** | Credentials → the OAuth client | `origin_mismatch` |
+
+Two pairs that are easy to conflate:
+
+- **JavaScript origins** vs **redirect URIs** are different fields on the same
+  client. The redirect URIs handle the OAuth callback; the origins handle the
+  Picker's own origin check.
+- A wildcard `*.pages.dev` does **not** match `pages.dev` — it covers subdomains
+  only, so a Cloudflare Pages project needs its exact hostname listed.
+
+`VITE_GOOGLE_APP_ID` must be the **project number** of the project that owns both
+the key and the OAuth client. A cross-project app ID is the worst case of the
+four: the Picker opens, shows an empty or partial file list, and reports nothing.
+
+Changing either `VITE_*` value requires a rebuild (they are inlined at build
+time); the console settings above do not.
+
 Other commands:
 
 ```bash
@@ -339,7 +365,11 @@ Five settings that fail in ways which do not name their cause:
 
 Free-tier behaviour worth knowing: a Render free instance sleeps after 15 minutes
 without traffic and takes about a minute to wake, so ping `/health` every 10
-minutes with any uptime monitor during a demo window. The allowance is 750
-instance hours per month, and there is no persistent disk — exports are written
-to temp files and evaluation records are disabled because
-`ENVIRONMENT=production` (which also unmounts `/evals` and enables HSTS).
+minutes with any uptime monitor during a demo window — and **turn the monitor
+off afterwards**. The allowance is 750 instance hours per month and it counts
+*awake* hours, not pings, so a 5- and a 10-minute interval cost exactly the same.
+A monitor left running across a full calendar month is roughly 744 of those 750
+hours, and exceeding the allowance suspends the service until the next month.
+There is also no persistent disk — exports are written to temp files and
+evaluation records are disabled because `ENVIRONMENT=production` (which also
+unmounts `/evals` and enables HSTS).

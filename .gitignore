@@ -1,5 +1,5 @@
 .DS_Store
-
+REPORT.md
 server/.env
 server/.venv/
 server/app/__pycache__/

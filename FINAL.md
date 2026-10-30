@@ -255,6 +255,7 @@ These are module-local today; extract without changing behavior.
 
 - [x] Cold start — covered by the free-tier deployment itself: a first request after idle is the cold-start case, and it is why `/health` is pinged every 10 minutes.
 - [x] Deployment verified end to end from outside: `/health` 200 (`environment: production`), `/health/database` 404, `/evals/*` 404, unauthenticated `/workspaces` 401, SPA deep link 200, CORS preflight 200 for the Pages origin, `VITE_API_URL` baked with zero `localhost` hits.
+- [x] Google Drive **picker and import** verified in production (2026-10-26): the Picker opened against the Pages origin and a real Drive file imported into Sources. This closes the smoke test the M-2 batch left open — the streamed `MediaIoBaseDownload` path had only ever run against mocks, and it now has run against Google from Render's egress.
 - [x] The evaluator still cannot run in production **by design** (`ENVIRONMENT=production` unmounts `/evals`). Any live benchmark run must happen locally; the last one is `app/evals/reports/20261022T151355`.
 - [ ] Real numbers for the presentation — unchanged from the local measurements (extraction ≈ 20 s, consolidation ≈ 0, generation ≈ 14 s, total ≈ 34 s). Expected to be slower on Render's 0.1 CPU; not re-measured.
 
