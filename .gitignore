@@ -44,6 +44,10 @@ dist/
 .pi
 PLAN.md
 
+# Internal build/audit logs — kept on disk for local reference, not published
+ISSUES.md
+FINAL.md
+
 # Agent skills are per-machine support, never project content — see AGENTS.md
 # ("supporting expertise only — never --persist them into the project").
 client/.agents/
