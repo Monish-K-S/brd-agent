@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" role="img" aria-labelledby="archTitle archDesc">
+  <title id="archTitle">Sourcify runtime architecture</title>
+  <desc id="archDesc">A React single-page application on Cloudflare Pages calls a single-process FastAPI service on Render. That service reads and writes PostgreSQL in Supabase and calls Sarvam, Gemini and the Google APIs. The browser signs in through Supabase Auth, and the API verifies the resulting JWT against Supabase JWKS.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A8478"/>
+    </marker>
+    <marker id="arrowSoft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#B9B2A5"/>
+    </marker>
+    <style>
+      .canvas      { fill: #F5F1E8; stroke: #DDD8CD; stroke-width: 1; }
+      .card        { fill: #FFFDF8; stroke: #DDD8CD; stroke-width: 1; }
+      .chip        { fill: #F1EDE3; stroke: #E2DCCF; stroke-width: 1; }
+      .chip-quiet  { fill: #EEEAE1; stroke: #DDD8CD; stroke-width: 1; }
+      .chip-accent { fill: #FFF0EB; stroke: #FF5C3B; stroke-width: 1.25; }
+      .eyebrow     { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                     font-size: 11px; font-weight: 600; letter-spacing: 1.6px; fill: #6D6A63; }
+      .sub         { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                     font-size: 12px; fill: #85817A; }
+      .label       { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                     font-size: 13px; font-weight: 600; fill: #151515; }
+      .label-accent{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                     font-size: 13px; font-weight: 600; fill: #C43A17; }
+      .detail      { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                     font-size: 11.5px; fill: #4A463D; }
+      .wire        { stroke: #8A8478; stroke-width: 1.25; fill: none; }
+      .wire-soft   { stroke: #B9B2A5; stroke-width: 1.25; fill: none; stroke-dasharray: 5 5; }
+      .wire-label  { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+                     font-size: 10.5px; fill: #6D6A63; letter-spacing: 0.4px; }
+    </style>
+  </defs>
+
+  <rect class="canvas" x="0.5" y="0.5" width="1199" height="699" rx="18"/>
+
+  <!-- Browser -->
+  <rect class="card" x="30" y="200" width="250" height="300" rx="14"/>
+  <text class="eyebrow" x="52" y="234">BROWSER</text>
+  <text class="sub" x="52" y="254">Cloudflare Pages</text>
+
+  <rect class="chip" x="48" y="272" width="214" height="56" rx="8"/>
+  <text class="label" x="62" y="296">React 19 SPA</text>
+  <text class="detail" x="62" y="314">TanStack Query · Axios</text>
+
+  <rect class="chip" x="48" y="340" width="214" height="56" rx="8"/>
+  <text class="label" x="62" y="364">Supabase JS</text>
+  <text class="detail" x="62" y="382">session · JWT</text>
+
+  <rect class="chip" x="48" y="408" width="214" height="56" rx="8"/>
+  <text class="label" x="62" y="432">Google Picker</text>
+  <text class="detail" x="62" y="450">Drive file chooser</text>
+
+  <!-- API -->
+  <rect class="card" x="370" y="110" width="420" height="470" rx="14"/>
+  <text class="eyebrow" x="392" y="144">API</text>
+  <text class="sub" x="392" y="164">FastAPI · Render · one process</text>
+
+  <rect class="chip-quiet" x="390" y="190" width="380" height="56" rx="8"/>
+  <text class="label" x="404" y="214">JWT verification · rate limits</text>
+  <text class="detail" x="404" y="232">security headers · CORS</text>
+
+  <rect class="chip-quiet" x="390" y="260" width="380" height="56" rx="8"/>
+  <text class="label" x="404" y="284">REST routes</text>
+  <text class="detail" x="404" y="302">workspaces · sources · brd · integrations</text>
+
+  <rect class="chip-quiet" x="390" y="330" width="380" height="56" rx="8"/>
+  <text class="label" x="404" y="354">Services</text>
+  <text class="detail" x="404" y="372">ingestion · extraction · Q&amp;A</text>
+
+  <rect class="chip-accent" x="390" y="400" width="380" height="56" rx="8"/>
+  <text class="label-accent" x="404" y="424">BackgroundTasks · generation job</text>
+  <text class="detail" x="404" y="442">rebuilds project knowledge and the BRD</text>
+
+  <rect class="chip" x="390" y="470" width="380" height="56" rx="8"/>
+  <text class="label" x="404" y="494">Export builders</text>
+  <text class="detail" x="404" y="512">PDF (fpdf2) · DOCX (python-docx)</text>
+
+  <!-- Data -->
+  <rect class="card" x="890" y="90" width="280" height="230" rx="14"/>
+  <text class="eyebrow" x="912" y="124">DATA</text>
+  <text class="sub" x="912" y="144">Supabase · ap-south-1</text>
+
+  <rect class="chip" x="910" y="164" width="240" height="56" rx="8"/>
+  <text class="label" x="924" y="188">PostgreSQL</text>
+  <text class="detail" x="924" y="206">via Supavisor pooler</text>
+
+  <rect class="chip" x="910" y="232" width="240" height="56" rx="8"/>
+  <text class="label" x="924" y="256">Auth</text>
+  <text class="detail" x="924" y="274">JWKS · Google sign-in</text>
+
+  <!-- External -->
+  <rect class="card" x="890" y="390" width="280" height="280" rx="14"/>
+  <text class="eyebrow" x="912" y="424">EXTERNAL</text>
+  <text class="sub" x="912" y="444">Third-party APIs</text>
+
+  <rect class="chip" x="910" y="462" width="240" height="56" rx="8"/>
+  <text class="label" x="924" y="486">Sarvam</text>
+  <text class="detail" x="924" y="504">structured extraction</text>
+
+  <rect class="chip" x="910" y="528" width="240" height="56" rx="8"/>
+  <text class="label" x="924" y="552">Gemini</text>
+  <text class="detail" x="924" y="570">BRD generation</text>
+
+  <rect class="chip" x="910" y="594" width="240" height="56" rx="8"/>
+  <text class="label" x="924" y="618">Google APIs</text>
+  <text class="detail" x="924" y="636">Gmail · Drive</text>
+
+  <!-- Annotation -->
+  <circle cx="48" cy="562" r="3" fill="#FF5C3B"/>
+  <text class="label" x="58" y="566">Single process by design</text>
+  <text class="detail" x="58" y="588">Rate-limit buckets, OAuth state</text>
+  <text class="detail" x="58" y="606">and the running job live in memory.</text>
+
+  <!-- Wires -->
+  <line class="wire" x1="280" y1="350" x2="362" y2="350" marker-end="url(#arrow)"/>
+  <text class="wire-label" x="325" y="341" text-anchor="middle">HTTPS · JWT</text>
+
+  <line class="wire" x1="790" y1="205" x2="882" y2="205" marker-end="url(#arrow)"/>
+  <text class="wire-label" x="840" y="196" text-anchor="middle">SQL · pooler</text>
+
+  <line class="wire" x1="790" y1="530" x2="882" y2="530" marker-end="url(#arrow)"/>
+  <text class="wire-label" x="840" y="521" text-anchor="middle">HTTPS</text>
+
+  <!-- Auth path: browser signs in through Supabase, token verified via JWKS -->
+  <path class="wire-soft" d="M155 200 V44 H1030 V86" marker-end="url(#arrowSoft)"/>
+  <text class="wire-label" x="700" y="36" text-anchor="middle">Google sign-in · token verified via JWKS</text>
+</svg>

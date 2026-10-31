@@ -87,6 +87,11 @@ flowchart LR
   E --> F["BRD viewer<br/>inline editing"]
   E --> G["PDF / DOCX export"]
   F --> H["Q&A<br/>source-traced answers"]
+
+  classDef stage fill:#FFFDF8,stroke:#DDD8CD,color:#151515,stroke-width:1px
+  classDef accent fill:#FFF0EB,stroke:#FF5C3B,color:#C43A17,stroke-width:1.25px
+  class A,B,C,D,F,G,H stage
+  class E accent
 ```
 
 Two decisions worth knowing about, because both were measured rather than assumed:
@@ -104,47 +109,11 @@ Two decisions worth knowing about, because both were measured rather than assume
 
 Where each piece runs, and what talks to what:
 
-```mermaid
-flowchart TB
-  subgraph browser["Browser · Cloudflare Pages"]
-    spa["React 19 SPA<br/>TanStack Query + Axios"]
-    supajs["Supabase JS<br/>session + JWT"]
-  end
+![Sourcify runtime architecture: a React SPA on Cloudflare Pages calls a single-process FastAPI service on Render, which owns PostgreSQL access in Supabase and calls Sarvam, Gemini and the Google APIs](docs/architecture.svg)
 
-  subgraph api["FastAPI · Render, single process"]
-    mw["JWT verification<br/>rate limits · security headers"]
-    routes["REST routes<br/>workspaces · sources · brd · integrations"]
-    services["Services<br/>ingestion · extraction · Q&amp;A"]
-    jobs["BackgroundTasks<br/>generation job"]
-    exporters["Export builders<br/>PDF · DOCX"]
-  end
-
-  subgraph data["Supabase · ap-south-1"]
-    pg[("PostgreSQL<br/>Supavisor pooler")]
-    auth["Auth<br/>JWKS"]
-  end
-
-  subgraph external["Third-party APIs"]
-    sarvam["Sarvam<br/>structured extraction"]
-    gemini["Gemini<br/>BRD generation"]
-    google["Google<br/>Gmail · Drive"]
-  end
-
-  spa -->|"HTTPS · Bearer JWT"| mw
-  supajs -.->|"Google sign-in"| auth
-  mw -.->|"verify token"| auth
-  mw --> routes --> services
-  services --> jobs
-  services --> exporters
-  services --> pg
-  jobs --> sarvam
-  jobs --> gemini
-  services --> google
-  exporters -.->|"PDF / DOCX download"| spa
-```
-
-The API is deliberately a single process: rate-limit buckets, OAuth state and PKCE verifiers, and
-the generation job all live in memory. The [Deploy](#deploy) section explains what that rules out.
+The coral chip is the only stateful path: generation runs as a `BackgroundTasks` job inside the
+API process, which is why a restart mid-run has to be recovered rather than resumed. The
+[Deploy](#deploy) section explains what that rules out.
 
 ## Tech stack
 
